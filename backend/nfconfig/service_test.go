@@ -636,7 +636,6 @@ func TestSyncInMemoryConfig_DBError_KeepsPreviousConfig(t *testing.T) {
 				{
 					PlmnId:   nfConfigApi.PlmnId{Mcc: "123", Mnc: "87"},
 					Snssai:   makeSnssaiWithSd(1, "01234"),
-					DnnQos:   []nfConfigApi.DnnQos{},
 					PccRules: []nfConfigApi.PccRule{},
 				},
 			},
