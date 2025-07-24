@@ -22,7 +22,7 @@ cscope.*
 # debug
 *.log
 *.pcap
-
+bin/
 # build
 bin/
 public/
