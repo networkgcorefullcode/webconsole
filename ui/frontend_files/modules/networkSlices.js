@@ -2,6 +2,7 @@
 // Copyright 2024 Canonical Ltd.
 
 import { BaseManager } from './baseManager.js';
+import { API_BASE } from '../app.js';
 
 export class NetworkSliceManager extends BaseManager {
     constructor() {
@@ -236,6 +237,29 @@ export class NetworkSliceManager extends BaseManager {
             },
             "application-filtering-rules": []
         };
+    }
+
+    // Override createItem to include slice name in URL for network slices
+    async createItem(itemData) {
+        try {
+            const sliceName = itemData['slice-name'];
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${sliceName}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(itemData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            throw error;
+        }
     }
 
     async loadDeviceGroups() {
