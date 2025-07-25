@@ -29,7 +29,6 @@ RUN if [ "$BUILD_UI" = "true" ]; then \
     else \
         make all; \
     fi
-    
 
 FROM alpine:3.22 AS webui
 
@@ -38,11 +37,18 @@ LABEL maintainer="Aether SD-Core <dev@lists.aetherproject.org>" \
     version="Stage 3"
 
 ARG DEBUG_TOOLS
+ARG BUILD_UI=true
 
 # Install debug tools ~85MB (if DEBUG_TOOLS is set to true)
 RUN if [ "$DEBUG_TOOLS" = "true" ]; then \
         apk update && apk add --no-cache -U vim strace net-tools curl netcat-openbsd bind-tools; \
-        fi
+    fi
 
-# Copy executable
-COPY --from=builder /go/src/webconsole/webconsole /usr/local/bin/.
+# Copy executable - choose the right binary based on BUILD_UI
+RUN if [ "$BUILD_UI" = "true" ]; then \
+        echo "Copying UI-enabled binary"; \
+    else \
+        echo "Copying standard binary"; \
+    fi
+
+COPY --from=builder /go/src/webconsole/bin/webconsole* /usr/local/bin/
