@@ -23,6 +23,7 @@ RUN apt-get update && \
 WORKDIR $GOPATH/src/webconsole
 COPY . .
 
+ARG BUILD_UI=true
 RUN if [ "$BUILD_UI" = "true" ]; then \
         make webconsole-ui; \
     else \
