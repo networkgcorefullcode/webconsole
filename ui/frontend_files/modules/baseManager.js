@@ -147,10 +147,12 @@ export class BaseManager {
     showError(message) {
         const container = document.getElementById(this.containerId);
         if (container) {
+            // Ensure message is a string
+            const errorMessage = message ? String(message) : 'An unknown error occurred';
             container.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    ${message}
+                    ${errorMessage}
                 </div>
             `;
         }

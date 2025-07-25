@@ -25,14 +25,35 @@ export class DeviceGroupManager extends BaseManager {
             const groupNames = await response.json();
             console.log('Device group names:', groupNames);
             
+            // Check if we got valid data
+            if (!Array.isArray(groupNames)) {
+                console.error('Expected array of group names, got:', groupNames);
+                this.showError('Invalid response format from server');
+                return;
+            }
+            
+            // If no groups, show empty state
+            if (groupNames.length === 0) {
+                this.data = [];
+                this.render([]);
+                return;
+            }
+            
             // Then, fetch complete details for each group
             const groupDetails = [];
             for (const groupName of groupNames) {
                 try {
-                    const detailResponse = await fetch(`${API_BASE}${this.apiEndpoint}/${groupName}`);
+                    if (typeof groupName !== 'string') {
+                        console.warn('Invalid group name:', groupName);
+                        continue;
+                    }
+                    
+                    const detailResponse = await fetch(`${API_BASE}${this.apiEndpoint}/${encodeURIComponent(groupName)}`);
                     if (detailResponse.ok) {
                         const groupDetail = await detailResponse.json();
                         groupDetails.push(groupDetail);
+                    } else {
+                        console.warn(`Failed to load details for group ${groupName}: ${detailResponse.status}`);
                     }
                 } catch (error) {
                     console.error(`Failed to load details for group ${groupName}:`, error);
@@ -53,7 +74,12 @@ export class DeviceGroupManager extends BaseManager {
     render(groups) {
         const container = document.getElementById(this.containerId);
         
-        if (!groups || groups.length === 0) {
+        if (!container) {
+            console.error('Container element not found:', this.containerId);
+            return;
+        }
+        
+        if (!groups || !Array.isArray(groups) || groups.length === 0) {
             this.showEmpty('No device groups found');
             return;
         }
@@ -62,10 +88,11 @@ export class DeviceGroupManager extends BaseManager {
         html += '<thead><tr><th>Group Name</th><th>IMSIs</th><th>Site Info</th><th>IP Domain</th><th>Actions</th></tr></thead><tbody>';
         
         groups.forEach(group => {
-            const groupName = group['group-name'] || group.name || 'N/A';
-            const imsis = group.imsis || [];
-            const siteInfo = group['site-info'] || 'N/A';
-            const ipDomainName = group['ip-domain-name'] || 'N/A';
+            // Safely extract properties with fallbacks
+            const groupName = (group && (group['group-name'] || group.name)) || 'N/A';
+            const imsis = (group && Array.isArray(group.imsis)) ? group.imsis : [];
+            const siteInfo = (group && group['site-info']) || 'N/A';
+            const ipDomainName = (group && group['ip-domain-name']) || 'N/A';
             
             html += `
                 <tr>
@@ -315,7 +342,7 @@ export class DeviceGroupManager extends BaseManager {
 
     async loadItemData(name) {
         try {
-            const response = await fetch(`${this.apiBase}/${name}`);
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${encodeURIComponent(name)}`);
             if (response.ok) {
                 const data = await response.json();
                 
