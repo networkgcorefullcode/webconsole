@@ -53,9 +53,9 @@ $(GO_BIN_PATH)/$(WEBCONSOLE): server.go  $(WEBCONSOLE_GO_FILES)
 
 vpath %.go $(addprefix $(GO_SRC_PATH)/, $(GO_NF))
 
-webconsole-ui: $(GO_BIN_PATH)/$(WEBCONSOLE)-ui
+webconsole-ui: $(GO_BIN_PATH)/$(WEBCONSOLE)
 
-$(GO_BIN_PATH)/$(WEBCONSOLE)-ui: server.go  $(WEBCONSOLE_GO_FILES)
+$(GO_BIN_PATH)/$(WEBCONSOLE): server.go  $(WEBCONSOLE_GO_FILES)
 	@echo "Start building $(@F)...."
 	go build --tags ui -o $(ROOT_PATH)/$@ ./server.go
 
