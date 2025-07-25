@@ -51,4 +51,4 @@ RUN if [ "$BUILD_UI" = "true" ]; then \
         echo "Copying standard binary"; \
     fi
 
-COPY --from=builder /go/src/webconsole/bin/webconsole* /usr/local/bin/
+COPY --from=builder /go/src/webconsole/bin/* /usr/local/bin/.
