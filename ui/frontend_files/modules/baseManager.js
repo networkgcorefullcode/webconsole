@@ -20,7 +20,15 @@ export class BaseManager {
             }
             
             const data = await response.json();
+            
+            // Debug: Log the raw API response
+            console.log(`${this.apiEndpoint} API response:`, data);
+            
             this.data = Array.isArray(data) ? data : [data];
+            
+            // Debug: Log the processed data
+            console.log(`${this.apiEndpoint} processed data:`, this.data);
+            
             this.render(this.data);
             
         } catch (error) {
