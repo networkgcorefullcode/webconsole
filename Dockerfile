@@ -23,11 +23,6 @@ RUN apt-get update && \
 WORKDIR $GOPATH/src/webconsole
 COPY . .
 
-ARG BUILD_UI=true
-RUN if [ "$BUILD_UI" = "true" ]; then \
-    make webconsole-ui; \
-    fi
-
 RUN if [ "$BUILD_UI" = "true" ]; then \
         CGO_ENABLED=0 go build -a --tags ui -installsuffix nocgo -o webconsole -x server.go \
     else \
