@@ -227,13 +227,13 @@ export class DeviceGroupManager extends BaseManager {
     validateFormData(data) {
         const errors = [];
         
-        if (!data.group_name || data.group_name.trim() === '') {
+        if (!data.group_name || String(data.group_name).trim() === '') {
             errors.push('Group name is required');
         }
         
         // Validate IMSIs
-        if (data.imsis && data.imsis.trim() !== '') {
-            const imsiList = data.imsis.split('\n').map(imsi => imsi.trim()).filter(imsi => imsi);
+        if (data.imsis && String(data.imsis).trim() !== '') {
+            const imsiList = String(data.imsis).split('\n').map(imsi => imsi.trim()).filter(imsi => imsi);
             for (const imsi of imsiList) {
                 if (!/^\d{15}$/.test(imsi)) {
                     errors.push(`Invalid IMSI format: ${imsi}. IMSIs must be exactly 15 digits`);
@@ -243,26 +243,29 @@ export class DeviceGroupManager extends BaseManager {
         }
         
         // Validate IP Pool format if provided
-        if (data.ue_ip_pool && data.ue_ip_pool.trim() !== '') {
+        if (data.ue_ip_pool && String(data.ue_ip_pool).trim() !== '') {
             const ipPoolRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
-            if (!ipPoolRegex.test(data.ue_ip_pool)) {
+            if (!ipPoolRegex.test(String(data.ue_ip_pool))) {
                 errors.push('UE IP Pool must be in CIDR format (e.g., 172.250.0.0/16)');
             }
         }
         
         // Validate DNS IPs if provided
         const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-        if (data.dns_primary && data.dns_primary.trim() !== '' && !ipRegex.test(data.dns_primary)) {
+        if (data.dns_primary && String(data.dns_primary).trim() !== '' && !ipRegex.test(String(data.dns_primary))) {
             errors.push('Primary DNS must be a valid IP address');
         }
         
-        if (data.dns_secondary && data.dns_secondary.trim() !== '' && !ipRegex.test(data.dns_secondary)) {
+        if (data.dns_secondary && String(data.dns_secondary).trim() !== '' && !ipRegex.test(String(data.dns_secondary))) {
             errors.push('Secondary DNS must be a valid IP address');
         }
         
         // Validate MTU range
-        if (data.mtu && (data.mtu < 1200 || data.mtu > 9000)) {
-            errors.push('MTU must be between 1200 and 9000');
+        if (data.mtu) {
+            const mtuNum = parseInt(data.mtu);
+            if (isNaN(mtuNum) || mtuNum < 1200 || mtuNum > 9000) {
+                errors.push('MTU must be a number between 1200 and 9000');
+            }
         }
         
         return {
