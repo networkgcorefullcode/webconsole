@@ -11,6 +11,45 @@ export class NetworkSliceManager extends BaseManager {
         this.displayName = 'Network Slice';
     }
 
+    // Override loadData to fetch complete network slice details
+    async loadData() {
+        try {
+            this.showLoading();
+            
+            // First, get the list of network slice names
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const sliceNames = await response.json();
+            console.log('Network slice names:', sliceNames);
+            
+            // Then, fetch complete details for each slice
+            const sliceDetails = [];
+            for (const sliceName of sliceNames) {
+                try {
+                    const detailResponse = await fetch(`${API_BASE}${this.apiEndpoint}/${sliceName}`);
+                    if (detailResponse.ok) {
+                        const sliceDetail = await detailResponse.json();
+                        sliceDetails.push(sliceDetail);
+                    }
+                } catch (error) {
+                    console.error(`Failed to load details for slice ${sliceName}:`, error);
+                }
+            }
+            
+            console.log('Complete network slice details:', sliceDetails);
+            
+            this.data = sliceDetails;
+            this.render(sliceDetails);
+            
+        } catch (error) {
+            this.showError(`Failed to load network slices: ${error.message}`);
+            console.error('Load network slices error:', error);
+        }
+    }
+
     render(slices) {
         const container = document.getElementById(this.containerId);
         

@@ -11,11 +11,47 @@ export class DeviceGroupManager extends BaseManager {
         this.displayName = 'Device Group';
     }
 
+    // Override loadData to fetch complete device group details
+    async loadData() {
+        try {
+            this.showLoading();
+            
+            // First, get the list of device group names
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const groupNames = await response.json();
+            console.log('Device group names:', groupNames);
+            
+            // Then, fetch complete details for each group
+            const groupDetails = [];
+            for (const groupName of groupNames) {
+                try {
+                    const detailResponse = await fetch(`${API_BASE}${this.apiEndpoint}/${groupName}`);
+                    if (detailResponse.ok) {
+                        const groupDetail = await detailResponse.json();
+                        groupDetails.push(groupDetail);
+                    }
+                } catch (error) {
+                    console.error(`Failed to load details for group ${groupName}:`, error);
+                }
+            }
+            
+            console.log('Complete device group details:', groupDetails);
+            
+            this.data = groupDetails;
+            this.render(groupDetails);
+            
+        } catch (error) {
+            this.showError(`Failed to load device groups: ${error.message}`);
+            console.error('Load device groups error:', error);
+        }
+    }
+
     render(groups) {
         const container = document.getElementById(this.containerId);
-        
-        // Debug: Log the data structure
-        console.log('Device Groups data received:', groups);
         
         if (!groups || groups.length === 0) {
             this.showEmpty('No device groups found');
@@ -26,9 +62,6 @@ export class DeviceGroupManager extends BaseManager {
         html += '<thead><tr><th>Group Name</th><th>IMSIs</th><th>Site Info</th><th>IP Domain</th><th>Actions</th></tr></thead><tbody>';
         
         groups.forEach(group => {
-            // Debug: Log each group structure
-            console.log('Individual group:', group);
-            
             const groupName = group['group-name'] || group.name || 'N/A';
             const imsis = group.imsis || [];
             const siteInfo = group['site-info'] || 'N/A';
