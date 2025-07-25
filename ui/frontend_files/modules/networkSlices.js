@@ -25,14 +25,35 @@ export class NetworkSliceManager extends BaseManager {
             const sliceNames = await response.json();
             console.log('Network slice names:', sliceNames);
             
+            // Check if we got valid data
+            if (!Array.isArray(sliceNames)) {
+                console.error('Expected array of slice names, got:', sliceNames);
+                this.showError('Invalid response format from server');
+                return;
+            }
+            
+            // If no slices, show empty state
+            if (sliceNames.length === 0) {
+                this.data = [];
+                this.render([]);
+                return;
+            }
+            
             // Then, fetch complete details for each slice
             const sliceDetails = [];
             for (const sliceName of sliceNames) {
                 try {
-                    const detailResponse = await fetch(`${API_BASE}${this.apiEndpoint}/${sliceName}`);
+                    if (typeof sliceName !== 'string') {
+                        console.warn('Invalid slice name:', sliceName);
+                        continue;
+                    }
+                    
+                    const detailResponse = await fetch(`${API_BASE}${this.apiEndpoint}/${encodeURIComponent(sliceName)}`);
                     if (detailResponse.ok) {
                         const sliceDetail = await detailResponse.json();
                         sliceDetails.push(sliceDetail);
+                    } else {
+                        console.warn(`Failed to load details for slice ${sliceName}: ${detailResponse.status}`);
                     }
                 } catch (error) {
                     console.error(`Failed to load details for slice ${sliceName}:`, error);
@@ -303,17 +324,19 @@ export class NetworkSliceManager extends BaseManager {
 
     async loadDeviceGroups() {
         try {
-            const response = await fetch(`${this.apiBase.replace('/network-slice', '/device-group')}`);
+            const response = await fetch(`${API_BASE}/device-group`);
             if (response.ok) {
-                const deviceGroups = await response.json();
+                const deviceGroupNames = await response.json();
                 const select = document.getElementById('site_device_group');
-                if (select) {
+                if (select && Array.isArray(deviceGroupNames)) {
                     select.innerHTML = '<option value="">Select device groups...</option>';
-                    deviceGroups.forEach(group => {
-                        const option = document.createElement('option');
-                        option.value = group.name || group['group-name'] || '';
-                        option.textContent = group.name || group['group-name'] || 'Unknown Group';
-                        select.appendChild(option);
+                    deviceGroupNames.forEach(groupName => {
+                        if (typeof groupName === 'string') {
+                            const option = document.createElement('option');
+                            option.value = groupName;
+                            option.textContent = groupName;
+                            select.appendChild(option);
+                        }
                     });
                 }
             }
@@ -324,7 +347,7 @@ export class NetworkSliceManager extends BaseManager {
 
     async loadItemData(name) {
         try {
-            const response = await fetch(`${this.apiBase}/${name}`);
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${encodeURIComponent(name)}`);
             if (response.ok) {
                 const data = await response.json();
                 
