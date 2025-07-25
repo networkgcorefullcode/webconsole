@@ -110,8 +110,8 @@ export class NetworkSliceManager extends BaseManager {
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label class="form-label">TAC (Tracking Area Code)</label>
-                        <input type="text" class="form-control" id="tac" 
-                               placeholder="e.g., 1" required>
+                        <input type="number" class="form-control" id="tac" 
+                               placeholder="e.g., 1" min="1" max="16777215" required>
                     </div>
                 </div>
             </div>
@@ -137,8 +137,8 @@ export class NetworkSliceManager extends BaseManager {
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label class="form-label">gNodeB TAC</label>
-                        <input type="text" class="form-control" id="gnb_tac" 
-                               placeholder="e.g., 1">
+                        <input type="number" class="form-control" id="gnb_tac" 
+                               placeholder="e.g., 1" min="1" max="16777215">
                     </div>
                 </div>
             </div>
@@ -181,6 +181,8 @@ export class NetworkSliceManager extends BaseManager {
         
         if (!data.tac || data.tac.trim() === '') {
             errors.push('TAC (Tracking Area Code) is required');
+        } else if (parseInt(data.tac) < 1 || parseInt(data.tac) > 16777215) {
+            errors.push('TAC must be between 1 and 16777215');
         }
         
         return {
@@ -206,7 +208,7 @@ export class NetworkSliceManager extends BaseManager {
         if (formData.gnb_name && formData.gnb_name.trim() !== '') {
             gNodeBs.push({
                 "name": formData.gnb_name,
-                "tac": formData.gnb_tac || "1"
+                "tac": formData.gnb_tac ? parseInt(formData.gnb_tac) : 1
             });
         }
 
