@@ -24,9 +24,9 @@ WORKDIR $GOPATH/src/webconsole
 COPY . .
 
 RUN if [ "$BUILD_UI" = "true" ]; then \
-        CGO_ENABLED=0 go build -a --tags ui -installsuffix nocgo -o webconsole -x server.go \
+        CGO_ENABLED=0 go build -a --tags ui -installsuffix nocgo -o webconsole -x server.go; \
     else \
-        CGO_ENABLED=0 go build -a -installsuffix nocgo -o webconsole -x server.go \
+        CGO_ENABLED=0 go build -a -installsuffix nocgo -o webconsole -x server.go; \
     fi
     
 
