@@ -31,7 +31,7 @@ export class BaseManager {
 
     async createItem(itemData) {
         try {
-            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${itemData.name}`, {
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

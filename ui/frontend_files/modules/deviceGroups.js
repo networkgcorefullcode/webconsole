@@ -2,6 +2,7 @@
 // Copyright 2024 Canonical Ltd.
 
 import { BaseManager } from './baseManager.js';
+import { API_BASE } from '../app.js';
 
 export class DeviceGroupManager extends BaseManager {
     constructor() {
@@ -248,6 +249,29 @@ export class DeviceGroupManager extends BaseManager {
         }
 
         return payload;
+    }
+
+    // Override createItem to include group name in URL for device groups
+    async createItem(itemData) {
+        try {
+            const groupName = itemData['group-name'];
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${groupName}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(itemData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            throw error;
+        }
     }
 
     async loadItemData(name) {
