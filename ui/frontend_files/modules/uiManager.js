@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2024 Canonical Ltd.
+
+import app from '../app.js';
+
+export class UIManager {
+    constructor() {
+        this.sections = {
+            'device-groups': 'deviceGroups',
+            'network-slices': 'networkSlices', 
+            'gnb-inventory': 'gnbInventory',
+            'upf-inventory': 'upfInventory'
+        };
+    }
+
+    showSection(section) {
+        // Hide all sections
+        document.querySelectorAll('.content-section').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // Remove active class from all nav links
+        document.querySelectorAll('.nav-link').forEach(el => {
+            el.classList.remove('active');
+        });
+        
+        // Show selected section
+        const sectionElement = document.getElementById(section);
+        if (sectionElement) {
+            sectionElement.style.display = 'block';
+        }
+        
+        // Add active class to current nav link
+        if (event && event.target) {
+            event.target.classList.add('active');
+        }
+        
+        // Update app state
+        app.currentSection = section;
+        
+        // Load data for the section
+        this.loadSectionData(section);
+    }
+
+    loadSectionData(section) {
+        const managerKey = this.sections[section];
+        if (managerKey && app.managers[managerKey]) {
+            app.managers[managerKey].loadData();
+        }
+    }
+
+    showLoading(containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = `
+                <div class="text-center p-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading data...</p>
+                </div>
+            `;
+        }
+    }
+
+    showError(containerId, message) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${message}
+                </div>
+            `;
+        }
+    }
+
+    showEmpty(containerId, message) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    ${message}
+                </div>
+            `;
+        }
+    }
+}
