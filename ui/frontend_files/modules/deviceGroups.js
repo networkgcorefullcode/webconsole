@@ -14,6 +14,9 @@ export class DeviceGroupManager extends BaseManager {
     render(groups) {
         const container = document.getElementById(this.containerId);
         
+        // Debug: Log the data structure
+        console.log('Device Groups data received:', groups);
+        
         if (!groups || groups.length === 0) {
             this.showEmpty('No device groups found');
             return;
@@ -23,6 +26,9 @@ export class DeviceGroupManager extends BaseManager {
         html += '<thead><tr><th>Group Name</th><th>IMSIs</th><th>Site Info</th><th>IP Domain</th><th>Actions</th></tr></thead><tbody>';
         
         groups.forEach(group => {
+            // Debug: Log each group structure
+            console.log('Individual group:', group);
+            
             const groupName = group['group-name'] || group.name || 'N/A';
             const imsis = group.imsis || [];
             const siteInfo = group['site-info'] || 'N/A';
