@@ -216,34 +216,37 @@ export class NetworkSliceManager extends BaseManager {
     validateFormData(data) {
         const errors = [];
         
-        if (!data.slice_name || data.slice_name.trim() === '') {
+        if (!data.slice_name || String(data.slice_name).trim() === '') {
             errors.push('Slice name is required');
         }
         
-        if (!data.sst || data.sst.trim() === '') {
+        if (!data.sst || String(data.sst).trim() === '') {
             errors.push('SST (Slice Service Type) is required');
         }
         
-        if (data.sd && !/^[0-9A-Fa-f]{6}$/.test(data.sd)) {
+        if (data.sd && !/^[0-9A-Fa-f]{6}$/.test(String(data.sd))) {
             errors.push('SD must be exactly 6 hexadecimal digits (e.g., 000001)');
         }
         
-        if (!data.site_name || data.site_name.trim() === '') {
+        if (!data.site_name || String(data.site_name).trim() === '') {
             errors.push('Site name is required');
         }
         
-        if (!data.mcc || !/^[0-9]{3}$/.test(data.mcc)) {
+        if (!data.mcc || !/^[0-9]{3}$/.test(String(data.mcc))) {
             errors.push('MCC must be exactly 3 digits');
         }
         
-        if (!data.mnc || !/^[0-9]{2,3}$/.test(data.mnc)) {
+        if (!data.mnc || !/^[0-9]{2,3}$/.test(String(data.mnc))) {
             errors.push('MNC must be 2 or 3 digits');
         }
         
-        if (!data.tac || data.tac.trim() === '') {
+        if (!data.tac || String(data.tac).trim() === '') {
             errors.push('TAC (Tracking Area Code) is required');
-        } else if (parseInt(data.tac) < 1 || parseInt(data.tac) > 16777215) {
-            errors.push('TAC must be between 1 and 16777215');
+        } else {
+            const tacNum = parseInt(data.tac);
+            if (isNaN(tacNum) || tacNum < 1 || tacNum > 16777215) {
+                errors.push('TAC must be a number between 1 and 16777215');
+            }
         }
         
         return {
