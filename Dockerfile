@@ -20,10 +20,17 @@ RUN apt-get update && \
     unzip && \
     apt-get clean
 
+RUN go install github.com/go-task/task/v3/cmd/task@latest
+
 WORKDIR $GOPATH/src/webconsole
 COPY . .
-RUN make all && \
-    CGO_ENABLED=0 go build -a -installsuffix nocgo -o webconsole -x server.go
+
+ARG BUILD_UI=true
+RUN if [ "$BUILD_UI" = "true" ]; then \
+        task webconsole-ui; \
+    else \
+        task all; \
+    fi
 
 FROM alpine:3.22 AS webui
 
@@ -32,11 +39,18 @@ LABEL maintainer="Aether SD-Core <dev@lists.aetherproject.org>" \
     version="Stage 3"
 
 ARG DEBUG_TOOLS
+ARG BUILD_UI=true
 
 # Install debug tools ~85MB (if DEBUG_TOOLS is set to true)
 RUN if [ "$DEBUG_TOOLS" = "true" ]; then \
         apk update && apk add --no-cache -U vim strace net-tools curl netcat-openbsd bind-tools; \
-        fi
+    fi
 
-# Copy executable
-COPY --from=builder /go/src/webconsole/webconsole /usr/local/bin/.
+# Copy executable - choose the right binary based on BUILD_UI
+RUN if [ "$BUILD_UI" = "true" ]; then \
+        echo "Copying UI-enabled binary"; \
+    else \
+        echo "Copying standard binary"; \
+    fi
+
+COPY --from=builder /go/src/webconsole/bin/* /usr/local/bin/.
