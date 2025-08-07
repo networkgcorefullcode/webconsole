@@ -45,9 +45,9 @@ vars:
   BUILD_TIME:
     sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
   WEBCONSOLE_COMMIT_HASH:
-    sh: git submodule status | grep {{.WEBCONSOLE}} | awk '{print $(1)}' | cut -c1-8 2>/dev/null || echo "unknown"
+    sh: git submodule status | grep webconsole | awk '{print $1}' | cut -c1-8 2>/dev/null || echo "unknown"
   WEBCONSOLE_COMMIT_TIME:
-    sh: git log --pretty="%ai" -1 | awk '{time=$(1)"T"$(2)"Z"; print time}' 2>/dev/null || echo "unknown"
+    sh: git log --pretty="%ai" -1 | awk '{time=$1"T"$2"Z"; print time}' 2>/dev/null || echo "unknown"
 
 tasks:
   default:
@@ -163,10 +163,10 @@ tasks:
   info:
     desc: "Show build information"
     cmds:
-      - echo "Project: {{.PROJECT_NAME}}"
-      - echo "Version: {{.VERSION}}"
-      - echo "Docker Version: {{.DOCKER_VERSION}}"
-      - echo "Build Time: {{.BUILD_TIME}}"
-      - echo "VCS URL: {{.DOCKER_LABEL_VCS_URL}}"
-      - echo "VCS Ref: {{.DOCKER_LABEL_VCS_REF}}"
-      - echo "Commit Date: {{.DOCKER_LABEL_COMMIT_DATE}}"
+      - echo "Project {{.PROJECT_NAME}}"
+      - echo "Version {{.VERSION}}"
+      - echo "Docker Version {{.DOCKER_VERSION}}"
+      - echo "Build Time {{.BUILD_TIME}}"
+      - echo "VCS URL {{.DOCKER_LABEL_VCS_URL}}"
+      - echo "VCS Ref {{.DOCKER_LABEL_VCS_REF}}"
+      - echo "Commit Date {{.DOCKER_LABEL_COMMIT_DATE}}"
