@@ -20,14 +20,16 @@ RUN apt-get update && \
     unzip && \
     apt-get clean
 
+RUN go install github.com/go-task/task/v3/cmd/task@latest
+
 WORKDIR $GOPATH/src/webconsole
 COPY . .
 
 ARG BUILD_UI=true
 RUN if [ "$BUILD_UI" = "true" ]; then \
-        make webconsole-ui; \
+        task webconsole-ui; \
     else \
-        make all; \
+        task all; \
     fi
 
 FROM alpine:3.22 AS webui
