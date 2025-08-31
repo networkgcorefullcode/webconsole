@@ -16,9 +16,12 @@ build-docker-image:]:
     - aether-runner
   image: docker:20.10
   services:
-    - docker:20.10-dind
+    - name: docker:20.10-dind
+      alias: docker
   variables:
     DOCKER_TLS_CERTDIR: ""  # desactiva TLS para simplificar
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_DRIVER: overlay2
   script:
     - docker info
 
