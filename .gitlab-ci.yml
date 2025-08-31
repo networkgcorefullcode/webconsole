@@ -28,6 +28,8 @@ build-docker-image:]:
 
     - docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
     
+    - apk update && apk add --no-cache make
+
     - make docker-build 
 
     - make docker-push
