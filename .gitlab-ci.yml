@@ -17,6 +17,8 @@ build-docker-image:]:
   services:
     - docker:20.10-dind
   script:
+    - docker info
+
     - docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
     
     - make docker-build 
