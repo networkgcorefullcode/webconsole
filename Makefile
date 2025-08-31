@@ -70,8 +70,7 @@ docker-build:
 		DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build  $(DOCKER_BUILD_ARGS) \
 			--target $$target \
 			--tag ${DOCKER_REGISTRY}${DOCKER_REPOSITORY}5gc-$$target:${DOCKER_TAG} \
-			--build-arg org_label_schema_version="${PROJECT_VERSION
-		}" \
+			--build-arg org_label_schema_version="${PROJECT_VERSION}" \
 			--build-arg org_label_schema_vcs_url="${DOCKER_LABEL_VCS_URL}" \
 			--build-arg org_label_schema_vcs_ref="${DOCKER_LABEL_VCS_REF}" \
 			--build-arg org_label_schema_build_date="${DOCKER_LABEL_BUILD_DATE}" \
