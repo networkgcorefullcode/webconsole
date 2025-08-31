@@ -18,6 +18,7 @@ build-docker-image:]:
   services:
     - name: docker:20.10-dind
       alias: docker
+      command: ["--insecure-registry=192.168.12.15:8083"]
   variables:
     DOCKER_TLS_CERTDIR: ""  # desactiva TLS para simplificar
     DOCKER_HOST: tcp://docker:2375
