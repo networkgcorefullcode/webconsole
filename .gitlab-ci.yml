@@ -14,8 +14,11 @@ build-docker-image:]:
   stage: build
   tags:
     - aether-runner
+  image: docker:20.10
   services:
     - docker:20.10-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""  # desactiva TLS para simplificar
   script:
     - docker info
 
