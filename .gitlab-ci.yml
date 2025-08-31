@@ -14,7 +14,8 @@ build-docker-image:]:
   stage: build
   tags:
     - aether-runner
-
+  services:
+    - docker:20.10-dind
   script:
     - docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
     
