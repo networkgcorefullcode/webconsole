@@ -3,6 +3,7 @@ package configapi
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/openapi/models"
@@ -30,9 +31,17 @@ func HandleGetsK4(c *gin.Context) {
 
 	for _, k4Data := range k4DataList {
 		tmp := models.K4{
-			K4:     k4Data["k4"].(string),
-			K4_SNO: k4Data["k4_sno"].(byte),
+			K4: k4Data["k4"].(string),
 		}
+
+		K4SNO_String := k4Data["k4_sno"].(string)
+		K4SNO_Int, err := strconv.Atoi(K4SNO_String)
+		K4_SNO := byte(K4SNO_Int)
+		if err != nil {
+			panic(err)
+		}
+
+		tmp.K4_SNO = K4_SNO
 
 		k4List = append(k4List, tmp)
 	}
