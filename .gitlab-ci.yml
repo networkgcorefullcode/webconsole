@@ -1,4 +1,4 @@
-stages: 
+stages:
   # - mr-checks
   - build
   - update-version
@@ -28,29 +28,29 @@ build-docker-image:
     - docker info
 
     - docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    
+
     - apk update && apk add --no-cache make bash git wget
 
     -  wget https://go.dev/dl/go1.25.0.linux-amd64.tar.gz
 
     -  rm -rf /usr/local/go && tar -C /usr/local -xzf go1.25.0.linux-amd64.tar.gz
 
-    - export PATH=$PATH:/usr/local/go/bin 
+    - export PATH=$PATH:/usr/local/go/bin
 
     - go version
 
     - echo "NF_VERSION=$(make -s -f Makefile print-tag)" > variables.env
-    
+
     - echo "CI_PROJECT_NAME=$(make -s -f Makefile print-target)" >> variables.env
 
-    - make docker-build 
+    - make docker-build
 
     - make docker-push
-    
+
     - docker container prune --force
-    
+
     - docker image prune --force
-    
+
     - echo "Build and push of image completed!"
 
   rules:
@@ -117,6 +117,7 @@ update-helm-values:
   needs:
     - job: build-docker-image
       artifacts: true
+
 
 
 

@@ -64,6 +64,12 @@ clean:
 	rm -rf $(ROOT_PATH)/$(GO_BIN_PATH)/$(WEBCONSOLE)
 	rm -rf $(ROOT_PATH)/$(GO_BIN_PATH)/$(WEBCONSOLE)-ui
 
+print-tag:
+	@echo ${DOCKER_REPOSITORY}5gc-${DOCKER_TARGETS}:${DOCKER_TAG}
+
+print-target:
+	@echo ${DOCKER_TARGETS}
+
 docker-build:
 	@go mod vendor
 	for target in $(DOCKER_TARGETS); do \
