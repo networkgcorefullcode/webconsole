@@ -46,7 +46,7 @@ build-docker-image:]:
     
     - docker image prune --force
     
-    - echo "Build and push of $[[ inputs.name ]] image completed!"
+    - echo "Build and push of image completed!"
 
   rules:
     # Caso 1: Merge Request a main
