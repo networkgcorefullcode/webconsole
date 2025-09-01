@@ -83,35 +83,45 @@ func HandleGetK4(c *gin.Context) {
 func HandlePostK4(c *gin.Context) {
 	setCorsHeader(c)
 
+	logger.WebUILog.Infoln("Post One K4 key Data")
+
 	var k4Data models.K4
 	var err error
 
 	rawData, err := c.GetRawData()
-
 	if err != nil {
+		logger.WebUILog.Errorf("failed to get raw data: %+v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to get raw data"})
 		return
 	}
 
-	err = json.Unmarshal(rawData, &k4Data)
+	logger.WebUILog.Infof("Raw data received: %s", string(rawData))
 
+	err = json.Unmarshal(rawData, &k4Data)
 	if err != nil {
+		logger.WebUILog.Errorf("failed to unmarshall the json: %+v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshall the json"})
 		return
 	}
 
+	logger.WebUILog.Infof("Parsed K4 data: %+v", k4Data)
+
 	if CheckK4BySno(string(k4Data.K4_SNO)) {
+		logger.WebUILog.Infof("K4 key with SNO %d already exists", k4Data.K4_SNO)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
 		return
 	}
 
 	K4DataBsonA := configmodels.ToBsonM(k4Data)
+	logger.WebUILog.Infof("K4 data to be inserted: %+v", K4DataBsonA)
+
 	if _, err = dbadapter.AuthDBClient.RestfulAPIPost(k4KeysColl, bson.M{}, K4DataBsonA); err != nil {
 		logger.DbLog.Errorf("failed to post k4 key to the the DB error: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ocurred an error in the post to the DB"})
 		return
 	}
 
+	logger.WebUILog.Infoln("K4 key posted successfully")
 	c.JSON(http.StatusCreated, k4Data)
 }
 
@@ -177,8 +187,8 @@ func CheckK4BySno(snoId string) bool {
 
 	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
 
-	if err != nil {
-		logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
+	if err != nil || len(k4DataInterface) == 0 {
+		logger.DbLog.Infoln("failed to fetch k4 key data from DB this key does'nt exist: %+v", err)
 		return false
 	}
 

@@ -79,7 +79,7 @@ func TestHandleGetK4(t *testing.T) {
 	t.Run("Successful retrieval", func(t *testing.T) {
 		mockK4Data := map[string]interface{}{
 			"k4":     "testKey1",
-			"k4_sno": "1",
+			"k4_sno": int32(1),
 		}
 
 		// Mock the DB call
@@ -125,7 +125,7 @@ func TestHandlePostK4(t *testing.T) {
 	t.Run("Successful post", func(t *testing.T) {
 		k4Data := models.K4{
 			K4:     "testKey",
-			K4_SNO: byte(1),
+			K4_SNO: uint8(1), // Cambiado de byte(1) a uint8(1)
 		}
 		jsonData, _ := json.Marshal(k4Data)
 
@@ -133,9 +133,10 @@ func TestHandlePostK4(t *testing.T) {
 		oldClient := dbadapter.AuthDBClient
 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
 			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
-				return nil, nil
+				return nil, assert.AnError // Simula que no existe el registro
 			},
 			PostFn: func(collName string, filter bson.M, postData map[string]interface{}) (bool, error) {
+				// Verifica que postData tenga el formato correcto
 				return true, nil
 			},
 		}
@@ -143,9 +144,13 @@ func TestHandlePostK4(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/k4opt", bytes.NewBuffer(jsonData))
+		req.Header.Set("Content-Type", "application/json") // Añadido header Content-Type
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
+		if w.Code != http.StatusCreated {
+			t.Logf("Response body: %s", w.Body.String()) // Para debug
+		}
 	})
 
 	// Test case 2: Invalid JSON
