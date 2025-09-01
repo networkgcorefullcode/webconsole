@@ -41,11 +41,7 @@ build-docker-image:
 
     - echo "NF_VERSION=$(make -s -f Makefile print-tag)" > variables.env
 
-<<<<<<< HEAD
     - echo "CI_PROJECT_NAME=$(make -s -f Makefile print-target)" >> variables.env
-=======
-    - export CI_PROJECT_NAME=$(make -s -f Makefile print-target) >> variables.env
->>>>>>> a4565e6 (Update .gitlab-ci.yml file)
 
     - make docker-build
 
@@ -103,6 +99,7 @@ update-helm-values:
     # 3. Editar values.yaml (ejemplo: cambiar tag de la NF)
     # - yq e -i '.amf.image.tag = env(NF_VERSION)' charts/aether/values.yaml
     - yq-go e -i '.["5g-control-plane"].images.tags.amf = env(NF_VERSION)' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
+
 
     # 4. Commit y push
     - git add deps/5gc/roles/core/templates/sdcore-5g-values.yaml
