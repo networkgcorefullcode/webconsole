@@ -53,7 +53,9 @@ func HandleGetK4(c *gin.Context) {
 	logger.WebUILog.Infoln("Get One K4 key Data")
 
 	snoId := c.Param("idsno")
-	filterSnoID := bson.M{"k4_sno": snoId}
+	snoIdint, _ := strconv.Atoi(snoId)
+
+	filterSnoID := bson.M{"k4_sno": snoIdint}
 
 	var k4Data models.K4
 
@@ -77,8 +79,8 @@ func HandleGetK4(c *gin.Context) {
 	c.JSON(http.StatusOK, k4Data)
 }
 
-// HandlePostK4 handles POST /k4opt
-func HandlePostK4(c *gin.Context) {
+// HandlePutK4 handles POST /k4opt
+func HandlePutK4(c *gin.Context) {
 	setCorsHeader(c)
 
 	logger.WebUILog.Infoln("Post One K4 key Data")
@@ -104,7 +106,7 @@ func HandlePostK4(c *gin.Context) {
 
 	logger.WebUILog.Infof("Parsed K4 data: %+v", k4Data)
 
-	if CheckK4BySno(int(k4Data.K4_SNO)) {
+	if !CheckK4BySno(int(k4Data.K4_SNO)) {
 		logger.WebUILog.Infof("K4 key with SNO %d already exists", k4Data.K4_SNO)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
 		return
@@ -123,8 +125,8 @@ func HandlePostK4(c *gin.Context) {
 	c.JSON(http.StatusCreated, k4Data)
 }
 
-// HandlePutK4 handles PUT /k4opt/:idsno
-func HandlePutK4(c *gin.Context) {
+// HandlePostK4 handles PUT /k4opt/:idsno
+func HandlePostK4(c *gin.Context) {
 	setCorsHeader(c)
 	logger.WebUILog.Infoln("Put One K4 key Data")
 
@@ -138,7 +140,7 @@ func HandlePutK4(c *gin.Context) {
 		return
 	}
 
-	if !CheckK4BySno(int(k4Data.K4_SNO)) {
+	if CheckK4BySno(int(k4Data.K4_SNO)) {
 		logger.WebUILog.Errorf("k4 key with SNO %d does not exist", snoIdint)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
 		return
@@ -146,8 +148,8 @@ func HandlePutK4(c *gin.Context) {
 
 	filter := bson.M{"k4_sno": snoIdint}
 
-	updateData := configmodels.ToBsonM(k4Data)
-	if _, err := dbadapter.AuthDBClient.RestfulAPIPutOne(k4KeysColl, filter, updateData); err != nil {
+	postData := configmodels.ToBsonM(k4Data)
+	if _, err := dbadapter.AuthDBClient.RestfulAPIPutOne(k4KeysColl, filter, postData); err != nil {
 		logger.DbLog.Errorf("failed to update k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key"})
 		return
