@@ -92,9 +92,7 @@ var apiRoutes = Routes{
 		"/ue-pdu-session-info/:smContextRef",
 		GetUEPDUSessionInfo,
 	},
-
 	// K4 api endpoint (CRUD)
-
 	{
 		"Get k4 keys",
 		http.MethodGet,
