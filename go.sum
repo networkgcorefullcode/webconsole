@@ -95,8 +95,6 @@ github.com/montanaflynn/stats v0.7.1 h1:etflOAAHORrCC44V+aR6Ftzort912ZU+YLiSTuV8
 github.com/montanaflynn/stats v0.7.1/go.mod h1:etXPPgVO6n31NxCd9KQUMvCM+ve0ruNzt6R8Bnaayow=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/networkgcorefullcode/openapi v1.2.1 h1:TbO1pDE16k+UF5BylZl0+4GlXHnZ4ozXCnQREjcl+j8=
-github.com/networkgcorefullcode/openapi v1.2.1/go.mod h1:4nwAVKA4GUXw5OnjxYOU8LAoRrpGTG/ruJLgKiE/Ccs=
 github.com/omec-project/config5g v1.6.2 h1:bfLxwVSt6LAWCQtBmjUuks5CO3qambvcy3VjSVAMHdk=
 github.com/omec-project/config5g v1.6.2/go.mod h1:LuaRiJTCJXCkQF7nKB5fOcz6oVMF/8oid+EKCYFAy0E=
 github.com/omec-project/util v1.4.0 h1:LJ29TMOvkdCWBRQWqTsQNW3Wn+Wio6i3oyBIMa+1cPY=
@@ -148,6 +146,8 @@ github.com/xdg-go/stringprep v1.0.4/go.mod h1:mPGuuIYwz7CmR2bT9j4GbQqutWS1zV24gi
 github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 h1:ilQV1hzziu+LLM3zUTJ0trRztfwgjqKnBWNtSRkbmwM=
 github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78/go.mod h1:aL8wCCfTfSfmXjznFBSZNN13rSJjlIOI1fUNAtF7rmI=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
+gitlab.generalsoftwareinc.com/5g/openapi v1.6.3 h1:JJH73ys9qFkMdZEXwsCuyRLdyIYZ6cD9LQk0UzIh3do=
+gitlab.generalsoftwareinc.com/5g/openapi v1.6.3/go.mod h1:4nwAVKA4GUXw5OnjxYOU8LAoRrpGTG/ruJLgKiE/Ccs=
 go.mongodb.org/mongo-driver v1.17.4 h1:jUorfmVzljjr0FLzYQsGP8cgN/qzzxlY9Vh0C9KFXVw=
 go.mongodb.org/mongo-driver v1.17.4/go.mod h1:Hy04i7O2kC4RS06ZrhPRqj/u4DTYkFDAAccj+rVKqgQ=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
