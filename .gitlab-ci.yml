@@ -100,7 +100,6 @@ update-helm-values:
     # - yq e -i '.amf.image.tag = env(NF_VERSION)' charts/aether/values.yaml
     - yq-go e -i '.["5g-control-plane"].images.tags.amf = env(NF_VERSION)' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
 
-
     # 4. Commit y push
     - git add deps/5gc/roles/core/templates/sdcore-5g-values.yaml
     - git commit -m "Update ${CI_PROJECT_NAME} image to ${NF_VERSION}"
