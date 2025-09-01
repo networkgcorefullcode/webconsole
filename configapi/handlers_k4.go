@@ -34,12 +34,8 @@ func HandleGetsK4(c *gin.Context) {
 			K4: k4Data["k4"].(string),
 		}
 
-		K4SNO_String := k4Data["k4_sno"].(string)
-		K4SNO_Int, err := strconv.Atoi(K4SNO_String)
+		K4SNO_Int := k4Data["k4_sno"].(int)
 		K4_SNO := byte(K4SNO_Int)
-		if err != nil {
-			panic(err)
-		}
 
 		tmp.K4_SNO = K4_SNO
 
@@ -77,6 +73,8 @@ func HandleGetK4(c *gin.Context) {
 			return
 		}
 	}
+
+	c.JSON(http.StatusOK, k4Data)
 }
 
 // HandlePostK4 handles POST /k4opt
@@ -106,7 +104,7 @@ func HandlePostK4(c *gin.Context) {
 
 	logger.WebUILog.Infof("Parsed K4 data: %+v", k4Data)
 
-	if CheckK4BySno(string(k4Data.K4_SNO)) {
+	if CheckK4BySno(int(k4Data.K4_SNO)) {
 		logger.WebUILog.Infof("K4 key with SNO %d already exists", k4Data.K4_SNO)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
 		return
@@ -131,6 +129,7 @@ func HandlePutK4(c *gin.Context) {
 	logger.WebUILog.Infoln("Put One K4 key Data")
 
 	snoId := c.Param("idsno")
+	snoIdint, _ := strconv.Atoi(snoId)
 	var k4Data models.K4
 
 	if err := c.ShouldBindJSON(&k4Data); err != nil {
@@ -139,13 +138,13 @@ func HandlePutK4(c *gin.Context) {
 		return
 	}
 
-	if !CheckK4BySno(string(k4Data.K4_SNO)) {
-		logger.WebUILog.Errorf("k4 key with SNO %s does not exist", snoId)
+	if !CheckK4BySno(int(k4Data.K4_SNO)) {
+		logger.WebUILog.Errorf("k4 key with SNO %d does not exist", snoIdint)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
 		return
 	}
 
-	filter := bson.M{"k4_sno": snoId}
+	filter := bson.M{"k4_sno": snoIdint}
 
 	updateData := configmodels.ToBsonM(k4Data)
 	if _, err := dbadapter.AuthDBClient.RestfulAPIPutOne(k4KeysColl, filter, updateData); err != nil {
@@ -163,8 +162,9 @@ func HandleDeleteK4(c *gin.Context) {
 	logger.WebUILog.Infoln("Delete One K4 key Data")
 
 	snoId := c.Param("idsno")
+	snoIdint, _ := strconv.Atoi(snoId)
 
-	if !CheckK4BySno(snoId) {
+	if !CheckK4BySno(snoIdint) {
 		logger.WebUILog.Errorf("k4 key with SNO %s does not exist", snoId)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is not present or there is an internal server error"})
 		return
@@ -181,7 +181,7 @@ func HandleDeleteK4(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "k4 key deleted successfully"})
 }
 
-func CheckK4BySno(snoId string) bool {
+func CheckK4BySno(snoId int) bool {
 	var k4Data models.K4
 	filterSnoID := bson.M{"k4_sno": snoId}
 

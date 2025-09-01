@@ -27,8 +27,8 @@ func TestHandleGetsK4(t *testing.T) {
 	// Test case 1: Successful retrieval
 	t.Run("Successful retrieval", func(t *testing.T) {
 		mockK4Data := []map[string]interface{}{
-			{"k4": "testKey1", "k4_sno": "1"},
-			{"k4": "testKey2", "k4_sno": "2"},
+			{"k4": "testKey1", "k4_sno": 1},
+			{"k4": "testKey2", "k4_sno": 2},
 		}
 
 		// Mock the DB call
@@ -270,12 +270,12 @@ func TestCheckK4BySno(t *testing.T) {
 		oldClient := dbadapter.AuthDBClient
 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
 			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
-				return map[string]interface{}{"k4": "testKey", "k4_sno": "1"}, nil
+				return map[string]interface{}{"k4": "testKey", "k4_sno": 1}, nil
 			},
 		}
 		defer func() { dbadapter.AuthDBClient = oldClient }()
 
-		result := CheckK4BySno("1")
+		result := CheckK4BySno(1)
 		assert.True(t, result)
 	})
 
@@ -290,7 +290,7 @@ func TestCheckK4BySno(t *testing.T) {
 		}
 		defer func() { dbadapter.AuthDBClient = oldClient }()
 
-		result := CheckK4BySno("1")
+		result := CheckK4BySno(1)
 		assert.False(t, result)
 	})
 
@@ -305,7 +305,7 @@ func TestCheckK4BySno(t *testing.T) {
 		}
 		defer func() { dbadapter.AuthDBClient = oldClient }()
 
-		result := CheckK4BySno("1")
+		result := CheckK4BySno(1)
 		assert.False(t, result)
 	})
 }
