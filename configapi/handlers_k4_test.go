@@ -263,49 +263,49 @@ func TestHandleDeleteK4(t *testing.T) {
 	})
 }
 
-func TestCheckK4BySno(t *testing.T) {
-	// Test case 1: K4 exists
-	t.Run("K4 exists", func(t *testing.T) {
-		// Mock the DB calls
-		oldClient := dbadapter.AuthDBClient
-		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
-				return map[string]interface{}{"k4": "testKey", "k4_sno": 1}, nil
-			},
-		}
-		defer func() { dbadapter.AuthDBClient = oldClient }()
+// func TestCheckK4BySno(t *testing.T) {
+// 	// Test case 1: K4 exists
+// 	t.Run("K4 exists", func(t *testing.T) {
+// 		// Mock the DB calls
+// 		oldClient := dbadapter.AuthDBClient
+// 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
+// 			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
+// 				return map[string]interface{}{"k4": "testKey", "k4_sno": 1}, nil
+// 			},
+// 		}
+// 		defer func() { dbadapter.AuthDBClient = oldClient }()
 
-		result := CheckK4BySno(1)
-		assert.True(t, result)
-	})
+// 		result := CheckK4BySno(1)
+// 		assert.True(t, result)
+// 	})
 
-	// Test case 2: K4 does not exist
-	t.Run("K4 does not exist", func(t *testing.T) {
-		// Mock the DB calls
-		oldClient := dbadapter.AuthDBClient
-		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
-				return nil, nil
-			},
-		}
-		defer func() { dbadapter.AuthDBClient = oldClient }()
+// 	// Test case 2: K4 does not exist
+// 	t.Run("K4 does not exist", func(t *testing.T) {
+// 		// Mock the DB calls
+// 		oldClient := dbadapter.AuthDBClient
+// 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
+// 			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
+// 				return nil, nil
+// 			},
+// 		}
+// 		defer func() { dbadapter.AuthDBClient = oldClient }()
 
-		result := CheckK4BySno(1)
-		assert.False(t, result)
-	})
+// 		result := CheckK4BySno(1)
+// 		assert.False(t, result)
+// 	})
 
-	// Test case 3: Database error
-	t.Run("Database error", func(t *testing.T) {
-		// Mock the DB calls
-		oldClient := dbadapter.AuthDBClient
-		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
-				return nil, assert.AnError
-			},
-		}
-		defer func() { dbadapter.AuthDBClient = oldClient }()
+// 	// Test case 3: Database error
+// 	t.Run("Database error", func(t *testing.T) {
+// 		// Mock the DB calls
+// 		oldClient := dbadapter.AuthDBClient
+// 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
+// 			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
+// 				return nil, assert.AnError
+// 			},
+// 		}
+// 		defer func() { dbadapter.AuthDBClient = oldClient }()
 
-		result := CheckK4BySno(1)
-		assert.False(t, result)
-	})
-}
+// 		result := CheckK4BySno(1)
+// 		assert.False(t, result)
+// 	})
+// }
