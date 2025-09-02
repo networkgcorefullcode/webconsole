@@ -263,6 +263,7 @@ func TestHandleDeleteK4(t *testing.T) {
 	})
 }
 
+// TODO: delete if the code work
 // func TestCheckK4BySno(t *testing.T) {
 // 	// Test case 1: K4 exists
 // 	t.Run("K4 exists", func(t *testing.T) {
