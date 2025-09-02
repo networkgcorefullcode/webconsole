@@ -109,13 +109,13 @@ var apiRoutes = Routes{
 		"Post k4 key to create a k4 key",
 		http.MethodPost,
 		"/k4opt",
-		HandlePutK4,
+		HandlePostK4,
 	},
 	{
 		"Update k4 keys",
 		http.MethodPut,
 		"/k4opt/:idsno",
-		HandlePostK4,
+		HandlePutK4,
 	},
 	{
 		"Get k4 keys",

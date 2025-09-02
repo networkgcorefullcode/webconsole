@@ -79,8 +79,8 @@ func HandleGetK4(c *gin.Context) {
 	c.JSON(http.StatusOK, k4Data)
 }
 
-// HandlePutK4 handles POST /k4opt
-func HandlePutK4(c *gin.Context) {
+// HandlePostK4 handles POST /k4opt
+func HandlePostK4(c *gin.Context) {
 	setCorsHeader(c)
 
 	logger.WebUILog.Infoln("Post One K4 key Data")
@@ -106,16 +106,18 @@ func HandlePutK4(c *gin.Context) {
 
 	logger.WebUILog.Infof("Parsed K4 data: %+v", k4Data)
 
-	if !CheckK4BySno(int(k4Data.K4_SNO)) {
-		logger.WebUILog.Infof("K4 key with SNO %d already exists", k4Data.K4_SNO)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
-		return
-	}
+	// TODO: delete if the code work
+	// if !CheckK4BySno(int(k4Data.K4_SNO)) {
+	// 	logger.WebUILog.Infof("K4 key with SNO %d already exists", k4Data.K4_SNO)
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
+	// 	return
+	// }
 
 	K4DataBsonA := configmodels.ToBsonM(k4Data)
 	logger.WebUILog.Infof("K4 data to be inserted: %+v", K4DataBsonA)
+	filter := bson.M{"k4_sno": k4Data.K4_SNO}
 
-	if _, err = dbadapter.AuthDBClient.RestfulAPIPost(k4KeysColl, bson.M{}, K4DataBsonA); err != nil {
+	if _, err = dbadapter.AuthDBClient.RestfulAPIPost(k4KeysColl, filter, K4DataBsonA); err != nil {
 		logger.DbLog.Errorf("failed to post k4 key to the the DB error: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ocurred an error in the post to the DB"})
 		return
@@ -125,8 +127,8 @@ func HandlePutK4(c *gin.Context) {
 	c.JSON(http.StatusCreated, k4Data)
 }
 
-// HandlePostK4 handles PUT /k4opt/:idsno
-func HandlePostK4(c *gin.Context) {
+// HandlePutK4 handles PUT /k4opt/:idsno
+func HandlePutK4(c *gin.Context) {
 	setCorsHeader(c)
 	logger.WebUILog.Infoln("Put One K4 key Data")
 
@@ -140,11 +142,12 @@ func HandlePostK4(c *gin.Context) {
 		return
 	}
 
-	if CheckK4BySno(int(k4Data.K4_SNO)) {
-		logger.WebUILog.Errorf("k4 key with SNO %d does not exist", snoIdint)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
-		return
-	}
+	// TODO: delete if the code work
+	// if CheckK4BySno(int(k4Data.K4_SNO)) {
+	// 	logger.WebUILog.Errorf("k4 key with SNO %d does not exist", snoIdint)
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
+	// 	return
+	// }
 
 	filter := bson.M{"k4_sno": snoIdint}
 
@@ -166,13 +169,14 @@ func HandleDeleteK4(c *gin.Context) {
 	snoId := c.Param("idsno")
 	snoIdint, _ := strconv.Atoi(snoId)
 
-	if !CheckK4BySno(snoIdint) {
-		logger.WebUILog.Errorf("k4 key with SNO %s does not exist", snoId)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is not present or there is an internal server error"})
-		return
-	}
+	// TODO: delete if the code work
+	// if !CheckK4BySno(snoIdint) {
+	// 	logger.WebUILog.Errorf("k4 key with SNO %s does not exist", snoId)
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is not present or there is an internal server error"})
+	// 	return
+	// }
 
-	filter := bson.M{"k4_sno": snoId}
+	filter := bson.M{"k4_sno": snoIdint}
 
 	if err := dbadapter.AuthDBClient.RestfulAPIDeleteOne(k4KeysColl, filter); err != nil {
 		logger.DbLog.Errorf("failed to delete k4 key in DB: %+v", err)
@@ -183,24 +187,25 @@ func HandleDeleteK4(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "k4 key deleted successfully"})
 }
 
-func CheckK4BySno(snoId int) bool {
-	var k4Data models.K4
-	filterSnoID := bson.M{"k4_sno": snoId}
+// TODO: delete if the code work
+// func CheckK4BySno(snoId int) bool {
+// 	var k4Data models.K4
+// 	filterSnoID := bson.M{"k4_sno": snoId}
 
-	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
+// 	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
 
-	if err != nil || len(k4DataInterface) == 0 {
-		logger.DbLog.Infoln("failed to fetch k4 key data from DB this key does'nt exist: %+v", err)
-		return false
-	}
+// 	if err != nil || len(k4DataInterface) == 0 {
+// 		logger.DbLog.Infoln("failed to fetch k4 key data from DB this key does'nt exist: %+v", err)
+// 		return false
+// 	}
 
-	if k4DataInterface != nil {
-		err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
-		if err != nil {
-			logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
-			return true
-		}
-	}
+// 	if k4DataInterface != nil {
+// 		err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
+// 		if err != nil {
+// 			logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
+// 			return true
+// 		}
+// 	}
 
-	return true
-}
+// 	return true
+// }
