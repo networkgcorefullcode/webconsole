@@ -64,4 +64,51 @@ build-docker-image:]:
   needs: []
 
 
+update-helm-values:
+  stage: update-version
+  image: alpine:3.19
+  tags:
+    - aether-runner
+  before_script:
+    - apk add --no-cache git bash curl wget openssh
+    - git config --global user.email "ci-bot@aether.local"
+    - git config --global user.name "CI Bot"
+    - wget -qO /usr/local/bin/yq-go https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    - chmod +x /usr/local/bin/yq-go
+
+  script:
+    # 1. Clonar repo de infra (OnRamp)
+    - git clone https://<GITLAB_PRIVATE_URL>
+    - cd aether
+
+    # 2. Crear rama nueva (basada en dev)
+    - BRANCH_NAME="update-${NF_VERSION}"
+    - git checkout dev
+    - git pull origin dev
+    - git checkout -b $BRANCH_NAME
+
+    # 3. Editar values.yaml (ejemplo: cambiar tag de la NF)
+    # - yq e -i '.amf.image.tag = env(NF_VERSION)' charts/aether/values.yaml
+    - yq-go e -i '.["5g-control-plane"].images.tags.amf = env(NF_VERSION)' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
+
+    # 4. Commit y push
+    - git add deps/5gc/roles/core/templates/sdcore-5g-values.yaml
+    - git commit -m "Update ${CI_PROJECT_NAME} image to ${NF_VERSION}"
+    - git push origin $BRANCH_NAME
+
+    # 5. Crear MR automáticamente vía API de GitLab
+    - |
+       curl --header "PRIVATE-TOKEN: $ONRAMP_TOKEN" \
+       -X POST "https://<API_PRIVATE_URL>" \
+       --data "source_branch=$BRANCH_NAME" \
+       --data "target_branch=dev" \
+       --data-urlencode "title=Update ${CI_PROJECT_NAME} image to ${NF_VERSION}" \
+       --data "remove_source_branch=true"
+
+  needs:
+    - job: build-docker-image
+      artifacts: true
+
+
+
 
