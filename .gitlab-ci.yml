@@ -87,7 +87,7 @@ update-helm-values:
 
   script:
     # 1. Clonar repo de infra (OnRamp)
-    - git clone https://<GITLAB_PRIVATE_URL>
+    - git clone https://$TOKEN_USER:$ONRAMP_TOKEN@$GITLAB_SERVER_URL/5g/aether.git
     - cd aether
 
     # 2. Crear rama nueva (basada en dev)
@@ -108,7 +108,7 @@ update-helm-values:
     # 5. Crear MR automáticamente vía API de GitLab
     - |
        curl --header "PRIVATE-TOKEN: $ONRAMP_TOKEN" \
-       -X POST "https://<API_PRIVATE_URL>" \
+       -X POST "https://${GITLAB_SERVER_URL}/api/v4/projects/1268/merge_requests" \
        --data "source_branch=$BRANCH_NAME" \
        --data "target_branch=dev" \
        --data-urlencode "title=Update ${CI_PROJECT_NAME} image to ${NF_VERSION}" \
