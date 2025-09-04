@@ -1,6 +1,7 @@
 stages: 
   # - mr-checks
   - build
+  - update-version
   # - deploy
   # - code-test
 
