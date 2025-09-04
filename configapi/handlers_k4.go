@@ -13,9 +13,31 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// HandleGetsK4 handles GET /k4opt
-// Here a query is made to MongoDB to obtain all
-// the k4 keys, that is, a list containing all the K4
+// HandleGetsK4 retrieves all K4 keys from the database.
+//
+// This handler processes GET requests to /k4opt endpoint and returns a list of all K4 keys
+// stored in the MongoDB database. Each K4 key contains both the key value and its
+// associated sequence number (SNO).
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//
+// Returns:
+//   - 200 OK: Successfully retrieved the list of K4 keys.
+//   - 500 Internal Server Error: If there was an error retrieving the data from the database.
+//
+// Example Response:
+//
+//	[
+//	  {
+//	    "k4": "abc123def456",
+//	    "k4_sno": 1
+//	  },
+//	  {
+//	    "k4": "xyz789def456",
+//	    "k4_sno": 2
+//	  }
+//	]
 func HandleGetsK4(c *gin.Context) {
 	setCorsHeader(c)
 
@@ -46,8 +68,25 @@ func HandleGetsK4(c *gin.Context) {
 	c.JSON(http.StatusOK, k4List)
 }
 
-// HandleGetK4 handles GET /k4opt/:idsno
-// Aqui se obtiene una unica llave k4 segun la secuencia enviada
+// HandleGetK4 retrieves a specific K4 key by its sequence number (SNO).
+//
+// This handler processes GET requests to /k4opt/:idsno endpoint where :idsno is the
+// sequence number of the K4 key to retrieve. It returns a single K4 key object if found.
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//   - idsno (path parameter): The sequence number of the K4 key to retrieve.
+//
+// Returns:
+//   - 200 OK: Successfully retrieved the K4 key.
+//   - 500 Internal Server Error: If there was an error retrieving the data from the database.
+//
+// Example Response:
+//
+//	{
+//	  "k4": "abc123def456",
+//	  "k4_sno": 1
+//	}
 func HandleGetK4(c *gin.Context) {
 	setCorsHeader(c)
 
@@ -80,7 +119,29 @@ func HandleGetK4(c *gin.Context) {
 	c.JSON(http.StatusOK, k4Data)
 }
 
-// HandlePostK4 handles POST /k4opt
+// HandlePostK4 creates a new K4 key in the database.
+//
+// This handler processes POST requests to /k4opt endpoint. It accepts a JSON body
+// containing the K4 key data and stores it in the database. The K4 key must have
+// a unique sequence number (SNO).
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//
+// Request Body:
+//
+//	{
+//	  "k4": "abc123def456",    // The K4 key value
+//	  "k4_sno": 1             // The sequence number for the key
+//	}
+//
+// Returns:
+//   - 201 Created: Successfully created the K4 key.
+//   - 400 Bad Request: If the request body is invalid or cannot be parsed.
+//   - 500 Internal Server Error: If there was an error storing the data in the database.
+//
+// Example Response:
+// Returns the created K4 key object with HTTP status 201.
 func HandlePostK4(c *gin.Context) {
 	setCorsHeader(c)
 
@@ -107,13 +168,6 @@ func HandlePostK4(c *gin.Context) {
 
 	logger.WebUILog.Infof("Parsed K4 data: %+v", k4Data)
 
-	// TODO: delete if the code work
-	// if !CheckK4BySno(int(k4Data.K4_SNO)) {
-	// 	logger.WebUILog.Infof("K4 key with SNO %d already exists", k4Data.K4_SNO)
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
-	// 	return
-	// }
-
 	logger.WebUILog.Infof("K4 data to be inserted: %+v", k4Data)
 
 	if err := K4HelperPut(int(k4Data.K4_SNO), &k4Data); err != nil {
@@ -126,7 +180,30 @@ func HandlePostK4(c *gin.Context) {
 	c.JSON(http.StatusCreated, k4Data)
 }
 
-// HandlePutK4 handles PUT /k4opt/:idsno
+// HandlePutK4 updates an existing K4 key in the database.
+//
+// This handler processes PUT requests to /k4opt/:idsno endpoint where :idsno is the
+// sequence number of the K4 key to update. It accepts a JSON body containing the new
+// K4 key data and updates the existing record in the database.
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//   - idsno (path parameter): The sequence number of the K4 key to update.
+//
+// Request Body:
+//
+//	{
+//	  "k4": "xyz789def456",    // The new K4 key value
+//	  "k4_sno": 1             // Must match the idsno in the URL
+//	}
+//
+// Returns:
+//   - 200 OK: Successfully updated the K4 key.
+//   - 400 Bad Request: If the request body is invalid or cannot be parsed.
+//   - 500 Internal Server Error: If there was an error updating the data in the database.
+//
+// Example Response:
+// Returns the updated K4 key object with HTTP status 200.
 func HandlePutK4(c *gin.Context) {
 	setCorsHeader(c)
 	logger.WebUILog.Infoln("Put One K4 key Data")
@@ -141,13 +218,6 @@ func HandlePutK4(c *gin.Context) {
 		return
 	}
 
-	// TODO: delete if the code work
-	// if CheckK4BySno(int(k4Data.K4_SNO)) {
-	// 	logger.WebUILog.Errorf("k4 key with SNO %d does not exist", snoIdint)
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is present or there is a internal server errror"})
-	// 	return
-	// }
-
 	if err := K4HelperPut(snoIdint, &k4Data); err != nil {
 		logger.DbLog.Errorf("failed to update k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key"})
@@ -157,20 +227,31 @@ func HandlePutK4(c *gin.Context) {
 	c.JSON(http.StatusOK, k4Data)
 }
 
-// HandleDeleteK4 handles DELETE /k4opt/:idsno
+// HandleDeleteK4 removes a K4 key from the database.
+//
+// This handler processes DELETE requests to /k4opt/:idsno endpoint where :idsno is the
+// sequence number of the K4 key to delete. It removes both the K4 key and its associated
+// data from the database.
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//   - idsno (path parameter): The sequence number of the K4 key to delete.
+//
+// Returns:
+//   - 200 OK: Successfully deleted the K4 key.
+//   - 500 Internal Server Error: If there was an error deleting the data from the database.
+//
+// Example Response:
+//
+//	{
+//	  "message": "k4 key deleted successfully"
+//	}
 func HandleDeleteK4(c *gin.Context) {
 	setCorsHeader(c)
 	logger.WebUILog.Infoln("Delete One K4 key Data")
 
 	snoId := c.Param("idsno")
 	snoIdint, _ := strconv.Atoi(snoId)
-
-	// TODO: delete if the code work
-	// if !CheckK4BySno(snoIdint) {
-	// 	logger.WebUILog.Errorf("k4 key with SNO %s does not exist", snoId)
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "the k4 is not present or there is an internal server error"})
-	// 	return
-	// }
 
 	if err := K4HelperDelete(snoIdint); err != nil {
 		logger.DbLog.Errorf("failed to delete k4 key in DB: %+v", err)
@@ -180,26 +261,3 @@ func HandleDeleteK4(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "k4 key deleted successfully"})
 }
-
-// TODO: delete if the code work
-// func CheckK4BySno(snoId int) bool {
-// 	var k4Data models.K4
-// 	filterSnoID := bson.M{"k4_sno": snoId}
-
-// 	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
-
-// 	if err != nil || len(k4DataInterface) == 0 {
-// 		logger.DbLog.Infoln("failed to fetch k4 key data from DB this key does'nt exist: %+v", err)
-// 		return false
-// 	}
-
-// 	if k4DataInterface != nil {
-// 		err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
-// 		if err != nil {
-// 			logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
-// 			return true
-// 		}
-// 	}
-
-// 	return true
-// }
