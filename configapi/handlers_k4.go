@@ -113,13 +113,11 @@ func HandlePostK4(c *gin.Context) {
 	// 	return
 	// }
 
-	K4DataBsonA := configmodels.ToBsonM(k4Data)
-	logger.WebUILog.Infof("K4 data to be inserted: %+v", K4DataBsonA)
-	filter := bson.M{"k4_sno": k4Data.K4_SNO}
+	logger.WebUILog.Infof("K4 data to be inserted: %+v", k4Data)
 
-	if _, err = dbadapter.AuthDBClient.RestfulAPIPost(k4KeysColl, filter, K4DataBsonA); err != nil {
-		logger.DbLog.Errorf("failed to post k4 key to the the DB error: %+v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ocurred an error in the post to the DB"})
+	if err := K4HelperPut(int(k4Data.K4_SNO), &k4Data); err != nil {
+		logger.DbLog.Errorf("failed to post k4 key in DB: %+v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to post k4 key"})
 		return
 	}
 
@@ -149,10 +147,7 @@ func HandlePutK4(c *gin.Context) {
 	// 	return
 	// }
 
-	filter := bson.M{"k4_sno": snoIdint}
-
-	postData := configmodels.ToBsonM(k4Data)
-	if _, err := dbadapter.AuthDBClient.RestfulAPIPutOne(k4KeysColl, filter, postData); err != nil {
+	if err := K4HelperPut(snoIdint, &k4Data); err != nil {
 		logger.DbLog.Errorf("failed to update k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key"})
 		return
@@ -176,9 +171,7 @@ func HandleDeleteK4(c *gin.Context) {
 	// 	return
 	// }
 
-	filter := bson.M{"k4_sno": snoIdint}
-
-	if err := dbadapter.AuthDBClient.RestfulAPIDeleteOne(k4KeysColl, filter); err != nil {
+	if err := K4HelperDelete(snoIdint); err != nil {
 		logger.DbLog.Errorf("failed to delete k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key"})
 		return
