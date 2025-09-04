@@ -130,17 +130,28 @@ func TestHandlePostK4(t *testing.T) {
 		jsonData, _ := json.Marshal(k4Data)
 
 		// Mock the DB calls
-		oldClient := dbadapter.AuthDBClient
-		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
+		oldAuthClient := dbadapter.AuthDBClient
+		oldCommonClient := dbadapter.CommonDBClient
+
+		mockClient := &dbadapter.MockDBClient{
 			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
 				return nil, assert.AnError // Simula que no existe el registro
 			},
 			PostFn: func(collName string, filter bson.M, postData map[string]interface{}) (bool, error) {
-				// Verifica que postData tenga el formato correcto
+				return true, nil
+			},
+			PutOneFn: func(collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
 				return true, nil
 			},
 		}
-		defer func() { dbadapter.AuthDBClient = oldClient }()
+
+		dbadapter.AuthDBClient = mockClient
+		dbadapter.CommonDBClient = mockClient
+
+		defer func() {
+			dbadapter.AuthDBClient = oldAuthClient
+			dbadapter.CommonDBClient = oldCommonClient
+		}()
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/k4opt", bytes.NewBuffer(jsonData))
@@ -176,8 +187,10 @@ func TestHandlePutK4(t *testing.T) {
 		jsonData, _ := json.Marshal(k4Data)
 
 		// Mock the DB calls
-		oldClient := dbadapter.AuthDBClient
-		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
+		oldAuthClient := dbadapter.AuthDBClient
+		oldCommonClient := dbadapter.CommonDBClient
+
+		mockClient := &dbadapter.MockDBClient{
 			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
 				return map[string]interface{}{"k4": "testKey", "k4_sno": "1"}, nil
 			},
@@ -185,7 +198,14 @@ func TestHandlePutK4(t *testing.T) {
 				return true, nil
 			},
 		}
-		defer func() { dbadapter.AuthDBClient = oldClient }()
+
+		dbadapter.AuthDBClient = mockClient
+		dbadapter.CommonDBClient = mockClient
+
+		defer func() {
+			dbadapter.AuthDBClient = oldAuthClient
+			dbadapter.CommonDBClient = oldCommonClient
+		}()
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("PUT", "/k4opt/1", bytes.NewBuffer(jsonData))
@@ -226,8 +246,10 @@ func TestHandleDeleteK4(t *testing.T) {
 	// Test case 1: Successful deletion
 	t.Run("Successful deletion", func(t *testing.T) {
 		// Mock the DB calls
-		oldClient := dbadapter.AuthDBClient
-		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
+		oldAuthClient := dbadapter.AuthDBClient
+		oldCommonClient := dbadapter.CommonDBClient
+
+		mockClient := &dbadapter.MockDBClient{
 			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
 				return map[string]interface{}{"k4": "testKey", "k4_sno": "1"}, nil
 			},
@@ -235,7 +257,14 @@ func TestHandleDeleteK4(t *testing.T) {
 				return nil
 			},
 		}
-		defer func() { dbadapter.AuthDBClient = oldClient }()
+
+		dbadapter.AuthDBClient = mockClient
+		dbadapter.CommonDBClient = mockClient
+
+		defer func() {
+			dbadapter.AuthDBClient = oldAuthClient
+			dbadapter.CommonDBClient = oldCommonClient
+		}()
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("DELETE", "/k4opt/1", nil)
