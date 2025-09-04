@@ -41,7 +41,11 @@ build-docker-image:
 
     - echo "NF_VERSION=$(make -s -f Makefile print-tag)" > variables.env
 
+<<<<<<< HEAD
     - echo "CI_PROJECT_NAME=$(make -s -f Makefile print-target)" >> variables.env
+=======
+    - export CI_PROJECT_NAME=$(make -s -f Makefile print-target) >> variables.env
+>>>>>>> a4565e6 (Update .gitlab-ci.yml file)
 
     - make docker-build
 
