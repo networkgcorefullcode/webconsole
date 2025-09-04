@@ -34,7 +34,8 @@ func HandleGetsK4(c *gin.Context) {
 			K4: k4Data["k4"].(string),
 		}
 
-		K4SNO_Int := k4Data["k4_sno"].(int)
+		K4SNO_Float := k4Data["k4_sno"].(float64)
+		K4SNO_Int := int(K4SNO_Float)
 		K4_SNO := byte(K4SNO_Int)
 
 		tmp.K4_SNO = K4_SNO
