@@ -62,6 +62,10 @@ build-docker-image:
     - if: '$CI_COMMIT_BRANCH == "dev"'
       when: always
 
+  artifacts:
+    reports:
+      dotenv: variables.env
+
   needs: []
 
 
