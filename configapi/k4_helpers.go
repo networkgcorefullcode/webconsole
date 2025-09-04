@@ -123,14 +123,14 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
 	logger.WebUILog.Debugf("delete k4 key from authenticationSubscription collection: %s", k4Sno)
 	filter := bson.M{"k4_sno": k4Sno}
 
-	origAuthData, getErr := dbadapter.AuthDBClient.RestfulAPIGetOne(authSubsDataColl, filter)
+	origAuthData, getErr := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filter)
 	if getErr != nil {
 		logger.DbLog.Errorln("failed to fetch original AuthDB record before delete:", getErr)
 		return getErr
 	}
 
 	// delete in AuthDB
-	err := dbadapter.AuthDBClient.RestfulAPIDeleteOne(authSubsDataColl, filter)
+	err := dbadapter.AuthDBClient.RestfulAPIDeleteOne(k4KeysColl, filter)
 	if err != nil {
 		logger.DbLog.Errorln(err)
 		return err
@@ -142,7 +142,7 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
 		logger.DbLog.Errorln(err)
 		// rollback AuthDB operation
 		if origAuthData != nil {
-			_, restoreErr := dbadapter.AuthDBClient.RestfulAPIPost(authSubsDataColl, filter, origAuthData)
+			_, restoreErr := dbadapter.AuthDBClient.RestfulAPIPost(k4KeysColl, filter, origAuthData)
 			if restoreErr != nil {
 				logger.DbLog.Errorf("rollback failed after amData delete error error: %+v", restoreErr)
 				return fmt.Errorf("amData delete failed: %w, rollback failed: %w", err, restoreErr)
