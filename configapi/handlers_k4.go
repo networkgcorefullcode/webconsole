@@ -22,7 +22,7 @@ func HandleGetsK4(c *gin.Context) {
 	logger.WebUILog.Infoln("Get All K4 keys List")
 
 	k4List := make([]models.K4, 10)
-	k4DataList, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(k4KeysColl, bson.M{})
+	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(k4KeysColl, bson.M{})
 	if errGetMany != nil {
 		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve k4 keys list"})
