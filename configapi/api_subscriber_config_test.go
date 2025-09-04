@@ -142,7 +142,7 @@ func (m *MockAuthDBClientWithData) RestfulAPIGetOne(coll string, filter bson.M) 
 		},
 		PermanentKey: &models.PermanentKey{
 			EncryptionAlgorithm: 0,
-			EncryptionKey:       0,
+			EncryptionKey:       "",
 			PermanentKeyValue:   "5122250214c33e723a5dd523fc145fc0",
 		},
 		SequenceNumber: "16f3b3f70fc2",
@@ -640,7 +640,7 @@ func TestSubscriberPostHandlersNoExistingSubscriber(t *testing.T) {
 		},
 		PermanentKey: &models.PermanentKey{
 			EncryptionAlgorithm: 0,
-			EncryptionKey:       0,
+			EncryptionKey:       "",
 			PermanentKeyValue:   "8baf473f2f8fd09487cccbd7097c6862",
 		},
 		SequenceNumber: "16f3b3f70fc2",

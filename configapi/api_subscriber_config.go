@@ -83,7 +83,7 @@ func GetSampleJSON(c *gin.Context) {
 		},
 		PermanentKey: &models.PermanentKey{
 			EncryptionAlgorithm: 0,
-			EncryptionKey:       0,
+			EncryptionKey:       "",
 			PermanentKeyValue:   "5122250214c33e723a5dd523fc145fc0", // Required
 		},
 		SequenceNumber: "16f3b3f70fc2",
@@ -507,9 +507,35 @@ func PostSubscriberByID(c *gin.Context) {
 		PermanentKey: &models.PermanentKey{
 			PermanentKeyValue:   subsOverrideData.Key,
 			EncryptionAlgorithm: 0,
-			EncryptionKey:       0,
+			EncryptionKey:       "",
 		},
 		SequenceNumber: subsOverrideData.SequenceNumber,
+	}
+
+	if subsOverrideData.EncryptionAlgorithm != nil {
+		authSubsData.PermanentKey.EncryptionAlgorithm = *subsOverrideData.EncryptionAlgorithm
+	}
+
+	if subsOverrideData.K4Sno != nil {
+		snoIdint := int(*subsOverrideData.K4Sno)
+		filterSnoID := bson.M{"k4_sno": snoIdint}
+
+		var k4Data models.K4
+
+		k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
+
+		if err != nil {
+			logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
+		}
+
+		if k4DataInterface != nil {
+			err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
+			if err != nil {
+				logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
+			}
+		}
+
+		authSubsData.PermanentKey.EncryptionKey = k4Data.K4
 	}
 
 	logger.WebUILog.Infof("%+v", authSubsData)
@@ -599,7 +625,7 @@ func PutSubscriberByID(c *gin.Context) {
 		},
 		PermanentKey: &models.PermanentKey{
 			EncryptionAlgorithm: 0,
-			EncryptionKey:       0,
+			EncryptionKey:       "",
 			PermanentKeyValue:   subsOverrideData.Key,
 		},
 		SequenceNumber: subsOverrideData.SequenceNumber,
