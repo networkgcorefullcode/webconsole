@@ -9,7 +9,7 @@ include:
   # - local: .cicd/telegram.yml
 
 
-build-docker-image:]:
+build-docker-image:
   #extends: [.telegram]
 
   stage: build
