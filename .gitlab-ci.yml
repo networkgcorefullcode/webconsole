@@ -99,8 +99,7 @@ update-helm-values:
     # 3. Editar values.yaml (ejemplo: cambiar tag de la NF)
     # - yq e -i '.amf.image.tag = env(NF_VERSION)' charts/aether/values.yaml
     # - yq-go e -i '.["5g-control-plane"].images.tags.amf = env(NF_VERSION)' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
-    - sed -i -E '/^[[:space:]]*5g-control-plane:/,/^[^[:space:]]/ {/^[[:space:]]*images:/,/^[^[:space:]]/ {/^[[:space:]]*tags:/,/^[^[:space:]]/ {s|^([[:space:]]*webui:[[:space:]]*).*|\1'"$NF_VERSION"'|}}}' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
-
+    - sed -i -E 's|^([[:space:]]{6}webui:[[:space:]]*).*|\1'"$NF_VERSION"'|' deps/5gc/roles/core/templates/sdcore-5g-values.yaml 
 
 
     # 4. Commit y push
