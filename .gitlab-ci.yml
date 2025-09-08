@@ -15,7 +15,7 @@ build-docker-image:
   stage: build
   tags:
     - aether-runner
-  image: docker:20.10
+  image:  golang:1.25
   services:
     - name: docker:20.10-dind
       alias: docker
@@ -24,6 +24,9 @@ build-docker-image:
     DOCKER_TLS_CERTDIR: ""  # desactiva TLS para simplificar
     DOCKER_HOST: tcp://docker:2375
     DOCKER_DRIVER: overlay2
+  before_script:
+    - apt-get update && apt-get install -y docker.io
+    - docker version
   script:
     - docker info
 
@@ -31,13 +34,13 @@ build-docker-image:
 
     - apk update && apk add --no-cache make bash git wget
 
-    -  wget https://go.dev/dl/go1.25.0.linux-amd64.tar.gz
+    # -  wget https://go.dev/dl/go1.25.0.linux-amd64.tar.gz
 
-    -  rm -rf /usr/local/go && tar -C /usr/local -xzf go1.25.0.linux-amd64.tar.gz
+    # -  rm -rf /usr/local/go && tar -C /usr/local -xzf go1.25.0.linux-amd64.tar.gz
 
-    - export PATH=$PATH:/usr/local/go/bin
+    # - export PATH=$PATH:/usr/local/go/bin
 
-    - go version
+    # - go version
 
     - echo "NF_VERSION=$(make -s -f Makefile print-tag)" > variables.env
 
@@ -79,15 +82,15 @@ update-helm-values:
   tags:
     - aether-runner
   before_script:
-    - apk add --no-cache git bash curl wget openssh
+    - apk add --no-cache git bash curl
     - git config --global user.email "ci-bot@aether.local"
     - git config --global user.name "CI Bot"
-    - wget -qO /usr/local/bin/yq-go https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-    - chmod +x /usr/local/bin/yq-go
+    # - wget -qO /usr/local/bin/yq-go https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    # - chmod +x /usr/local/bin/yq-go
 
   script:
     # 1. Clonar repo de infra (OnRamp)
-    - git clone https://<GITLAB_PRIVATE_URL>
+    - git clone https://$TOKEN_USER:$ONRAMP_TOKEN@$GITLAB_SERVER_URL/5g/aether.git
     - cd aether
 
     # 2. Crear rama nueva (basada en dev)
@@ -98,7 +101,9 @@ update-helm-values:
 
     # 3. Editar values.yaml (ejemplo: cambiar tag de la NF)
     # - yq e -i '.amf.image.tag = env(NF_VERSION)' charts/aether/values.yaml
-    - yq-go e -i '.["5g-control-plane"].images.tags.amf = env(NF_VERSION)' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
+    # - yq-go e -i '.["5g-control-plane"].images.tags.amf = env(NF_VERSION)' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
+    - sed -i -E 's|^([[:space:]]{6}webui:[[:space:]]*).*|\1'"$NF_VERSION"'|' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
+
 
     # 4. Commit y push
     - git add deps/5gc/roles/core/templates/sdcore-5g-values.yaml
@@ -108,7 +113,7 @@ update-helm-values:
     # 5. Crear MR automáticamente vía API de GitLab
     - |
        curl --header "PRIVATE-TOKEN: $ONRAMP_TOKEN" \
-       -X POST "https://<API_PRIVATE_URL>" \
+       -X POST "https://${GITLAB_SERVER_URL}/api/v4/projects/1268/merge_requests" \
        --data "source_branch=$BRANCH_NAME" \
        --data "target_branch=dev" \
        --data-urlencode "title=Update ${CI_PROJECT_NAME} image to ${NF_VERSION}" \
@@ -117,6 +122,19 @@ update-helm-values:
   needs:
     - job: build-docker-image
       artifacts: true
+
+  rules:
+    # Caso 1: Merge Request a main
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: always
+
+    # Caso 2: Merge Request a dev
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+      when: always
+
+    # Caso 3: Push directo a dev
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: always
 
 
 
