@@ -1,0 +1,263 @@
+package configapi
+
+import (
+	"encoding/json"
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/omec-project/openapi/models"
+	"github.com/omec-project/webconsole/backend/logger"
+	"github.com/omec-project/webconsole/configmodels"
+	"github.com/omec-project/webconsole/dbadapter"
+	"go.mongodb.org/mongo-driver/bson"
+)
+
+// HandleGetsK4 retrieves all K4 keys from the database.
+//
+// This handler processes GET requests to /k4opt endpoint and returns a list of all K4 keys
+// stored in the MongoDB database. Each K4 key contains both the key value and its
+// associated sequence number (SNO).
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//
+// Returns:
+//   - 200 OK: Successfully retrieved the list of K4 keys.
+//   - 500 Internal Server Error: If there was an error retrieving the data from the database.
+//
+// Example Response:
+//
+//	[
+//	  {
+//	    "k4": "abc123def456",
+//	    "k4_sno": 1
+//	  },
+//	  {
+//	    "k4": "xyz789def456",
+//	    "k4_sno": 2
+//	  }
+//	]
+func HandleGetsK4(c *gin.Context) {
+	setCorsHeader(c)
+
+	logger.WebUILog.Infoln("Get All K4 keys List")
+
+	k4List := make([]models.K4, 0)
+	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(k4KeysColl, bson.M{})
+	if errGetMany != nil {
+		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve k4 keys list"})
+		return
+	}
+
+	for _, k4Data := range k4DataList {
+		tmp := models.K4{
+			K4: k4Data["k4"].(string),
+		}
+
+		K4SNO_Float := k4Data["k4_sno"].(float64)
+		K4SNO_Int := int(K4SNO_Float)
+		K4_SNO := byte(K4SNO_Int)
+
+		tmp.K4_SNO = K4_SNO
+
+		k4List = append(k4List, tmp)
+	}
+
+	c.JSON(http.StatusOK, k4List)
+}
+
+// HandleGetK4 retrieves a specific K4 key by its sequence number (SNO).
+//
+// This handler processes GET requests to /k4opt/:idsno endpoint where :idsno is the
+// sequence number of the K4 key to retrieve. It returns a single K4 key object if found.
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//   - idsno (path parameter): The sequence number of the K4 key to retrieve.
+//
+// Returns:
+//   - 200 OK: Successfully retrieved the K4 key.
+//   - 500 Internal Server Error: If there was an error retrieving the data from the database.
+//
+// Example Response:
+//
+//	{
+//	  "k4": "abc123def456",
+//	  "k4_sno": 1
+//	}
+func HandleGetK4(c *gin.Context) {
+	setCorsHeader(c)
+
+	logger.WebUILog.Infoln("Get One K4 key Data")
+
+	snoId := c.Param("idsno")
+	snoIdint, _ := strconv.Atoi(snoId)
+
+	filterSnoID := bson.M{"k4_sno": snoIdint}
+
+	var k4Data models.K4
+
+	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
+
+	if err != nil {
+		logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch the requested k4 key record from DB"})
+		return
+	}
+
+	if k4DataInterface != nil {
+		err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
+		if err != nil {
+			logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve k4 key"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, k4Data)
+}
+
+// HandlePostK4 creates a new K4 key in the database.
+//
+// This handler processes POST requests to /k4opt endpoint. It accepts a JSON body
+// containing the K4 key data and stores it in the database. The K4 key must have
+// a unique sequence number (SNO).
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//
+// Request Body:
+//
+//	{
+//	  "k4": "abc123def456",    // The K4 key value
+//	  "k4_sno": 1             // The sequence number for the key
+//	}
+//
+// Returns:
+//   - 201 Created: Successfully created the K4 key.
+//   - 400 Bad Request: If the request body is invalid or cannot be parsed.
+//   - 500 Internal Server Error: If there was an error storing the data in the database.
+//
+// Example Response:
+// Returns the created K4 key object with HTTP status 201.
+func HandlePostK4(c *gin.Context) {
+	setCorsHeader(c)
+
+	logger.WebUILog.Infoln("Post One K4 key Data")
+
+	var k4Data models.K4
+	var err error
+
+	rawData, err := c.GetRawData()
+	if err != nil {
+		logger.WebUILog.Errorf("failed to get raw data: %+v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to get raw data"})
+		return
+	}
+
+	logger.WebUILog.Infof("Raw data received: %s", string(rawData))
+
+	err = json.Unmarshal(rawData, &k4Data)
+	if err != nil {
+		logger.WebUILog.Errorf("failed to unmarshall the json: %+v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to unmarshall the json"})
+		return
+	}
+
+	logger.WebUILog.Infof("Parsed K4 data: %+v", k4Data)
+
+	logger.WebUILog.Infof("K4 data to be inserted: %+v", k4Data)
+
+	if err := K4HelperPut(int(k4Data.K4_SNO), &k4Data); err != nil {
+		logger.DbLog.Errorf("failed to post k4 key in DB: %+v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to post k4 key"})
+		return
+	}
+
+	logger.WebUILog.Infoln("K4 key posted successfully")
+	c.JSON(http.StatusCreated, k4Data)
+}
+
+// HandlePutK4 updates an existing K4 key in the database.
+//
+// This handler processes PUT requests to /k4opt/:idsno endpoint where :idsno is the
+// sequence number of the K4 key to update. It accepts a JSON body containing the new
+// K4 key data and updates the existing record in the database.
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//   - idsno (path parameter): The sequence number of the K4 key to update.
+//
+// Request Body:
+//
+//	{
+//	  "k4": "xyz789def456",    // The new K4 key value
+//	  "k4_sno": 1             // Must match the idsno in the URL
+//	}
+//
+// Returns:
+//   - 200 OK: Successfully updated the K4 key.
+//   - 400 Bad Request: If the request body is invalid or cannot be parsed.
+//   - 500 Internal Server Error: If there was an error updating the data in the database.
+//
+// Example Response:
+// Returns the updated K4 key object with HTTP status 200.
+func HandlePutK4(c *gin.Context) {
+	setCorsHeader(c)
+	logger.WebUILog.Infoln("Put One K4 key Data")
+
+	snoId := c.Param("idsno")
+	snoIdint, _ := strconv.Atoi(snoId)
+	var k4Data models.K4
+
+	if err := c.ShouldBindJSON(&k4Data); err != nil {
+		logger.WebUILog.Errorf("Put One K4 key Data - ShouldBindJSON failed: %+v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: failed to parse JSON."})
+		return
+	}
+
+	if err := K4HelperPut(snoIdint, &k4Data); err != nil {
+		logger.DbLog.Errorf("failed to update k4 key in DB: %+v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key"})
+		return
+	}
+
+	c.JSON(http.StatusOK, k4Data)
+}
+
+// HandleDeleteK4 removes a K4 key from the database.
+//
+// This handler processes DELETE requests to /k4opt/:idsno endpoint where :idsno is the
+// sequence number of the K4 key to delete. It removes both the K4 key and its associated
+// data from the database.
+//
+// Parameters:
+//   - c (*gin.Context): The Gin context containing the HTTP request and response.
+//   - idsno (path parameter): The sequence number of the K4 key to delete.
+//
+// Returns:
+//   - 200 OK: Successfully deleted the K4 key.
+//   - 500 Internal Server Error: If there was an error deleting the data from the database.
+//
+// Example Response:
+//
+//	{
+//	  "message": "k4 key deleted successfully"
+//	}
+func HandleDeleteK4(c *gin.Context) {
+	setCorsHeader(c)
+	logger.WebUILog.Infoln("Delete One K4 key Data")
+
+	snoId := c.Param("idsno")
+	snoIdint, _ := strconv.Atoi(snoId)
+
+	if err := K4HelperDelete(snoIdint); err != nil {
+		logger.DbLog.Errorf("failed to delete k4 key in DB: %+v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "k4 key deleted successfully"})
+}

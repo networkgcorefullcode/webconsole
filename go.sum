@@ -95,8 +95,8 @@ github.com/montanaflynn/stats v0.7.1 h1:etflOAAHORrCC44V+aR6Ftzort912ZU+YLiSTuV8
 github.com/montanaflynn/stats v0.7.1/go.mod h1:etXPPgVO6n31NxCd9KQUMvCM+ve0ruNzt6R8Bnaayow=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/networkgcorefullcode/openapi v1.2.1 h1:TbO1pDE16k+UF5BylZl0+4GlXHnZ4ozXCnQREjcl+j8=
-github.com/networkgcorefullcode/openapi v1.2.1/go.mod h1:4nwAVKA4GUXw5OnjxYOU8LAoRrpGTG/ruJLgKiE/Ccs=
+github.com/networkgcorefullcode/openapi v1.7.0 h1:lldejkIqTmBaxJBY+ljqBGekZ/8mLFddc07F+nTl3kI=
+github.com/networkgcorefullcode/openapi v1.7.0/go.mod h1:4nwAVKA4GUXw5OnjxYOU8LAoRrpGTG/ruJLgKiE/Ccs=
 github.com/omec-project/config5g v1.6.2 h1:bfLxwVSt6LAWCQtBmjUuks5CO3qambvcy3VjSVAMHdk=
 github.com/omec-project/config5g v1.6.2/go.mod h1:LuaRiJTCJXCkQF7nKB5fOcz6oVMF/8oid+EKCYFAy0E=
 github.com/omec-project/util v1.4.0 h1:LJ29TMOvkdCWBRQWqTsQNW3Wn+Wio6i3oyBIMa+1cPY=
@@ -125,8 +125,8 @@ github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
-github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
+github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/swaggo/files v1.0.1 h1:J1bVJ4XHZNq0I46UU90611i9/YzdrF7x92oX1ig5IdE=
 github.com/swaggo/files v1.0.1/go.mod h1:0qXmMNH6sXNf+73t65aKeB+ApmgxdnkQzVTAj2uaMUg=
 github.com/swaggo/gin-swagger v1.6.0 h1:y8sxvQ3E20/RCyrXeFfg60r6H0Z+SwpTjMYsMm+zy8M=
