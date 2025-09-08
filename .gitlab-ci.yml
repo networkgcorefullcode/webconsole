@@ -79,11 +79,11 @@ update-helm-values:
   tags:
     - aether-runner
   before_script:
-    - apk add --no-cache git bash curl wget openssh
+    - apk add --no-cache git bash curl 
     - git config --global user.email "ci-bot@aether.local"
     - git config --global user.name "CI Bot"
-    - wget -qO /usr/local/bin/yq-go https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-    - chmod +x /usr/local/bin/yq-go
+    # - wget -qO /usr/local/bin/yq-go https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    # - chmod +x /usr/local/bin/yq-go
 
   script:
     # 1. Clonar repo de infra (OnRamp)
@@ -98,7 +98,9 @@ update-helm-values:
 
     # 3. Editar values.yaml (ejemplo: cambiar tag de la NF)
     # - yq e -i '.amf.image.tag = env(NF_VERSION)' charts/aether/values.yaml
-    - yq-go e -i '.["5g-control-plane"].images.tags.amf = env(NF_VERSION)' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
+    # - yq-go e -i '.["5g-control-plane"].images.tags.amf = env(NF_VERSION)' deps/5gc/roles/core/templates/sdcore-5g-values.yaml
+    - sed -i -E 's|^([[:space:]]{6}webui:[[:space:]]*).*|\1'"$NF_VERSION"'|' deps/5gc/roles/core/templates/sdcore-5g-values.yaml 
+
 
     # 4. Commit y push
     - git add deps/5gc/roles/core/templates/sdcore-5g-values.yaml
@@ -117,6 +119,19 @@ update-helm-values:
   needs:
     - job: build-docker-image
       artifacts: true
+
+  rules:
+    # Caso 1: Merge Request a main
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: always
+
+    # Caso 2: Merge Request a dev
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+      when: always
+
+    # Caso 3: Push directo a dev
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: always
 
 
 
