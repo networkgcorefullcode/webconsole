@@ -42,11 +42,11 @@ build-docker-image:
 
     # - go version
 
-    - echo "BRANCH=$(make -s -f Makefile print-branch)" > variables.env
-
     - echo "NF_VERSION=$(make -s -f Makefile print-tag)" > variables.env
 
     - echo "CI_PROJECT_NAME=$(make -s -f Makefile print-target)" >> variables.env
+
+    - echo "BRANCH=$(make -s -f Makefile print-branch)" >> variables.env
 
     - make docker-build
 
