@@ -64,6 +64,9 @@ clean:
 	rm -rf $(ROOT_PATH)/$(GO_BIN_PATH)/$(WEBCONSOLE)
 	rm -rf $(ROOT_PATH)/$(GO_BIN_PATH)/$(WEBCONSOLE)-ui
 
+print-branch:
+	@echo ${DOCKER_REPOSITORY}5gc-${DOCKER_TARGETS}-${DOCKER_TAG}
+
 print-tag:
 	@echo ${DOCKER_REPOSITORY}5gc-${DOCKER_TARGETS}-${DOCKER_TAG}
 
