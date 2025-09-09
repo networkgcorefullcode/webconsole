@@ -68,7 +68,7 @@ print-branch:
 	@echo ${DOCKER_REPOSITORY}5gc-${DOCKER_TARGETS}-${DOCKER_TAG}
 
 print-tag:
-	@echo ${DOCKER_REPOSITORY}5gc-${DOCKER_TARGETS}-${DOCKER_TAG}
+	@echo ${DOCKER_REPOSITORY}5gc-${DOCKER_TARGETS}:${DOCKER_TAG}
 
 print-target:
 	@echo ${DOCKER_TARGETS}
