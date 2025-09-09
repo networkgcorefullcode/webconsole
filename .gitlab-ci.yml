@@ -48,7 +48,7 @@ build-docker-image:
 
     - echo "BRANCH=$(make -s -f Makefile print-branch)" >> variables.env
 
-    - make webconsole-ui
+    # - make webconsole-ui
 
     - make docker-build
 
