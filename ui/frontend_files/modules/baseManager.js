@@ -4,23 +4,23 @@
 import { API_BASE } from '../app.js';
 
 export class BaseManager {
-    constructor(apiEndpoint, containerId) {
+    constructor(apiEndpoint, containerId, apiBase = API_BASE) {
         this.apiEndpoint = apiEndpoint;
         this.containerId = containerId;
-        this.data = [];
+        this.apiBase = apiBase; // Almacenamos la URL base a usar
     }
 
     async loadData() {
         try {
             this.showLoading();
-            const response = await fetch(`${API_BASE}${this.apiEndpoint}`);
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}`);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const data = await response.json();
-            this.data = Array.isArray(data) ? data : [data];
+            this.data = Array.isArray(data) ? data : (data ? [data] : []); // Manejo de respuesta vacía
             this.render(this.data);
             
         } catch (error) {
@@ -31,7 +31,7 @@ export class BaseManager {
 
     async createItem(itemData) {
         try {
-            const response = await fetch(`${API_BASE}${this.apiEndpoint}`, {
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -52,7 +52,7 @@ export class BaseManager {
 
     async updateItem(itemName, itemData) {
         try {
-            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${itemName}`, {
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${itemName}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export class BaseManager {
 
     async deleteItem(itemName) {
         try {
-            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${itemName}`, {
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${itemName}`, {
                 method: 'DELETE'
             });
 
@@ -90,7 +90,7 @@ export class BaseManager {
 
     async getItem(itemName) {
         try {
-            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${itemName}`);
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${itemName}`);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
