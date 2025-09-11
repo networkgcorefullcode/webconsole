@@ -9,7 +9,9 @@ export class UIManager {
             'device-groups': 'deviceGroups',
             'network-slices': 'networkSlices', 
             'gnb-inventory': 'gnbInventory',
-            'upf-inventory': 'upfInventory'
+            'upf-inventory': 'upfInventory',
+            'subscribers': 'subscribers' // identificador genérico
+
         };
     }
 
@@ -43,9 +45,15 @@ export class UIManager {
     }
 
     loadSectionData(section) {
-        const managerKey = this.sections[section];
-        if (managerKey && app.managers[managerKey]) {
-            app.managers[managerKey].loadData();
+        // Lógica para la sección de suscriptores
+        if (section === 'subscribers') {
+            app.managers.k4Manager.loadData();
+            app.managers.subscriberManager.renderForm();
+        } else {
+            const managerKey = this.sections[section];
+            if (managerKey && app.managers[managerKey]) {
+                app.managers[managerKey].loadData();
+            }
         }
     }
 

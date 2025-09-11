@@ -173,7 +173,8 @@ export class ModalManager {
             'device-group': 'deviceGroups',
             'network-slice': 'networkSlices',
             'gnb': 'gnbInventory',
-            'upf': 'upfInventory'
+            'upf': 'upfInventory',
+            'k4-key': 'k4Manager'
         };
         
         const managerKey = typeMapping[type];

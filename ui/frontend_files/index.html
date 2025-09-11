@@ -53,6 +53,11 @@
                             <i class="fas fa-server me-1"></i>UPF Inventory
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('subscribers')">
+                            <i class="fas fa-user-shield me-1"></i>Subscribers
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -157,6 +162,48 @@
                                     </div>
                                     <p>Loading UPFs...</p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Subscribers Section -->
+    <div id="subscribers" class="content-section" style="display: none;">
+        <div class="row">
+            <!-- Columna para el formulario del suscriptor -->
+            <div class="col-lg-5 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5><i class="fas fa-user-plus me-2"></i>Provision Subscriber</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="subscriber-form" novalidate>
+                            <div id="subscriber-form-container">
+                                <!-- El formulario se generará dinámicamente aquí -->
+                                <div class="text-center"><div class="spinner-border spinner-border-sm"></div></div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna para la gestión de claves K4 -->
+            <div class="col-lg-7">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-key me-2"></i>K4 Keys Management</h5>
+                        <button class="btn btn-primary" onclick="showCreateForm('k4-key')">
+                            <i class="fas fa-plus me-1"></i>Add K4 Key
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="k4-keys-list">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">Loading K4 keys...</p>
                             </div>
                         </div>
                     </div>
