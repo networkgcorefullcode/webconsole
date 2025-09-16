@@ -32,9 +32,12 @@ export class UIManager {
             sectionElement.style.display = 'block';
         }
         
-        // Add active class to current nav link
-        if (event && event.target) {
-            event.target.classList.add('active');
+        // Add active class to the corresponding nav link by finding it, 
+        // instead of relying on event.target.
+        // El atributo 'onclick' contiene el nombre de la sección, así que lo usamos como selector.
+        const navLink = document.querySelector(`.nav-link[onclick="showSection('${section}')"]`);
+        if (navLink) {
+            navLink.classList.add('active');
         }
         
         // Update app state
