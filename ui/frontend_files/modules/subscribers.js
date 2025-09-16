@@ -80,6 +80,11 @@ export class K4Manager extends BaseManager {
             "k4": formData.k4.toLowerCase()
         };
     }
+    
+    async showEditForm(name) {
+        // Llama explícitamente al método genérico de carga de datos del padre.
+        await this.loadItemData(name);
+    }
 }
 
 // --- GESTOR PARA EL FORMULARIO DEL SUSCRIPTOR ---
