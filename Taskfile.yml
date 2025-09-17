@@ -77,7 +77,7 @@ tasks:
   webconsole-ui:
     desc: "Build webconsole binary with UI"
     generates:
-      - "{{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}"
+      - "{{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}-ui"
     sources:
       - "server.go"
       - "./**/*.go"
@@ -85,7 +85,7 @@ tasks:
     cmds:
       - echo "Start building {{.WEBCONSOLE}} with UI...."
       - mkdir -p {{.GO_BIN_PATH}}
-      - CGO_ENABLED=0 go build --tags ui -o {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}} ./server.go
+      - CGO_ENABLED=0 go build --tags ui -o {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}-ui ./server.go
 
   clean:
     desc: "Clean built binaries"
