@@ -81,6 +81,7 @@ tasks:
     sources:
       - "server.go"
       - "./**/*.go"
+      - "ui/frontend_files/**/*"
     cmds:
       - echo "Start building {{.WEBCONSOLE}} with UI...."
       - mkdir -p {{.GO_BIN_PATH}}
