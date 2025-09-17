@@ -55,6 +55,7 @@ type Mongodb struct {
 	AuthUrl        string `yaml:"authUrl"`
 	WebuiDBName    string `yaml:"webuiDbName,omitempty"`
 	WebuiDBUrl     string `yaml:"webuiDbUrl,omitempty"`
+	CheckReplica   bool   `yaml:"checkReplica,omitempty"`
 }
 
 type RocEndpt struct {

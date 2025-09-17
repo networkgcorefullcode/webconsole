@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
 	"github.com/omec-project/webconsole/dbadapter"
@@ -106,6 +107,22 @@ func PostGnb(c *gin.Context) {
 		}
 	}
 	gnb := configmodels.Gnb(postGnbParams)
+	if !factory.WebUIConfig.Configuration.Mongodb.CheckReplica {
+		if err := postGnbOperationWithOutContext(gnb); err != nil {
+			logger.WebUILog.Errorf("failed to post gNB in network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "post error"})
+			return
+		}
+
+		if err := updateGnbInNetworkSlices(gnb); err != nil {
+			logger.WebUILog.Errorf("failed to update gNB in network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "update error"})
+			return
+		}
+		logger.WebUILog.Infof("successfully executed POST gNB %s request", postGnbParams.Name)
+		c.JSON(http.StatusCreated, gin.H{})
+		return
+	}
 	if err := executeGnbTransaction(c.Request.Context(), gnb, updateGnbInNetworkSlices, postGnbOperation); err != nil {
 		if strings.Contains(err.Error(), "E11000") {
 			logger.WebUILog.Errorf("duplicate gNB name found error: %+v", err)
@@ -124,6 +141,12 @@ func postGnbOperation(sc mongo.SessionContext, gnb configmodels.Gnb) error {
 	filter := bson.M{"name": gnb.Name}
 	gnbDataBson := configmodels.ToBsonM(gnb)
 	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.GnbDataColl, filter, []interface{}{gnbDataBson})
+}
+
+func postGnbOperationWithOutContext(gnb configmodels.Gnb) error {
+	filter := bson.M{"name": gnb.Name}
+	gnbDataBson := configmodels.ToBsonM(gnb)
+	return dbadapter.CommonDBClient.RestfulAPIPostMany(configmodels.GnbDataColl, filter, []interface{}{gnbDataBson})
 }
 
 // PutGnb godoc

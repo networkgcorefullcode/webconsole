@@ -31,3 +31,4 @@ public/
 vendor/
 config/webuicfg.yaml
 server.exe
+webconsole.exe
