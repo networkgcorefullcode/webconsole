@@ -118,6 +118,13 @@ func CheckTransactionsSupport(client *DBInterface) error {
 	if client == nil || *client == nil {
 		return fmt.Errorf("mongoDB client has not been initialized")
 	}
+	checkReplica := factory.WebUIConfig.Configuration.Mongodb.CheckReplica
+
+	// enabled check replica set step, focus on dev
+	if !checkReplica {
+		logger.DbLog.Infoln("replicaset is not necessary, mongodb config is correct, connect is success")
+		return nil
+	}
 	ticker := time.NewTicker(60 * time.Second)
 	defer func() { ticker.Stop() }()
 	timer := time.After(180 * time.Second)
