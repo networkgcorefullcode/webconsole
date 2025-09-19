@@ -459,6 +459,25 @@ func convertToString(val uint64) string {
 	return retStr
 }
 
+func ConvertToString(val uint64) string {
+	var mbVal, gbVal, kbVal uint64
+	kbVal = val / 1000
+	mbVal = val / 1000000
+	gbVal = val / 1000000000
+	var retStr string
+	if gbVal != 0 {
+		retStr = strconv.FormatUint(gbVal, 10) + " Gbps"
+	} else if mbVal != 0 {
+		retStr = strconv.FormatUint(mbVal, 10) + " Mbps"
+	} else if kbVal != 0 {
+		retStr = strconv.FormatUint(kbVal, 10) + " Kbps"
+	} else {
+		retStr = strconv.FormatUint(val, 10) + " bps"
+	}
+
+	return retStr
+}
+
 func getSlices() []*configmodels.Slice {
 	rawSlices, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(sliceDataColl, nil)
 	if errGetMany != nil {

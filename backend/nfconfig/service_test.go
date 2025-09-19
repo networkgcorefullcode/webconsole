@@ -17,6 +17,7 @@ import (
 	"github.com/omec-project/openapi/nfConfigApi"
 	"github.com/omec-project/util/logger"
 	"github.com/omec-project/webconsole/backend/factory"
+	webconsoleLogger "github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
 	"github.com/omec-project/webconsole/dbadapter"
 	"go.mongodb.org/mongo-driver/bson"
@@ -33,7 +34,7 @@ func (m *MockDBClient) RestfulAPIGetMany(coll string, filter bson.M) ([]map[stri
 	for _, s := range m.Slices {
 		ns := configmodels.ToBsonM(s)
 		if ns == nil {
-			panic("failed to convert network slice to BsonM")
+			webconsoleLogger.DbLog.Fatalln("failed to convert network slice to BsonM")
 		}
 		results = append(results, ns)
 	}
@@ -67,12 +68,6 @@ func makeNetworkSlice(mcc, mnc, sst string, sd string, tacs []int32) configmodel
 		SiteInfo:  siteInfo,
 	}
 	return networkSlice
-}
-
-func makeSnssaiWithSd(sst int32, sd string) nfConfigApi.Snssai {
-	s := nfConfigApi.NewSnssai(sst)
-	s.SetSd(sd)
-	return *s
 }
 
 func TestNewNFConfig_nil_config(t *testing.T) {
@@ -272,6 +267,12 @@ func TestNFConfigRoutes(t *testing.T) {
 			wantStatus:   http.StatusOK,
 		},
 		{
+			name:         "imsi qos endpoint for missing configuraion returns not found",
+			path:         "/nfconfig/qos/internet/imsi-001011234567890",
+			acceptHeader: "application/json",
+			wantStatus:   http.StatusNotFound,
+		},
+		{
 			name:         "access mobility endpoint invalid accept header",
 			path:         "/nfconfig/access-mobility",
 			acceptHeader: "",
@@ -298,6 +299,12 @@ func TestNFConfigRoutes(t *testing.T) {
 		{
 			name:         "session management endpoint invalid accept header",
 			path:         "/nfconfig/session-management",
+			acceptHeader: "application/jsons",
+			wantStatus:   http.StatusBadRequest,
+		},
+		{
+			name:         "imsi qos endpoint invalid accept header",
+			path:         "/nfconfig/qos",
 			acceptHeader: "application/jsons",
 			wantStatus:   http.StatusBadRequest,
 		},
@@ -537,7 +544,20 @@ func TestSyncInMemoryConfig_UpdateAllConfigs(t *testing.T) {
 					GnbNames:  []string{"test-gnb-1"},
 				},
 			},
-			expectedPolicyControl: []nfConfigApi.PolicyControl{},
+			expectedPolicyControl: []nfConfigApi.PolicyControl{
+				{
+					PlmnId:   *nfConfigApi.NewPlmnId("123", "23"),
+					Snssai:   makeSnssaiWithSd(1, "01234"),
+					Dnns:     []string{},
+					PccRules: []nfConfigApi.PccRule{*defaultPccRule},
+				},
+				{
+					PlmnId:   *nfConfigApi.NewPlmnId("123", "23"),
+					Snssai:   makeSnssaiWithSd(2, "abcd"),
+					Dnns:     []string{},
+					PccRules: []nfConfigApi.PccRule{*defaultPccRule},
+				},
+			},
 		},
 		{
 			name:                      "Empty slices",
@@ -566,19 +586,19 @@ func TestSyncInMemoryConfig_UpdateAllConfigs(t *testing.T) {
 				t.Errorf("expected no error. Got %s", err)
 			}
 			if !reflect.DeepEqual(tc.expectedPlmn, n.inMemoryConfig.plmn) {
-				t.Errorf("Expected PLMN %+v, got %+v", tc.expectedPlmn, n.inMemoryConfig.plmn)
+				t.Errorf("expected PLMN %+v, got %+v", tc.expectedPlmn, n.inMemoryConfig.plmn)
 			}
 			if !reflect.DeepEqual(tc.expectedPlmnSnssai, n.inMemoryConfig.plmnSnssai) {
-				t.Errorf("Expected PLMN-SNSSAI %+v, got %+v", tc.expectedPlmnSnssai, n.inMemoryConfig.plmnSnssai)
+				t.Errorf("expected PLMN-SNSSAI %+v, got %+v", tc.expectedPlmnSnssai, n.inMemoryConfig.plmnSnssai)
 			}
 			if !reflect.DeepEqual(tc.expectedAccessAndMobility, n.inMemoryConfig.accessAndMobility) {
-				t.Errorf("Expected Access and Mobility %+v, got %+v", tc.expectedAccessAndMobility, n.inMemoryConfig.accessAndMobility)
+				t.Errorf("expected Access and Mobility %+v, got %+v", tc.expectedAccessAndMobility, n.inMemoryConfig.accessAndMobility)
 			}
 			if !reflect.DeepEqual(tc.expectedSessionManagement, n.inMemoryConfig.sessionManagement) {
-				t.Errorf("Expected Session Management %+v, got %+v", tc.expectedSessionManagement, n.inMemoryConfig.sessionManagement)
+				t.Errorf("expected Session Management %+v, got %+v", tc.expectedSessionManagement, n.inMemoryConfig.sessionManagement)
 			}
 			if !reflect.DeepEqual(tc.expectedPolicyControl, n.inMemoryConfig.policyControl) {
-				t.Errorf("Expected Policy Control %+v, got %+v", tc.expectedPolicyControl, n.inMemoryConfig.policyControl)
+				t.Errorf("expected Policy Control %+v, got %+v", tc.expectedPolicyControl, n.inMemoryConfig.policyControl)
 			}
 		})
 	}
@@ -666,19 +686,19 @@ func TestSyncInMemoryConfig_DBError_KeepsPreviousConfig(t *testing.T) {
 				t.Errorf("expected error. Got nil")
 			}
 			if !reflect.DeepEqual(tc.expectedPlmn, n.inMemoryConfig.plmn) {
-				t.Errorf("Expected PLMN %v, got %v", tc.expectedPlmn, n.inMemoryConfig.plmn)
+				t.Errorf("expected PLMN %v, got %v", tc.expectedPlmn, n.inMemoryConfig.plmn)
 			}
 			if !reflect.DeepEqual(tc.expectedPlmnSnssai, n.inMemoryConfig.plmnSnssai) {
-				t.Errorf("Expected PLMN-SNSSAI %v, got %v", tc.expectedPlmnSnssai, n.inMemoryConfig.plmnSnssai)
+				t.Errorf("expected PLMN-SNSSAI %v, got %v", tc.expectedPlmnSnssai, n.inMemoryConfig.plmnSnssai)
 			}
 			if !reflect.DeepEqual(tc.expectedAccessAndMobility, n.inMemoryConfig.accessAndMobility) {
-				t.Errorf("Expected Access and Mobility %v, got %v", tc.expectedAccessAndMobility, n.inMemoryConfig.accessAndMobility)
+				t.Errorf("expected Access and Mobility %v, got %v", tc.expectedAccessAndMobility, n.inMemoryConfig.accessAndMobility)
 			}
 			if !reflect.DeepEqual(tc.expectedSessionManagement, n.inMemoryConfig.sessionManagement) {
-				t.Errorf("Expected Session Management %+v, got %+v", tc.expectedSessionManagement, n.inMemoryConfig.sessionManagement)
+				t.Errorf("expected Session Management %+v, got %+v", tc.expectedSessionManagement, n.inMemoryConfig.sessionManagement)
 			}
 			if !reflect.DeepEqual(tc.expectedPolicyControl, n.inMemoryConfig.policyControl) {
-				t.Errorf("Expected Policy Control %+v, got %+v", tc.expectedPolicyControl, n.inMemoryConfig.policyControl)
+				t.Errorf("expected Policy Control %+v, got %+v", tc.expectedPolicyControl, n.inMemoryConfig.policyControl)
 			}
 		})
 	}

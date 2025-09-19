@@ -80,4 +80,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/omec-project/openapi => github.com/networkgcorefullcode/openapi v1.7.0
+replace github.com/omec-project/openapi => github.com/networkgcorefullcode/openapi v1.7.3
