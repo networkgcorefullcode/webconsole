@@ -279,3 +279,45 @@ code {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Device Group Row Styles */
+.device-group-row {
+    transition: all 0.2s ease-in-out;
+}
+
+.device-group-row:hover {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.device-group-row:active {
+    transform: translateY(0);
+}
+
+/* Details View Styles */
+#device-group-details .card {
+    border-left: 4px solid var(--primary-color);
+}
+
+#device-group-details .card-header {
+    background-color: rgba(13, 110, 253, 0.05);
+    font-weight: 600;
+}
+
+/* Badge styles for IMSIs */
+.badge.bg-light.text-dark {
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+}
+
+/* Edit mode styles */
+#details-edit-mode .card {
+    border-left: 4px solid var(--warning-color);
+}
+
+#details-edit-mode .card-header {
+    background-color: rgba(255, 193, 7, 0.05);
+}

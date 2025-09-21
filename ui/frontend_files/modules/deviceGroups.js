@@ -95,7 +95,7 @@ export class DeviceGroupManager extends BaseManager {
             const ipDomainName = (group && group['ip-domain-name']) || 'N/A';
             
             html += `
-                <tr>
+                <tr class="device-group-row" onclick="showDeviceGroupDetails('${groupName}')" style="cursor: pointer;">
                     <td><strong>${groupName}</strong></td>
                     <td>
                         <span class="badge bg-secondary">${imsis.length} IMSIs</span>
@@ -103,7 +103,7 @@ export class DeviceGroupManager extends BaseManager {
                     </td>
                     <td>${siteInfo}</td>
                     <td>${ipDomainName}</td>
-                    <td>
+                    <td onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-primary me-1" 
                                 onclick="editItem('${this.type}', '${groupName}')">
                             <i class="fas fa-edit"></i> Edit
@@ -382,6 +382,354 @@ export class DeviceGroupManager extends BaseManager {
         const field = document.getElementById(fieldId);
         if (field && value !== undefined && value !== null) {
             field.value = value;
+        }
+    }
+
+    // New methods for details view
+    async showDetails(groupName) {
+        try {
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${encodeURIComponent(groupName)}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const groupData = await response.json();
+            this.currentGroupData = groupData;
+            this.currentGroupName = groupName;
+            this.renderDetailsView(groupData);
+            
+        } catch (error) {
+            console.error('Failed to load device group details:', error);
+            // Show error notification
+            window.app?.notificationManager?.showNotification('Error loading device group details', 'error');
+        }
+    }
+
+    renderDetailsView(groupData) {
+        const container = document.getElementById('device-group-details-content');
+        const title = document.getElementById('device-group-detail-title');
+        
+        if (!container || !title) {
+            console.error('Details container not found');
+            return;
+        }
+
+        const groupName = groupData['group-name'] || 'Unknown';
+        title.textContent = `Device Group: ${groupName}`;
+
+        const ipDomainExpanded = groupData['ip-domain-expanded'] || {};
+        const ueDnnQos = ipDomainExpanded['ue-dnn-qos'] || {};
+
+        const html = `
+            <div id="details-view-mode">
+                ${this.renderReadOnlyDetails(groupData)}
+            </div>
+            <div id="details-edit-mode" style="display: none;">
+                ${this.renderEditableDetails(groupData)}
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    renderReadOnlyDetails(groupData) {
+        const ipDomainExpanded = groupData['ip-domain-expanded'] || {};
+        const ueDnnQos = ipDomainExpanded['ue-dnn-qos'] || {};
+        const imsis = groupData.imsis || [];
+
+        return `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>Group Name:</strong> ${groupData['group-name'] || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Site Info:</strong> ${groupData['site-info'] || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>IP Domain Name:</strong> ${groupData['ip-domain-name'] || 'N/A'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-sim-card me-2"></i>IMSI Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>Total IMSIs:</strong> <span class="badge bg-primary">${imsis.length}</span>
+                            </div>
+                            ${imsis.length > 0 ? `
+                                <div class="mb-2">
+                                    <strong>IMSIs:</strong>
+                                    <div class="mt-2" style="max-height: 200px; overflow-y: auto;">
+                                        ${imsis.map(imsi => `<div class="badge bg-light text-dark me-1 mb-1">${imsi}</div>`).join('')}
+                                    </div>
+                                </div>
+                            ` : '<p class="text-muted">No IMSIs configured</p>'}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-network-wired me-2"></i>IP Domain Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>DNN:</strong> ${ipDomainExpanded.dnn || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>UE IP Pool:</strong> ${ipDomainExpanded['ue-ip-pool'] || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>MTU:</strong> ${ipDomainExpanded.mtu || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Primary DNS:</strong> ${ipDomainExpanded['dns-primary'] || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Secondary DNS:</strong> ${ipDomainExpanded['dns-secondary'] || 'N/A'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>QoS Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>Uplink MBR:</strong> ${ueDnnQos['dnn-mbr-uplink'] || 'N/A'} ${ueDnnQos['bitrate-unit'] || ''}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Downlink MBR:</strong> ${ueDnnQos['dnn-mbr-downlink'] || 'N/A'} ${ueDnnQos['bitrate-unit'] || ''}
+                            </div>
+                            <div class="mb-2">
+                                <strong>Bitrate Unit:</strong> ${ueDnnQos['bitrate-unit'] || 'N/A'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderEditableDetails(groupData) {
+        const ipDomainExpanded = groupData['ip-domain-expanded'] || {};
+        const ueDnnQos = ipDomainExpanded['ue-dnn-qos'] || {};
+        const imsis = groupData.imsis || [];
+
+        return `
+            <form id="detailsEditForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Group Name</label>
+                                    <input type="text" class="form-control" id="edit_group_name" 
+                                           value="${groupData['group-name'] || ''}" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Site Info</label>
+                                    <input type="text" class="form-control" id="edit_site_info" 
+                                           value="${groupData['site-info'] || ''}" placeholder="e.g., site-1">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">IP Domain Name</label>
+                                    <input type="text" class="form-control" id="edit_ip_domain_name" 
+                                           value="${groupData['ip-domain-name'] || ''}" placeholder="e.g., pool1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-sim-card me-2"></i>IMSI Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">IMSIs</label>
+                                    <textarea class="form-control" id="edit_imsis" rows="6" 
+                                              placeholder="Enter IMSIs, one per line">${imsis.join('\n')}</textarea>
+                                    <div class="form-text">Enter one IMSI per line (15 digits each)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-network-wired me-2"></i>IP Domain Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">DNN (Data Network Name)</label>
+                                    <input type="text" class="form-control" id="edit_dnn" 
+                                           value="${ipDomainExpanded.dnn || ''}" placeholder="e.g., internet">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">UE IP Pool</label>
+                                    <input type="text" class="form-control" id="edit_ue_ip_pool" 
+                                           value="${ipDomainExpanded['ue-ip-pool'] || ''}" placeholder="e.g., 172.250.0.0/16">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">MTU</label>
+                                    <input type="number" class="form-control" id="edit_mtu" 
+                                           value="${ipDomainExpanded.mtu || ''}" placeholder="e.g., 1460" min="1200" max="9000">
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Primary DNS</label>
+                                            <input type="text" class="form-control" id="edit_dns_primary" 
+                                                   value="${ipDomainExpanded['dns-primary'] || ''}" placeholder="e.g., 8.8.8.8">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Secondary DNS</label>
+                                            <input type="text" class="form-control" id="edit_dns_secondary" 
+                                                   value="${ipDomainExpanded['dns-secondary'] || ''}" placeholder="e.g., 8.8.4.4">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>QoS Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Uplink MBR</label>
+                                            <input type="number" class="form-control" id="edit_dnn_mbr_uplink" 
+                                                   value="${ueDnnQos['dnn-mbr-uplink'] || ''}" placeholder="e.g., 100" min="0">
+                                            <div class="form-text">Mbps</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Downlink MBR</label>
+                                            <input type="number" class="form-control" id="edit_dnn_mbr_downlink" 
+                                                   value="${ueDnnQos['dnn-mbr-downlink'] || ''}" placeholder="e.g., 200" min="0">
+                                            <div class="form-text">Mbps</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Bitrate Unit</label>
+                                    <select class="form-select" id="edit_bitrate_unit">
+                                        <option value="Mbps" ${ueDnnQos['bitrate-unit'] === 'Mbps' ? 'selected' : ''}>Mbps</option>
+                                        <option value="Kbps" ${ueDnnQos['bitrate-unit'] === 'Kbps' ? 'selected' : ''}>Kbps</option>
+                                        <option value="Gbps" ${ueDnnQos['bitrate-unit'] === 'Gbps' ? 'selected' : ''}>Gbps</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-secondary me-2" onclick="cancelEdit()">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveDetailsEdit()">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
+    async saveEdit() {
+        try {
+            const formData = this.getEditFormData();
+            const validation = this.validateFormData(formData);
+            
+            if (!validation.isValid) {
+                window.app?.notificationManager?.showNotification(validation.errors.join('<br>'), 'error');
+                return;
+            }
+
+            const payload = this.preparePayload(formData, true);
+            await this.updateItem(this.currentGroupName, payload);
+            
+            // Refresh the details view
+            await this.showDetails(this.currentGroupName);
+            this.toggleEditMode(false);
+            
+            window.app?.notificationManager?.showNotification('Device group updated successfully!', 'success');
+            
+        } catch (error) {
+            console.error('Failed to save device group:', error);
+            window.app?.notificationManager?.showNotification(`Failed to save device group: ${error.message}`, 'error');
+        }
+    }
+
+    getEditFormData() {
+        return {
+            group_name: document.getElementById('edit_group_name')?.value || '',
+            site_info: document.getElementById('edit_site_info')?.value || '',
+            ip_domain_name: document.getElementById('edit_ip_domain_name')?.value || '',
+            imsis: document.getElementById('edit_imsis')?.value || '',
+            dnn: document.getElementById('edit_dnn')?.value || '',
+            ue_ip_pool: document.getElementById('edit_ue_ip_pool')?.value || '',
+            mtu: document.getElementById('edit_mtu')?.value || '',
+            dns_primary: document.getElementById('edit_dns_primary')?.value || '',
+            dns_secondary: document.getElementById('edit_dns_secondary')?.value || '',
+            dnn_mbr_uplink: document.getElementById('edit_dnn_mbr_uplink')?.value || '',
+            dnn_mbr_downlink: document.getElementById('edit_dnn_mbr_downlink')?.value || '',
+            bitrate_unit: document.getElementById('edit_bitrate_unit')?.value || 'Mbps'
+        };
+    }
+
+    toggleEditMode(enable = null) {
+        const detailsView = document.getElementById('details-view-mode');
+        const editView = document.getElementById('details-edit-mode');
+        const editBtn = document.getElementById('edit-device-group-btn');
+        
+        if (!detailsView || !editView || !editBtn) return;
+        
+        const isEditing = enable !== null ? enable : editView.style.display !== 'none';
+        
+        if (isEditing) {
+            detailsView.style.display = 'block';
+            editView.style.display = 'none';
+            editBtn.innerHTML = '<i class="fas fa-edit me-1"></i>Edit';
+        } else {
+            detailsView.style.display = 'none';
+            editView.style.display = 'block';
+            editBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+        }
+    }
+
+    async deleteFromDetails() {
+        try {
+            await this.deleteItem(this.currentGroupName);
+            window.app?.notificationManager?.showNotification('Device group deleted successfully!', 'success');
+            
+            // Navigate back to the list
+            window.showSection('device-groups');
+            
+        } catch (error) {
+            console.error('Failed to delete device group:', error);
+            window.app?.notificationManager?.showNotification(`Failed to delete device group: ${error.message}`, 'error');
         }
     }
 }
