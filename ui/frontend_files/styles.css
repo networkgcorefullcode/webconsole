@@ -310,12 +310,27 @@ code {
     transform: translateY(0);
 }
 
+/* Network Slice Row Styles */
+.network-slice-row {
+    transition: all 0.2s ease-in-out;
+}
+
+.network-slice-row:hover {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.network-slice-row:active {
+    transform: translateY(0);
+}
+
 /* Details View Styles */
-#device-group-details .card, #gnb-details .card {
+#device-group-details .card, #gnb-details .card, #network-slice-details .card {
     border-left: 4px solid var(--primary-color);
 }
 
-#device-group-details .card-header, #gnb-details .card-header {
+#device-group-details .card-header, #gnb-details .card-header, #network-slice-details .card-header {
     background-color: rgba(13, 110, 253, 0.05);
     font-weight: 600;
 }
@@ -329,10 +344,10 @@ code {
 }
 
 /* Edit mode styles */
-#details-edit-mode .card, #gnb-details-edit-mode .card {
+#details-edit-mode .card, #gnb-details-edit-mode .card, #network-slice-details-edit-mode .card {
     border-left: 4px solid var(--warning-color);
 }
 
-#details-edit-mode .card-header, #gnb-details-edit-mode .card-header {
+#details-edit-mode .card-header, #gnb-details-edit-mode .card-header, #network-slice-details-edit-mode .card-header {
     background-color: rgba(255, 193, 7, 0.05);
 }

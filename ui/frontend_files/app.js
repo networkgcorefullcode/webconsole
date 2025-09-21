@@ -106,6 +106,33 @@ window.confirmDeleteGnb = () => {
     modal.show();
 };
 
+// Network Slice Details functions
+window.showNetworkSliceDetails = async (sliceName) => {
+    await app.managers.networkSlices.showDetails(sliceName);
+    app.uiManager.showSection('network-slice-details');
+};
+
+window.toggleNetworkSliceEditMode = () => {
+    app.managers.networkSlices.toggleEditMode();
+};
+
+window.cancelNetworkSliceEdit = () => {
+    app.managers.networkSlices.toggleEditMode(false);
+};
+
+window.saveNetworkSliceDetailsEdit = async () => {
+    await app.managers.networkSlices.saveEdit();
+};
+
+window.confirmDeleteNetworkSlice = () => {
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    document.getElementById('deleteConfirmMessage').textContent = 
+        `Are you sure you want to delete the network slice "${app.managers.networkSlices.currentSliceName}"? This action cannot be undone.`;
+    
+    window.currentDeleteAction = () => app.managers.networkSlices.deleteFromDetails();
+    modal.show();
+};
+
 window.executeDelete = async () => {
     if (window.currentDeleteAction) {
         await window.currentDeleteAction();
