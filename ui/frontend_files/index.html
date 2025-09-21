@@ -174,6 +174,37 @@
             </div>
         </div>
 
+        <!-- gNB Details Section -->
+        <div id="gnb-details" class="content-section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-outline-secondary me-3" onclick="showSection('gnb-inventory')">
+                                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                                </button>
+                                <h5 class="mb-0"><i class="fas fa-tower-broadcast me-2"></i><span id="gnb-detail-title">gNB Details</span></h5>
+                            </div>
+                            <div class="btn-group">
+                                <button id="edit-gnb-btn" class="btn btn-outline-primary" onclick="toggleGnbEditMode()">
+                                    <i class="fas fa-edit me-1"></i>Edit
+                                </button>
+                                <button id="delete-gnb-btn" class="btn btn-outline-danger" onclick="confirmDeleteGnb()">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="gnb-details-content">
+                                <!-- gNB details will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- UPF Inventory Section -->
         <div id="upf-inventory" class="content-section" style="display: none;">
             <div class="row">

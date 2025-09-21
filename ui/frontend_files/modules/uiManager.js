@@ -10,6 +10,7 @@ export class UIManager {
             'device-group-details': 'deviceGroups', // Same manager for details
             'network-slices': 'networkSlices', 
             'gnb-inventory': 'gnbInventory',
+            'gnb-details': 'gnbInventory', // Same manager for details
             'upf-inventory': 'upfInventory',
             'subscribers': 'subscribers' // identificador genérico
 
@@ -59,8 +60,14 @@ export class UIManager {
             if (managerKey && app.managers[managerKey]) {
                 app.managers[managerKey].loadData();
             }
-        } else if (section === 'device-group-details') {
-            // Don't reload data for details view as it's already loaded
+        } else if (section === 'gnb-inventory') {
+            // Load gNB inventory list
+            const managerKey = this.sections[section];
+            if (managerKey && app.managers[managerKey]) {
+                app.managers[managerKey].loadData();
+            }
+        } else if (section === 'device-group-details' || section === 'gnb-details') {
+            // Don't reload data for details views as they're already loaded
             return;
         } else {
             const managerKey = this.sections[section];

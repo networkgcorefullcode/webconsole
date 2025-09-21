@@ -79,6 +79,33 @@ window.confirmDeleteDeviceGroup = () => {
     modal.show();
 };
 
+// gNB Details functions
+window.showGnbDetails = async (gnbName) => {
+    await app.managers.gnbInventory.showDetails(gnbName);
+    app.uiManager.showSection('gnb-details');
+};
+
+window.toggleGnbEditMode = () => {
+    app.managers.gnbInventory.toggleEditMode();
+};
+
+window.cancelGnbEdit = () => {
+    app.managers.gnbInventory.toggleEditMode(false);
+};
+
+window.saveGnbDetailsEdit = async () => {
+    await app.managers.gnbInventory.saveEdit();
+};
+
+window.confirmDeleteGnb = () => {
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    document.getElementById('deleteConfirmMessage').textContent = 
+        `Are you sure you want to delete the gNB "${app.managers.gnbInventory.currentGnbName}"? This action cannot be undone.`;
+    
+    window.currentDeleteAction = () => app.managers.gnbInventory.deleteFromDetails();
+    modal.show();
+};
+
 window.executeDelete = async () => {
     if (window.currentDeleteAction) {
         await window.currentDeleteAction();
