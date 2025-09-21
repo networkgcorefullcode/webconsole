@@ -9,7 +9,7 @@ import { UpfManager } from './modules/upfInventory.js';
 import { UIManager } from './modules/uiManager.js';
 import { NotificationManager } from './modules/notifications.js';
 import { ModalManager } from './modules/modalManager.js';
-import { K4Manager, SubscriberManager } from './modules/subscribers.js';
+import { K4Manager, SubscriberManager, SubscriberListManager } from './modules/subscribers.js';
 
 // API Base URL
 export const API_BASE = '/config/v1';
@@ -25,7 +25,8 @@ class AppState {
             gnbInventory: new GnbManager(),
             upfInventory: new UpfManager(),
             k4Manager: new K4Manager(),
-            subscriberManager: new SubscriberManager()
+            subscriberManager: new SubscriberManager(),
+            subscriberListManager: new SubscriberListManager()
         };
         this.uiManager = new UIManager();
         this.notificationManager = new NotificationManager();
@@ -139,6 +140,60 @@ window.executeDelete = async () => {
         bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
         window.currentDeleteAction = null;
     }
+};
+
+// K4 Details functions
+window.showK4Details = async (k4Sno) => {
+    await app.managers.k4Manager.showDetails(k4Sno);
+    app.uiManager.showSection('k4-details');
+};
+
+window.toggleK4EditMode = () => {
+    app.managers.k4Manager.toggleEditMode();
+};
+
+window.cancelK4Edit = () => {
+    app.managers.k4Manager.toggleEditMode(false);
+};
+
+window.saveK4DetailsEdit = async () => {
+    await app.managers.k4Manager.saveEdit();
+};
+
+window.confirmDeleteK4 = () => {
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    document.getElementById('deleteConfirmMessage').textContent = 
+        `Are you sure you want to delete the K4 key "${app.managers.k4Manager.currentK4Sno}"? This action cannot be undone.`;
+    
+    window.currentDeleteAction = () => app.managers.k4Manager.deleteFromDetails();
+    modal.show();
+};
+
+// Subscriber Details functions
+window.showSubscriberDetails = async (imsi) => {
+    await app.managers.subscriberListManager.showDetails(imsi);
+    app.uiManager.showSection('subscriber-details');
+};
+
+window.toggleSubscriberEditMode = () => {
+    app.managers.subscriberListManager.toggleEditMode();
+};
+
+window.cancelSubscriberEdit = () => {
+    app.managers.subscriberListManager.toggleEditMode(false);
+};
+
+window.saveSubscriberDetailsEdit = async () => {
+    await app.managers.subscriberListManager.saveEdit();
+};
+
+window.confirmDeleteSubscriber = () => {
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    document.getElementById('deleteConfirmMessage').textContent = 
+        `Are you sure you want to delete the subscriber "${app.managers.subscriberListManager.currentSubscriberImsi}"? This action cannot be undone.`;
+    
+    window.currentDeleteAction = () => app.managers.subscriberListManager.deleteFromDetails();
+    modal.show();
 };
 
 // Export app instance for modules

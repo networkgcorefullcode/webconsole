@@ -351,3 +351,21 @@ code {
 #details-edit-mode .card-header, #gnb-details-edit-mode .card-header, #network-slice-details-edit-mode .card-header {
     background-color: rgba(255, 193, 7, 0.05);
 }
+
+/* Clickable table rows */
+.k4-row:hover, .subscriber-row:hover {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.k4-row, .subscriber-row {
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.k4-row:active, .subscriber-row:active {
+    transform: translateY(0);
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
