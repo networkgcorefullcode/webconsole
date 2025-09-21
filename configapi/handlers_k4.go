@@ -169,9 +169,9 @@ func HandlePostK4(c *gin.Context) {
 	}
 
 	// validate data posted
-	if k4Data.K4_SNO == 0 || k4Data.K4_SNO < 255 {
+	if k4Data.K4_SNO == 0 {
 		logger.WebUILog.Errorln("K4_SNO is missing or zero in the request")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "K4_SNO must be provided and greater than zero or less than 255"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "K4_SNO must be provided and greater than zero"})
 		return
 	}
 
@@ -238,9 +238,9 @@ func HandlePutK4(c *gin.Context) {
 	}
 
 	// validate data update
-	if k4Data.K4_SNO == 0 || k4Data.K4_SNO < 255 {
+	if k4Data.K4_SNO == 0 {
 		logger.WebUILog.Errorln("K4_SNO is missing or zero in the request")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "K4_SNO must be provided and greater than zero or less than 255"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "K4_SNO must be provided and greater than zero"})
 		return
 	}
 
