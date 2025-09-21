@@ -26,7 +26,7 @@ export class K4Manager extends BaseManager {
 
         keys.forEach(key => {
             html += `
-                <tr class="k4-key-row" onclick="showK4KeyDetails('${key.k4_sno}')" style="cursor: pointer;">
+                <tr class="k4-row" onclick="showK4Details('${key.k4_sno}')" style="cursor: pointer;">
                     <td><span class="badge bg-primary fs-6">${key.k4_sno}</span></td>
                     <td><code>${key.k4}</code></td>
                     <td onclick="event.stopPropagation();">
@@ -107,8 +107,8 @@ export class K4Manager extends BaseManager {
     }
 
     renderDetailsView(k4Data) {
-        const container = document.getElementById('k4-key-details-content');
-        const title = document.getElementById('k4-key-detail-title');
+        const container = document.getElementById('k4-details-content');
+        const title = document.getElementById('k4-detail-title');
         
         if (!container || !title) {
             console.error('Details container not found');
@@ -119,10 +119,10 @@ export class K4Manager extends BaseManager {
         title.textContent = `K4 Key: SNO ${k4Sno}`;
 
         const html = `
-            <div id="k4-key-details-view-mode">
+            <div id="k4-details-view-mode">
                 ${this.renderReadOnlyDetails(k4Data)}
             </div>
-            <div id="k4-key-details-edit-mode" style="display: none;">
+            <div id="k4-details-edit-mode" style="display: none;">
                 ${this.renderEditableDetails(k4Data)}
             </div>
         `;
@@ -287,9 +287,9 @@ export class K4Manager extends BaseManager {
     }
 
     toggleEditMode(enable = null) {
-        const detailsView = document.getElementById('k4-key-details-view-mode');
-        const editView = document.getElementById('k4-key-details-edit-mode');
-        const editBtn = document.getElementById('edit-k4-key-btn');
+        const detailsView = document.getElementById('k4-details-view-mode');
+        const editView = document.getElementById('k4-details-edit-mode');
+        const editBtn = document.getElementById('edit-k4-btn');
         
         if (!detailsView || !editView || !editBtn) return;
         
