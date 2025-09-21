@@ -52,6 +52,41 @@ window.editItem = async (type, name) => await app.modalManager.editItem(type, na
 window.deleteItem = async (type, name) => await app.modalManager.deleteItem(type, name);
 window.saveItem = async () => await app.modalManager.saveItem();
 
+// Device Group Details functions
+window.showDeviceGroupDetails = async (groupName) => {
+    await app.managers.deviceGroups.showDetails(groupName);
+    app.uiManager.showSection('device-group-details');
+};
+
+window.toggleEditMode = () => {
+    app.managers.deviceGroups.toggleEditMode();
+};
+
+window.cancelEdit = () => {
+    app.managers.deviceGroups.toggleEditMode(false);
+};
+
+window.saveDetailsEdit = async () => {
+    await app.managers.deviceGroups.saveEdit();
+};
+
+window.confirmDeleteDeviceGroup = () => {
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    document.getElementById('deleteConfirmMessage').textContent = 
+        `Are you sure you want to delete the device group "${app.managers.deviceGroups.currentGroupName}"? This action cannot be undone.`;
+    
+    window.currentDeleteAction = () => app.managers.deviceGroups.deleteFromDetails();
+    modal.show();
+};
+
+window.executeDelete = async () => {
+    if (window.currentDeleteAction) {
+        await window.currentDeleteAction();
+        bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+        window.currentDeleteAction = null;
+    }
+};
+
 // Export app instance for modules
 export default app;
 

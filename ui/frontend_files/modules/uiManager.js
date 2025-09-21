@@ -7,6 +7,7 @@ export class UIManager {
     constructor() {
         this.sections = {
             'device-groups': 'deviceGroups',
+            'device-group-details': 'deviceGroups', // Same manager for details
             'network-slices': 'networkSlices', 
             'gnb-inventory': 'gnbInventory',
             'upf-inventory': 'upfInventory',
@@ -52,6 +53,15 @@ export class UIManager {
         if (section === 'subscribers') {
             app.managers.k4Manager.loadData();
             app.managers.subscriberManager.renderForm();
+        } else if (section === 'device-groups') {
+            // Load device groups list
+            const managerKey = this.sections[section];
+            if (managerKey && app.managers[managerKey]) {
+                app.managers[managerKey].loadData();
+            }
+        } else if (section === 'device-group-details') {
+            // Don't reload data for details view as it's already loaded
+            return;
         } else {
             const managerKey = this.sections[section];
             if (managerKey && app.managers[managerKey]) {
