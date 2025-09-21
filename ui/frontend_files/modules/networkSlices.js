@@ -90,7 +90,7 @@ export class NetworkSliceManager extends BaseManager {
             const deviceGroups = slice['site-device-group'] || [];
             
             html += `
-                <tr>
+                <tr class="network-slice-row" onclick="showNetworkSliceDetails('${sliceName}')" style="cursor: pointer;">
                     <td><strong>${sliceName}</strong></td>
                     <td><span class="badge bg-primary">${sst}</span></td>
                     <td><code>${sd}</code></td>
@@ -99,7 +99,7 @@ export class NetworkSliceManager extends BaseManager {
                         <span class="badge bg-secondary">${deviceGroups.length} groups</span>
                         ${deviceGroups.length > 0 ? `<br><small class="text-muted">${deviceGroups.join(', ')}</small>` : ''}
                     </td>
-                    <td>
+                    <td onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-primary me-1" 
                                 onclick="editItem('${this.type}', '${sliceName}')">
                             <i class="fas fa-edit"></i> Edit
@@ -410,5 +410,455 @@ export class NetworkSliceManager extends BaseManager {
     async showEditForm(name) {
         await super.showEditForm(name);
         await this.loadDeviceGroups();
+    }
+
+    // New methods for details view
+    async showDetails(sliceName) {
+        try {
+            const response = await fetch(`${API_BASE}${this.apiEndpoint}/${encodeURIComponent(sliceName)}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const sliceData = await response.json();
+            this.currentSliceData = sliceData;
+            this.currentSliceName = sliceName;
+            this.renderDetailsView(sliceData);
+            
+        } catch (error) {
+            console.error('Failed to load network slice details:', error);
+            // Show error notification
+            window.app?.notificationManager?.showNotification('Error loading network slice details', 'error');
+        }
+    }
+
+    renderDetailsView(sliceData) {
+        const container = document.getElementById('network-slice-details-content');
+        const title = document.getElementById('network-slice-detail-title');
+        
+        if (!container || !title) {
+            console.error('Details container not found');
+            return;
+        }
+
+        const sliceName = sliceData['slice-name'] || 'Unknown';
+        title.textContent = `Network Slice: ${sliceName}`;
+
+        const html = `
+            <div id="network-slice-details-view-mode">
+                ${this.renderReadOnlyDetails(sliceData)}
+            </div>
+            <div id="network-slice-details-edit-mode" style="display: none;">
+                ${this.renderEditableDetails(sliceData)}
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    renderReadOnlyDetails(sliceData) {
+        const siteInfo = sliceData['site-info'] || {};
+        const plmn = siteInfo.plmn || {};
+        const gNodeBs = siteInfo.gNodeBs || [];
+        const upf = siteInfo.upf || {};
+        const deviceGroups = sliceData['site-device-group'] || [];
+
+        return `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-layer-group me-2"></i>Slice Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>Slice Name:</strong> ${sliceData['slice-name'] || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>SST (Slice Service Type):</strong> 
+                                <span class="badge bg-primary ms-1">${sliceData['slice-id']?.sst || 'N/A'}</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>SD (Slice Differentiator):</strong> 
+                                <code class="ms-1">${sliceData['slice-id']?.sd || 'Not specified'}</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Site Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>Site Name:</strong> ${siteInfo['site-name'] || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>MCC:</strong> <code>${plmn.mcc || 'N/A'}</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>MNC:</strong> <code>${plmn.mnc || 'N/A'}</code>
+                            </div>
+                            <div class="mb-2">
+                                <strong>TAC:</strong> <code>${plmn.tac || 'N/A'}</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-mobile-alt me-2"></i>Device Groups</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>Total Groups:</strong> <span class="badge bg-secondary">${deviceGroups.length}</span>
+                            </div>
+                            ${deviceGroups.length > 0 ? `
+                                <div class="mb-2">
+                                    <strong>Groups:</strong>
+                                    <div class="mt-2">
+                                        ${deviceGroups.map(group => `<span class="badge bg-light text-dark me-1 mb-1">${group}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : '<p class="text-muted">No device groups assigned</p>'}
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-tower-broadcast me-2"></i>gNodeBs</h6>
+                        </div>
+                        <div class="card-body">
+                            ${gNodeBs.length > 0 ? `
+                                ${gNodeBs.map(gnb => `
+                                    <div class="mb-2">
+                                        <strong>Name:</strong> ${gnb.name || 'N/A'}<br>
+                                        <strong>TAC:</strong> <code>${gnb.tac || 'N/A'}</code>
+                                    </div>
+                                `).join('')}
+                            ` : '<p class="text-muted">No gNodeBs configured</p>'}
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-server me-2"></i>UPF Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            ${Object.keys(upf).length > 0 ? `
+                                <div class="mb-2">
+                                    <strong>UPF Names:</strong>
+                                    <div class="mt-2">
+                                        ${Object.keys(upf).map(upfName => `<span class="badge bg-info text-dark me-1">${upfName}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : '<p class="text-muted">No UPF configured</p>'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Technical Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="bg-light p-3 rounded">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <small class="text-muted">SST Values:</small>
+                                        <div><strong>1=eMBB, 2=URLLC, 3=mMTC, 4=Custom</strong></div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">SD Format:</small>
+                                        <div><strong>6 hexadecimal digits</strong></div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">MCC/MNC:</small>
+                                        <div><strong>Country/Network Codes</strong></div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">Status:</small>
+                                        <div>
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>Active
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderEditableDetails(sliceData) {
+        const siteInfo = sliceData['site-info'] || {};
+        const plmn = siteInfo.plmn || {};
+        const gNodeBs = siteInfo.gNodeBs || [];
+        const upf = siteInfo.upf || {};
+        const deviceGroups = sliceData['site-device-group'] || [];
+
+        return `
+            <form id="networkSliceDetailsEditForm">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Slice Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Slice Name</label>
+                                    <input type="text" class="form-control" id="edit_slice_name" 
+                                           value="${sliceData['slice-name'] || ''}" readonly>
+                                    <div class="form-text">Slice name cannot be changed</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">SST (Slice Service Type)</label>
+                                            <input type="text" class="form-control" id="edit_sst" 
+                                                   value="${sliceData['slice-id']?.sst || ''}" placeholder="e.g., 1" required>
+                                            <div class="form-text">1=eMBB, 2=URLLC, 3=mMTC, 4=Custom</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">SD (Slice Differentiator)</label>
+                                            <input type="text" class="form-control" id="edit_sd" 
+                                                   value="${sliceData['slice-id']?.sd || ''}" placeholder="e.g., 000001" 
+                                                   pattern="[0-9A-Fa-f]{6}" maxlength="6">
+                                            <div class="form-text">6 hexadecimal digits</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Site Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Site Name</label>
+                                    <input type="text" class="form-control" id="edit_site_name" 
+                                           value="${siteInfo['site-name'] || ''}" placeholder="e.g., site-1" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">MCC</label>
+                                            <input type="text" class="form-control" id="edit_mcc" 
+                                                   value="${plmn.mcc || ''}" placeholder="e.g., 001" 
+                                                   pattern="[0-9]{3}" maxlength="3" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">MNC</label>
+                                            <input type="text" class="form-control" id="edit_mnc" 
+                                                   value="${plmn.mnc || ''}" placeholder="e.g., 01" 
+                                                   pattern="[0-9]{2,3}" maxlength="3" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">TAC</label>
+                                            <input type="number" class="form-control" id="edit_tac" 
+                                                   value="${plmn.tac || ''}" placeholder="e.g., 1" 
+                                                   min="1" max="16777215" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-mobile-alt me-2"></i>Device Groups</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Site Device Groups</label>
+                                    <select class="form-select" id="edit_site_device_group" multiple>
+                                        <option value="">Select device groups...</option>
+                                    </select>
+                                    <div class="form-text">Hold Ctrl/Cmd to select multiple groups</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-tower-broadcast me-2"></i>gNodeB Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">gNodeB Name</label>
+                                            <input type="text" class="form-control" id="edit_gnb_name" 
+                                                   value="${gNodeBs.length > 0 ? gNodeBs[0].name || '' : ''}" 
+                                                   placeholder="e.g., gnb-1">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">gNodeB TAC</label>
+                                            <input type="number" class="form-control" id="edit_gnb_tac" 
+                                                   value="${gNodeBs.length > 0 ? gNodeBs[0].tac || '' : ''}" 
+                                                   placeholder="e.g., 1" min="1" max="16777215">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-server me-2"></i>UPF Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">UPF Name</label>
+                                    <input type="text" class="form-control" id="edit_upf_name" 
+                                           value="${Object.keys(upf).length > 0 ? Object.keys(upf)[0] : ''}" 
+                                           placeholder="e.g., upf-1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-secondary me-2" onclick="cancelNetworkSliceEdit()">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveNetworkSliceDetailsEdit()">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        `;
+    }
+
+    async saveEdit() {
+        try {
+            const formData = this.getEditFormData();
+            const validation = this.validateFormData(formData);
+            
+            if (!validation.isValid) {
+                window.app?.notificationManager?.showNotification(validation.errors.join('<br>'), 'error');
+                return;
+            }
+
+            const payload = this.preparePayload(formData, true);
+            await this.updateItem(this.currentSliceName, payload);
+            
+            // Refresh the details view
+            await this.showDetails(this.currentSliceName);
+            this.toggleEditMode(false);
+            
+            window.app?.notificationManager?.showNotification('Network slice updated successfully!', 'success');
+            
+        } catch (error) {
+            console.error('Failed to save network slice:', error);
+            window.app?.notificationManager?.showNotification(`Failed to save network slice: ${error.message}`, 'error');
+        }
+    }
+
+    getEditFormData() {
+        const deviceGroupSelect = document.getElementById('edit_site_device_group');
+        const selectedGroups = Array.from(deviceGroupSelect.selectedOptions).map(option => option.value).filter(val => val);
+
+        return {
+            slice_name: document.getElementById('edit_slice_name')?.value || '',
+            sst: document.getElementById('edit_sst')?.value || '',
+            sd: document.getElementById('edit_sd')?.value || '',
+            site_name: document.getElementById('edit_site_name')?.value || '',
+            mcc: document.getElementById('edit_mcc')?.value || '',
+            mnc: document.getElementById('edit_mnc')?.value || '',
+            tac: document.getElementById('edit_tac')?.value || '',
+            site_device_group: selectedGroups,
+            gnb_name: document.getElementById('edit_gnb_name')?.value || '',
+            gnb_tac: document.getElementById('edit_gnb_tac')?.value || '',
+            upf_name: document.getElementById('edit_upf_name')?.value || ''
+        };
+    }
+
+    async loadDeviceGroupsForEdit() {
+        try {
+            const response = await fetch(`${API_BASE}/device-group`);
+            if (response.ok) {
+                const deviceGroupNames = await response.json();
+                const select = document.getElementById('edit_site_device_group');
+                if (select && Array.isArray(deviceGroupNames)) {
+                    select.innerHTML = '<option value="">Select device groups...</option>';
+                    deviceGroupNames.forEach(groupName => {
+                        if (typeof groupName === 'string') {
+                            const option = document.createElement('option');
+                            option.value = groupName;
+                            option.textContent = groupName;
+                            select.appendChild(option);
+                        }
+                    });
+
+                    // Pre-select current device groups
+                    const currentGroups = this.currentSliceData['site-device-group'] || [];
+                    Array.from(select.options).forEach(option => {
+                        option.selected = currentGroups.includes(option.value);
+                    });
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load device groups:', error.message);
+        }
+    }
+
+    toggleEditMode(enable = null) {
+        const detailsView = document.getElementById('network-slice-details-view-mode');
+        const editView = document.getElementById('network-slice-details-edit-mode');
+        const editBtn = document.getElementById('edit-network-slice-btn');
+        
+        if (!detailsView || !editView || !editBtn) return;
+        
+        const isEditing = enable !== null ? enable : editView.style.display !== 'none';
+        
+        if (isEditing) {
+            detailsView.style.display = 'block';
+            editView.style.display = 'none';
+            editBtn.innerHTML = '<i class="fas fa-edit me-1"></i>Edit';
+        } else {
+            detailsView.style.display = 'none';
+            editView.style.display = 'block';
+            editBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+            
+            // Load device groups when entering edit mode
+            this.loadDeviceGroupsForEdit();
+        }
+    }
+
+    async deleteFromDetails() {
+        try {
+            await this.deleteItem(this.currentSliceName);
+            window.app?.notificationManager?.showNotification('Network slice deleted successfully!', 'success');
+            
+            // Navigate back to the list
+            window.showSection('network-slices');
+            
+        } catch (error) {
+            console.error('Failed to delete network slice:', error);
+            window.app?.notificationManager?.showNotification(`Failed to delete network slice: ${error.message}`, 'error');
+        }
     }
 }

@@ -9,6 +9,7 @@ export class UIManager {
             'device-groups': 'deviceGroups',
             'device-group-details': 'deviceGroups', // Same manager for details
             'network-slices': 'networkSlices', 
+            'network-slice-details': 'networkSlices', // Same manager for details
             'gnb-inventory': 'gnbInventory',
             'gnb-details': 'gnbInventory', // Same manager for details
             'upf-inventory': 'upfInventory',
@@ -60,13 +61,19 @@ export class UIManager {
             if (managerKey && app.managers[managerKey]) {
                 app.managers[managerKey].loadData();
             }
+        } else if (section === 'network-slices') {
+            // Load network slices list
+            const managerKey = this.sections[section];
+            if (managerKey && app.managers[managerKey]) {
+                app.managers[managerKey].loadData();
+            }
         } else if (section === 'gnb-inventory') {
             // Load gNB inventory list
             const managerKey = this.sections[section];
             if (managerKey && app.managers[managerKey]) {
                 app.managers[managerKey].loadData();
             }
-        } else if (section === 'device-group-details' || section === 'gnb-details') {
+        } else if (section === 'device-group-details' || section === 'gnb-details' || section === 'network-slice-details') {
             // Don't reload data for details views as they're already loaded
             return;
         } else {
