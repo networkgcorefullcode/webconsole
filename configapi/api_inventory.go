@@ -69,6 +69,24 @@ func GetGnbs(c *gin.Context) {
 	c.JSON(http.StatusOK, gnbs)
 }
 
+func GetGnb(c *gin.Context) {
+	setInventoryCorsHeader(c)
+	logger.WebUILog.Infoln("received a GET gNB request")
+	var gnb *configmodels.Gnb
+	rawGnb, err := dbadapter.CommonDBClient.RestfulAPIGetOne(configmodels.GnbDataColl, bson.M{"name": c.Param("gnbName")})
+	if err != nil {
+		logger.DbLog.Errorf("failed to retrieve gNB with error: %+v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve gNB"})
+		return
+	}
+	err = json.Unmarshal(configmodels.MapToByte(rawGnb), &gnb)
+	if err != nil {
+		logger.DbLog.Errorf("could not unmarshal gNB %s", rawGnb)
+	}
+	logger.WebUILog.Infoln("successfully executed GET gNB request")
+	c.JSON(http.StatusOK, gnb)
+}
+
 // PostGnb godoc
 //
 // @Description Create a new gNB
