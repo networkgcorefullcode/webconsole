@@ -718,9 +718,6 @@ export class SubscriberListManager extends BaseManager {
         const authData = subscriberData.AuthenticationSubscription || {};
         const amData = subscriberData.AccessAndMobilitySubscriptionData || {};
         const smData = subscriberData.SessionManagementSubscriptionData || [];
-        const smfData = subscriberData.SmfSelectionSubscriptionData || {};
-        const amPolicyData = subscriberData.AmPolicyData || {};
-        const smPolicyData = subscriberData.SmPolicyData || {};
         
         // Extraer todos los componentes de autenticación
         const permanentKey = authData.permanentKey || {};
