@@ -3,21 +3,21 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-version: '3'
+version: "3"
 
 vars:
   PROJECT_NAME: sdcore
   DOCKER_VERSION:
     sh: cat ./VERSION 2>/dev/null || echo "latest"
-  
+
   # Docker related
   DOCKER_REGISTRY: '{{.DOCKER_REGISTRY | default ""}}'
   DOCKER_REPOSITORY: '{{.DOCKER_REPOSITORY | default ""}}'
-  DOCKER_TAG: '{{.DOCKER_TAG | default .DOCKER_VERSION}}'
-  DOCKER_IMAGENAME: '{{.DOCKER_REGISTRY}}{{.DOCKER_REPOSITORY}}{{.PROJECT_NAME}}:{{.DOCKER_TAG}}'
+  DOCKER_TAG: "{{.DOCKER_TAG | default .DOCKER_VERSION}}"
+  DOCKER_IMAGENAME: "{{.DOCKER_REGISTRY}}{{.DOCKER_REPOSITORY}}{{.PROJECT_NAME}}:{{.DOCKER_TAG}}"
   DOCKER_BUILDKIT: '{{.DOCKER_BUILDKIT | default "1"}}'
   DOCKER_BUILD_ARGS: '{{.DOCKER_BUILD_ARGS | default ""}}'
-  
+
   # Docker labels
   DOCKER_LABEL_VCS_URL:
     sh: git remote get-url $(git remote) 2>/dev/null || echo "unknown"
@@ -27,18 +27,18 @@ vars:
     sh: git diff-index --quiet HEAD -- && git show -s --format=%cd --date=iso-strict HEAD || echo "unknown"
   DOCKER_LABEL_BUILD_DATE:
     sh: date -u "+%Y-%m-%dT%H:%M:%SZ"
-  
+
   DOCKER_TARGETS: '{{.DOCKER_TARGETS | default "webui"}}'
-  
+
   # Build paths
   GO_BIN_PATH: bin
   GO_SRC_PATH: ./
   C_BUILD_PATH: build
   ROOT_PATH:
     sh: pwd
-  
+
   WEBCONSOLE: webconsole
-  
+
   # Version info
   VERSION:
     sh: git describe --tags 2>/dev/null || echo "unknown"
@@ -143,6 +143,13 @@ tasks:
             -covermode=atomic \
             -v \
             ./ ./...
+
+  mod-start:
+    desc: "execute go mod download to performance the docker build step"
+    aliases: [mod]
+    cmds:
+      - cd {{.GO_SRC_PATH}}
+      - go mod download
 
   coverage-dir:
     desc: "Create coverage directory"
