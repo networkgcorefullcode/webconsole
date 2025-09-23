@@ -74,7 +74,7 @@ func (k4Database DatabaseK4Data) K4DataCreate(k4Sno int, k4Data *models.K4) erro
 	// write to CommonDB
 	basicAmData := map[string]interface{}{"k4_sno": k4Sno}
 	basicDataBson := configmodels.ToBsonM(basicAmData)
-	if _, err := dbadapter.CommonDBClient.RestfulAPIPost(amDataColl, filter, basicDataBson); err != nil {
+	if _, err := dbadapter.CommonDBClient.RestfulAPIPost(k4KeysCollCom, filter, basicDataBson); err != nil {
 		logger.DbLog.Errorf("failed to update K4 reference data error: %+v", err)
 		// rollback AuthDB operation
 		if cleanupErr := dbadapter.AuthDBClient.RestfulAPIDeleteOne(k4KeysColl, filter); cleanupErr != nil {
@@ -104,7 +104,7 @@ func (k4Database DatabaseK4Data) K4DataUpdate(k4Sno int, k4Data *models.K4) erro
 	// write to CommonDB
 	basicAmData := map[string]interface{}{"k4_sno": k4Sno}
 	basicDataBson := configmodels.ToBsonM(basicAmData)
-	if _, err = dbadapter.CommonDBClient.RestfulAPIPutOne(amDataColl, filter, basicDataBson); err != nil {
+	if _, err = dbadapter.CommonDBClient.RestfulAPIPutOne(k4KeysCollCom, filter, basicDataBson); err != nil {
 		logger.DbLog.Errorf("failed to update K4 reference data error: %+v", err)
 		// restore old K4 key if any
 		if backup != nil {
@@ -137,7 +137,7 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
 	}
 	logger.WebUILog.Debugf("successfully deleted k4 key from authenticationSubscription collection: %v", k4Sno)
 
-	err = dbadapter.CommonDBClient.RestfulAPIDeleteOne(amDataColl, filter)
+	err = dbadapter.CommonDBClient.RestfulAPIDeleteOne(k4KeysCollCom, filter)
 	if err != nil {
 		logger.DbLog.Errorln(err)
 		// rollback AuthDB operation

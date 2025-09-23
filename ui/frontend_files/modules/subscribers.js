@@ -321,129 +321,6 @@ export class K4Manager extends BaseManager {
     }
 }
 
-// --- GESTOR PARA EL FORMULARIO DEL SUSCRIPTOR ---
-export class SubscriberManager {
-    constructor() {
-        this.containerId = 'subscriber-form-container';
-        this.formId = 'subscriber-form';
-        this.apiEndpoint = `${SUBSCRIBER_API_BASE}/subscriber`;
-    }
-
-    async renderForm() {
-        const container = document.getElementById(this.containerId);
-        if (!container) return;
-
-        let k4Options = '<option value="" disabled selected>Loading...</option>';
-        try {
-            const response = await fetch(`${SUBSCRIBER_API_BASE}/k4opt`);
-            if (response.ok) {
-                const k4Keys = await response.json();
-                if (k4Keys && k4Keys.length > 0) {
-                    k4Options = '<option value="" disabled selected>Select a K4 Key...</option>';
-                    k4Keys.forEach(key => {
-                        k4Options += `<option value="${key.k4_sno}">SNO ${key.k4_sno}</option>`;
-                    });
-                } else {
-                    k4Options = '<option value="" disabled>No K4 Keys available</option>';
-                }
-            }
-        } catch (error) {
-            console.error("Failed to load K4 keys:", error);
-            k4Options = '<option value="" disabled>Error loading keys</option>';
-        }
-
-        const formHtml = `
-            <div class="mb-3">
-                <label class="form-label">Subscriber IMSI (ueId)</label>
-                <input type="text" class="form-control" id="sub-imsi" placeholder="15 digits" pattern="\\d{15}" maxlength="15" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">PLMN ID</label>
-                <input type="text" class="form-control" id="sub-plmnID" placeholder="5 or 6 digits" pattern="\\d{5,6}" maxlength="6" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Key (Ki)</label>
-                <input type="text" class="form-control" id="sub-key" placeholder="32 hex chars" pattern="[0-9a-fA-F]{32}" maxlength="32" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">OPc</label>
-                <input type="text" class="form-control" id="sub-opc" placeholder="32 hex chars" pattern="[0-9a-fA-F]{32}" maxlength="32" required>
-            </div>
-             <div class="mb-3">
-                <label class="form-label">Sequence Number (SQN)</label>
-                <input type="text" class="form-control" id="sub-sequenceNumber" placeholder="e.g., 1af347" required>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">K4 SNO</label>
-                    <select class="form-select" id="sub-k4_sno" required>
-                        ${k4Options}
-                    </select>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Encryption Algorithm</label>
-                    <input type="number" class="form-control" id="sub-encryptionAlgorithm" placeholder="e.g., 2" value="2" min="0" required>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-success w-100">
-                <i class="fas fa-save me-1"></i> Save Subscriber
-            </button>
-        `;
-
-        container.innerHTML = formHtml;
-        this.attachFormListener();
-    }
-
-    attachFormListener() {
-        const form = document.getElementById(this.formId);
-        if (form) {
-            form.onsubmit = async (event) => {
-                event.preventDefault();
-                await this.saveSubscriber();
-            };
-        }
-    }
-
-    async saveSubscriber() {
-        const form = document.getElementById(this.formId);
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
-            app.notificationManager.showError('Please fill all required fields correctly.');
-            return;
-        }
-
-        const imsi = document.getElementById('sub-imsi').value;
-        const payload = {
-            plmnID: document.getElementById('sub-plmnID').value,
-            opc: document.getElementById('sub-opc').value,
-            key: document.getElementById('sub-key').value,
-            sequenceNumber: document.getElementById('sub-sequenceNumber').value,
-            k4_sno: parseInt(document.getElementById('sub-k4_sno').value),
-            encryptionAlgorithm: parseInt(document.getElementById('sub-encryptionAlgorithm').value),
-        };
-
-        try {
-            const response = await fetch(`${this.apiEndpoint}/${imsi}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || `HTTP ${response.status}`);
-            }
-
-            app.notificationManager.showSuccess(`Subscriber ${imsi} saved successfully!`);
-            form.reset();
-            form.classList.remove('was-validated');
-
-        } catch (error) {
-            app.notificationManager.showApiError(error, `save subscriber ${imsi}`);
-        }
-    }
-}
-
 // --- GESTOR PARA LA LISTA DE SUSCRIPTORES ---
 export class SubscriberListManager extends BaseManager {
     constructor() {
@@ -542,14 +419,14 @@ export class SubscriberListManager extends BaseManager {
             <div class="mb-3">
                 <label class="form-label">Key (Ki)</label>
                 <input type="text" class="form-control" id="sub_key" 
-                       placeholder="32 hex chars" pattern="[0-9a-fA-F]{32}" maxlength="32" required>
-                <div class="form-text">Authentication key (32 hexadecimal characters)</div>
+                       placeholder="Hexadecimal characters" pattern="[0-9a-fA-F]+" required>
+                <div class="form-text">Authentication key (hexadecimal characters)</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">OPc</label>
                 <input type="text" class="form-control" id="sub_opc" 
-                       placeholder="32 hex chars" pattern="[0-9a-fA-F]{32}" maxlength="32" required>
-                <div class="form-text">Operator key (32 hexadecimal characters)</div>
+                       placeholder="Hexadecimal characters" pattern="[0-9a-fA-F]+" required>
+                <div class="form-text">Operator key (hexadecimal characters)</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Sequence Number (SQN)</label>
@@ -586,12 +463,12 @@ export class SubscriberListManager extends BaseManager {
             errors.push('PLMN ID must be 5 or 6 digits');
         }
         
-        if (!data.sub_key || !/^[0-9a-fA-F]{32}$/.test(data.sub_key)) {
-            errors.push('Key (Ki) must be exactly 32 hexadecimal characters');
+        if (!data.sub_key || !/^[0-9a-fA-F]+$/.test(data.sub_key)) {
+            errors.push('Key (Ki) must contain only hexadecimal characters');
         }
         
-        if (!data.sub_opc || !/^[0-9a-fA-F]{32}$/.test(data.sub_opc)) {
-            errors.push('OPc must be exactly 32 hexadecimal characters');
+        if (!data.sub_opc || !/^[0-9a-fA-F]+$/.test(data.sub_opc)) {
+            errors.push('OPc must contain only hexadecimal characters');
         }
         
         if (!data.sub_sequenceNumber || data.sub_sequenceNumber.trim() === '') {
@@ -997,13 +874,13 @@ export class SubscriberListManager extends BaseManager {
                                     <label class="form-label">Key (Ki)</label>
                                     <input type="text" class="form-control" id="edit_sub_key" 
                                            value="${authData.PermanentKey?.PermanentKeyValue || ''}" 
-                                           placeholder="32 hex chars" pattern="[0-9a-fA-F]{32}" maxlength="32" required>
+                                           placeholder="Hexadecimal characters" pattern="[0-9a-fA-F]+" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">OPc</label>
                                     <input type="text" class="form-control" id="edit_sub_opc" 
                                            value="${authData.Opc?.OpcValue || ''}" 
-                                           placeholder="32 hex chars" pattern="[0-9a-fA-F]{32}" maxlength="32" required>
+                                           placeholder="Hexadecimal characters" pattern="[0-9a-fA-F]+" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Sequence Number</label>
