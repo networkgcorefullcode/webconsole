@@ -23,13 +23,20 @@ RUN apt-get update && \
 RUN go install github.com/go-task/task/v3/cmd/task@latest
 
 WORKDIR $GOPATH/src/webconsole
+
+COPY go.mod .
+COPY go.sum .
+COPY Taskfile.yml .
+
+RUN task mod-start
+
 COPY . .
 
 ARG BUILD_UI=true
 RUN if [ "$BUILD_UI" = "true" ]; then \
-        task webconsole-ui; \
+    task webconsole-ui; \
     else \
-        task all; \
+    task all; \
     fi
 
 FROM alpine:3.22 AS webui
@@ -43,14 +50,14 @@ ARG BUILD_UI=true
 
 # Install debug tools ~85MB (if DEBUG_TOOLS is set to true)
 RUN if [ "$DEBUG_TOOLS" = "true" ]; then \
-        apk update && apk add --no-cache -U vim strace net-tools curl netcat-openbsd bind-tools; \
+    apk update && apk add --no-cache -U vim strace net-tools curl netcat-openbsd bind-tools; \
     fi
 
 # Copy executable - choose the right binary based on BUILD_UI
 RUN if [ "$BUILD_UI" = "true" ]; then \
-        echo "Copying UI-enabled binary"; \
+    echo "Copying UI-enabled binary"; \
     else \
-        echo "Copying standard binary"; \
+    echo "Copying standard binary"; \
     fi
 
 COPY --from=builder /go/src/webconsole/bin/* /usr/local/bin/.
