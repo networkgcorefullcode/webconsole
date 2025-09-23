@@ -456,55 +456,31 @@ export class SubscriberListManager extends BaseManager {
         try {
             this.showLoading();
             
-            // Get list of subscriber IMSIs
+            // Get list of subscribers (returns SubsListIE array)
             const response = await fetch(`${this.apiBase}${this.apiEndpoint}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            const subscriberImsis = await response.json();
-            console.log('Subscriber IMSIs:', subscriberImsis);
+            const subscribersList = await response.json();
+            console.log('Subscribers List:', subscribersList);
             
             // Check if we got valid data
-            if (!Array.isArray(subscriberImsis)) {
-                console.error('Expected array of IMSIs, got:', subscriberImsis);
+            if (!Array.isArray(subscribersList)) {
+                console.error('Expected array of subscribers, got:', subscribersList);
                 this.showError('Invalid response format from server');
                 return;
             }
             
             // If no subscribers, show empty state
-            if (subscriberImsis.length === 0) {
+            if (subscribersList.length === 0) {
                 this.data = [];
                 this.render([]);
                 return;
             }
             
-            // Then, fetch complete details for each subscriber
-            const subscriberDetails = [];
-            for (const imsi of subscriberImsis) {
-                try {
-                    if (typeof imsi !== 'string') {
-                        console.warn('Invalid IMSI:', imsi);
-                        continue;
-                    }
-                    
-                    const detailResponse = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(imsi)}`);
-                    if (detailResponse.ok) {
-                        const subscriberDetail = await detailResponse.json();
-                        subscriberDetail.imsi = imsi; // Add IMSI to the data
-                        subscriberDetails.push(subscriberDetail);
-                    } else {
-                        console.warn(`Failed to load details for subscriber ${imsi}: ${detailResponse.status}`);
-                    }
-                } catch (error) {
-                    console.error(`Failed to load details for subscriber ${imsi}:`, error);
-                }
-            }
-            
-            console.log('Complete subscriber details:', subscriberDetails);
-            
-            this.data = subscriberDetails;
-            this.render(subscriberDetails);
+            this.data = subscribersList;
+            this.render(subscribersList);
             
         } catch (error) {
             this.showError(`Failed to load subscribers: ${error.message}`);
@@ -521,27 +497,23 @@ export class SubscriberListManager extends BaseManager {
         }
         
         let html = '<div class="table-responsive"><table class="table table-striped">';
-        html += '<thead><tr><th>IMSI</th><th>PLMN ID</th><th>K4 SNO</th><th>Encryption Algorithm</th><th>Actions</th></tr></thead><tbody>';
+        html += '<thead><tr><th>UE ID (IMSI)</th><th>PLMN ID</th><th>Actions</th></tr></thead><tbody>';
         
         subscribers.forEach(subscriber => {
-            const imsi = subscriber.imsi || 'N/A';
+            const ueId = subscriber.ueId || 'N/A';
             const plmnId = subscriber.plmnID || 'N/A';
-            const k4Sno = subscriber.k4_sno || 'N/A';
-            const encryptionAlg = subscriber.encryptionAlgorithm || 'N/A';
             
             html += `
-                <tr class="subscriber-row" onclick="showSubscriberDetails('${imsi}')" style="cursor: pointer;">
-                    <td><strong>${imsi}</strong></td>
+                <tr class="subscriber-row" onclick="showSubscriberDetails('${ueId}')" style="cursor: pointer;">
+                    <td><strong>${ueId}</strong></td>
                     <td><code>${plmnId}</code></td>
-                    <td><span class="badge bg-info">${k4Sno}</span></td>
-                    <td><span class="badge bg-secondary">${encryptionAlg}</span></td>
                     <td onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-primary me-1" 
-                                onclick="editItem('${this.type}', '${imsi}')">
+                                onclick="editItem('${this.type}', '${ueId}')">
                             <i class="fas fa-edit"></i> Edit
                         </button>
                         <button class="btn btn-sm btn-outline-danger" 
-                                onclick="deleteItem('${this.type}', '${imsi}')">
+                                onclick="deleteItem('${this.type}', '${ueId}')">
                             <i class="fas fa-trash"></i> Delete
                         </button>
                     </td>
@@ -556,11 +528,10 @@ export class SubscriberListManager extends BaseManager {
     getFormFields(isEdit = false) {
         return `
             <div class="mb-3">
-                <label class="form-label">Subscriber IMSI (ueId)</label>
-                <input type="text" class="form-control" id="sub_imsi" 
-                       ${isEdit ? 'readonly' : ''} placeholder="15 digits" 
-                       pattern="\\d{15}" maxlength="15" required>
-                <div class="form-text">International Mobile Subscriber Identity (15 digits)</div>
+                <label class="form-label">UE ID (IMSI)</label>
+                <input type="text" class="form-control" id="sub_ueId" 
+                       ${isEdit ? 'readonly' : ''} placeholder="e.g., imsi-208930100007487" required>
+                <div class="form-text">International Mobile Subscriber Identity</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">PLMN ID</label>
@@ -583,22 +554,22 @@ export class SubscriberListManager extends BaseManager {
             <div class="mb-3">
                 <label class="form-label">Sequence Number (SQN)</label>
                 <input type="text" class="form-control" id="sub_sequenceNumber" 
-                       placeholder="e.g., 1af347" required>
+                       placeholder="e.g., 16f3b3f70fc2" required>
                 <div class="form-text">Authentication sequence number</div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">K4 SNO</label>
-                    <select class="form-select" id="sub_k4_sno" required>
+                    <select class="form-select" id="sub_k4_sno">
                         <option value="">Loading K4 keys...</option>
                     </select>
-                    <div class="form-text">K4 Serial Number reference</div>
+                    <div class="form-text">K4 Serial Number reference (optional)</div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Encryption Algorithm</label>
                     <input type="number" class="form-control" id="sub_encryptionAlgorithm" 
-                           placeholder="e.g., 2" value="2" min="0" required>
-                    <div class="form-text">Algorithm identifier for encryption</div>
+                           placeholder="e.g., 0" value="0" min="0">
+                    <div class="form-text">Algorithm identifier for encryption (optional)</div>
                 </div>
             </div>
         `;
@@ -607,8 +578,8 @@ export class SubscriberListManager extends BaseManager {
     validateFormData(data) {
         const errors = [];
         
-        if (!data.sub_imsi || !/^\d{15}$/.test(data.sub_imsi)) {
-            errors.push('IMSI must be exactly 15 digits');
+        if (!data.sub_ueId || data.sub_ueId.trim() === '') {
+            errors.push('UE ID is required');
         }
         
         if (!data.sub_plmnID || !/^\d{5,6}$/.test(data.sub_plmnID)) {
@@ -627,14 +598,6 @@ export class SubscriberListManager extends BaseManager {
             errors.push('Sequence Number is required');
         }
         
-        if (!data.sub_k4_sno || data.sub_k4_sno === '') {
-            errors.push('K4 SNO is required');
-        }
-        
-        if (!data.sub_encryptionAlgorithm || data.sub_encryptionAlgorithm < 0) {
-            errors.push('Encryption Algorithm must be a non-negative number');
-        }
-        
         return {
             isValid: errors.length === 0,
             errors: errors
@@ -642,20 +605,30 @@ export class SubscriberListManager extends BaseManager {
     }
 
     preparePayload(formData, isEdit = false) {
+        // Map form data to API structure - SubsOverrideData
         return {
+            ueId: formData.sub_ueId,
             plmnID: formData.sub_plmnID,
-            opc: formData.sub_opc.toLowerCase(),
-            key: formData.sub_key.toLowerCase(),
-            sequenceNumber: formData.sub_sequenceNumber,
-            k4_sno: parseInt(formData.sub_k4_sno),
-            encryptionAlgorithm: parseInt(formData.sub_encryptionAlgorithm)
+            authenticationSubscription: {
+                sequenceNumber: formData.sub_sequenceNumber,
+                authenticationMethod: "5G_AKA",
+                permanentKey: {
+                    permanentKeyValue: formData.sub_key,
+                    encryptionKey: 0,
+                    encryptionAlgorithm: parseInt(formData.sub_encryptionAlgorithm) || 0
+                },
+                opc: {
+                    opcValue: formData.sub_opc,
+                    encryptionKey: 0,
+                    encryptionAlgorithm: parseInt(formData.sub_encryptionAlgorithm) || 0
+                }
+            }
         };
     }
 
-    async createItem(itemData) {
+    async createItem(itemData, ueId) {
         try {
-            const imsi = itemData.imsi || itemData.sub_imsi;
-            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${imsi}`, {
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(ueId)}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -668,49 +641,72 @@ export class SubscriberListManager extends BaseManager {
                 throw new Error(errorText || `HTTP ${response.status}`);
             }
 
-            return await response.json();
+            return response.status === 201 ? {} : await response.json();
         } catch (error) {
             throw error;
         }
     }
 
-    async loadK4Keys() {
+    async updateItem(ueId, itemData) {
         try {
-            const response = await fetch(`${SUBSCRIBER_API_BASE}/k4opt`);
-            if (response.ok) {
-                const k4Keys = await response.json();
-                const select = document.getElementById('sub_k4_sno');
-                if (select && Array.isArray(k4Keys)) {
-                    select.innerHTML = '<option value="">Select a K4 Key...</option>';
-                    k4Keys.forEach(key => {
-                        const option = document.createElement('option');
-                        option.value = key.k4_sno;
-                        option.textContent = `SNO ${key.k4_sno}`;
-                        select.appendChild(option);
-                    });
-                } else {
-                    select.innerHTML = '<option value="">No K4 keys available</option>';
-                }
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(ueId)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(itemData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP ${response.status}`);
             }
+
+            return response.status === 204 ? {} : await response.json();
         } catch (error) {
-            console.warn('Failed to load K4 keys:', error.message);
+            throw error;
         }
     }
 
-    async loadItemData(imsi) {
+    async deleteItem(ueId) {
         try {
-            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(imsi)}`);
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(ueId)}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP ${response.status}`);
+            }
+
+            return response.status === 204 ? {} : await response.json();
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async loadItemData(ueId) {
+        try {
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(ueId)}`);
             if (response.ok) {
-                const data = await response.json();
+                const subsData = await response.json();
                 
-                // Populate fields
-                this.setFieldValue('sub_imsi', imsi);
-                this.setFieldValue('sub_plmnID', data.plmnID);
-                this.setFieldValue('sub_key', data.key);
-                this.setFieldValue('sub_opc', data.opc);
-                this.setFieldValue('sub_sequenceNumber', data.sequenceNumber);
-                this.setFieldValue('sub_k4_sno', data.k4_sno);
-                this.setFieldValue('sub_encryptionAlgorithm', data.encryptionAlgorithm);
+                // Populate basic fields
+                this.setFieldValue('sub_ueId', subsData.ueId);
+                this.setFieldValue('sub_plmnID', subsData.plmnID);
+                
+                // Extract authentication data if available
+                if (subsData.AuthenticationSubscription) {
+                    const authData = subsData.AuthenticationSubscription;
+                    this.setFieldValue('sub_key', authData.PermanentKey?.PermanentKeyValue);
+                    this.setFieldValue('sub_opc', authData.Opc?.OpcValue);
+                    this.setFieldValue('sub_sequenceNumber', authData.SequenceNumber);
+                    
+                    // Set encryption algorithm if available
+                    if (authData.Opc?.EncryptionAlgorithm !== undefined) {
+                        this.setFieldValue('sub_encryptionAlgorithm', authData.Opc.EncryptionAlgorithm);
+                    }
+                }
             }
         } catch (error) {
             console.error('Failed to load subscriber data:', error);
@@ -725,17 +721,16 @@ export class SubscriberListManager extends BaseManager {
     }
 
     // New methods for details view
-    async showDetails(imsi) {
+    async showDetails(ueId) {
         try {
-            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(imsi)}`);
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(ueId)}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const subscriberData = await response.json();
-            subscriberData.imsi = imsi; // Add IMSI to the data
             this.currentSubscriberData = subscriberData;
-            this.currentSubscriberImsi = imsi;
+            this.currentSubscriberUeId = ueId;
             this.renderDetailsView(subscriberData);
             
         } catch (error) {
@@ -754,8 +749,8 @@ export class SubscriberListManager extends BaseManager {
             return;
         }
 
-        const imsi = subscriberData.imsi || 'Unknown';
-        title.textContent = `Subscriber: ${imsi}`;
+        const ueId = subscriberData.ueId || 'Unknown';
+        title.textContent = `Subscriber: ${ueId}`;
 
         const html = `
             <div id="subscriber-details-view-mode">
@@ -770,29 +765,33 @@ export class SubscriberListManager extends BaseManager {
     }
 
     renderReadOnlyDetails(subscriberData) {
+        const authData = subscriberData.AuthenticationSubscription || {};
+        const amData = subscriberData.AccessAndMobilitySubscriptionData || {};
+        const smData = subscriberData.SessionManagementSubscriptionData || [];
+        
         return `
             <div class="row">
                 <div class="col-md-6">
                     <div class="card mb-3">
                         <div class="card-header">
-                            <h6 class="mb-0"><i class="fas fa-user me-2"></i>Subscriber Information</h6>
+                            <h6 class="mb-0"><i class="fas fa-user me-2"></i>Basic Information</h6>
                         </div>
                         <div class="card-body">
                             <div class="mb-2">
-                                <strong>IMSI:</strong> 
-                                <code class="fs-6">${subscriberData.imsi || 'N/A'}</code>
+                                <strong>UE ID:</strong> 
+                                <code class="fs-6">${subscriberData.ueId || 'N/A'}</code>
                             </div>
                             <div class="mb-2">
                                 <strong>PLMN ID:</strong> 
                                 <code>${subscriberData.plmnID || 'N/A'}</code>
                             </div>
                             <div class="mb-2">
-                                <strong>K4 SNO:</strong> 
-                                <span class="badge bg-info">${subscriberData.k4_sno || 'N/A'}</span>
+                                <strong>Authentication Method:</strong> 
+                                <span class="badge bg-info">${authData.AuthenticationMethod || 'N/A'}</span>
                             </div>
                             <div class="mb-2">
-                                <strong>Encryption Algorithm:</strong> 
-                                <span class="badge bg-secondary">${subscriberData.encryptionAlgorithm || 'N/A'}</span>
+                                <strong>Management Field:</strong> 
+                                <span class="badge bg-secondary">${authData.AuthenticationManagementField || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
@@ -807,21 +806,100 @@ export class SubscriberListManager extends BaseManager {
                             <div class="mb-2">
                                 <strong>Key (Ki):</strong>
                                 <div class="mt-1">
-                                    <code class="text-break small">${subscriberData.key || 'N/A'}</code>
+                                    <code class="text-break small">${authData.PermanentKey?.PermanentKeyValue || 'N/A'}</code>
                                 </div>
                             </div>
                             <div class="mb-2">
                                 <strong>OPc:</strong>
                                 <div class="mt-1">
-                                    <code class="text-break small">${subscriberData.opc || 'N/A'}</code>
+                                    <code class="text-break small">${authData.Opc?.OpcValue || 'N/A'}</code>
                                 </div>
                             </div>
                             <div class="mb-2">
                                 <strong>Sequence Number:</strong>
                                 <div class="mt-1">
-                                    <code>${subscriberData.sequenceNumber || 'N/A'}</code>
+                                    <code>${authData.SequenceNumber || 'N/A'}</code>
                                 </div>
                             </div>
+                            <div class="mb-2">
+                                <strong>Encryption Algorithm:</strong>
+                                <div class="mt-1">
+                                    <span class="badge bg-primary">${authData.Opc?.EncryptionAlgorithm !== undefined ? authData.Opc.EncryptionAlgorithm : 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-signal me-2"></i>Access & Mobility</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <strong>GPSIs:</strong>
+                                <div class="mt-1">
+                                    ${amData.Gpsis && amData.Gpsis.length > 0 ? 
+                                        amData.Gpsis.map(gpsi => `<span class="badge bg-light text-dark me-1">${gpsi}</span>`).join('') :
+                                        '<span class="text-muted">None</span>'
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <strong>UE AMBR:</strong>
+                                <div class="mt-1">
+                                    ${amData.SubscribedUeAmbr ? 
+                                        `<small>UL: ${amData.SubscribedUeAmbr.Uplink || 'N/A'}, DL: ${amData.SubscribedUeAmbr.Downlink || 'N/A'}</small>` :
+                                        '<span class="text-muted">Not configured</span>'
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Network Slices:</strong>
+                                <div class="mt-1">
+                                    ${amData.Nssai?.DefaultSingleNssais ? 
+                                        amData.Nssai.DefaultSingleNssais.map(nssai => 
+                                            `<span class="badge bg-success me-1">SST:${nssai.Sst}${nssai.Sd ? ', SD:' + nssai.Sd : ''}</span>`
+                                        ).join('') :
+                                        '<span class="text-muted">None</span>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Session Management</h6>
+                        </div>
+                        <div class="card-body">
+                            ${smData && smData.length > 0 ? 
+                                smData.map((session, index) => `
+                                    <div class="mb-3 ${index > 0 ? 'border-top pt-3' : ''}">
+                                        <div class="mb-1">
+                                            <strong>Slice ${index + 1}:</strong> 
+                                            <span class="badge bg-info">
+                                                SST:${session.SingleNssai?.Sst}${session.SingleNssai?.Sd ? ', SD:' + session.SingleNssai.Sd : ''}
+                                            </span>
+                                        </div>
+                                        <div class="small">
+                                            <strong>DNNs:</strong> 
+                                            ${session.DnnConfigurations ? 
+                                                Object.keys(session.DnnConfigurations).map(dnn => 
+                                                    `<span class="badge bg-light text-dark me-1">${dnn}</span>`
+                                                ).join('') :
+                                                '<span class="text-muted">None</span>'
+                                            }
+                                        </div>
+                                    </div>
+                                `).join('') :
+                                '<div class="text-muted">No session management data</div>'
+                            }
                         </div>
                     </div>
                 </div>
@@ -837,15 +915,7 @@ export class SubscriberListManager extends BaseManager {
                             <div class="bg-light p-3 rounded">
                                 <div class="row">
                                     <div class="col-md-3">
-                                        <small class="text-muted">IMSI Format:</small>
-                                        <div><strong>15 digits</strong></div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <small class="text-muted">Key Format:</small>
-                                        <div><strong>32 hex characters</strong></div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <small class="text-muted">Network Type:</strong>
+                                        <small class="text-muted">Network Type:</small>
                                         <div><strong>5G/LTE</strong></div>
                                     </div>
                                     <div class="col-md-3">
@@ -854,6 +924,24 @@ export class SubscriberListManager extends BaseManager {
                                             <span class="badge bg-success">
                                                 <i class="fas fa-check-circle me-1"></i>Active
                                             </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">Policy Data:</small>
+                                        <div>
+                                            ${subscriberData.AmPolicyData ? 
+                                                '<span class="badge bg-info">Configured</span>' :
+                                                '<span class="badge bg-secondary">None</span>'
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">SMF Selection:</small>
+                                        <div>
+                                            ${subscriberData.SmfSelectionSubscriptionData ? 
+                                                '<span class="badge bg-info">Configured</span>' :
+                                                '<span class="badge bg-secondary">None</span>'
+                                            }
                                         </div>
                                     </div>
                                 </div>
@@ -866,6 +954,8 @@ export class SubscriberListManager extends BaseManager {
     }
 
     renderEditableDetails(subscriberData) {
+        const authData = subscriberData.AuthenticationSubscription || {};
+        
         return `
             <form id="subscriberDetailsEditForm">
                 <div class="row">
@@ -876,10 +966,10 @@ export class SubscriberListManager extends BaseManager {
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label class="form-label">IMSI</label>
-                                    <input type="text" class="form-control" id="edit_sub_imsi" 
-                                           value="${subscriberData.imsi || ''}" readonly>
-                                    <div class="form-text">IMSI cannot be changed</div>
+                                    <label class="form-label">UE ID</label>
+                                    <input type="text" class="form-control" id="edit_sub_ueId" 
+                                           value="${subscriberData.ueId || ''}" readonly>
+                                    <div class="form-text">UE ID cannot be changed</div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">PLMN ID</label>
@@ -887,23 +977,11 @@ export class SubscriberListManager extends BaseManager {
                                            value="${subscriberData.plmnID || ''}" 
                                            placeholder="5 or 6 digits" pattern="\\d{5,6}" maxlength="6" required>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">K4 SNO</label>
-                                            <select class="form-select" id="edit_sub_k4_sno" required>
-                                                <option value="">Loading...</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Encryption Algorithm</label>
-                                            <input type="number" class="form-control" id="edit_sub_encryptionAlgorithm" 
-                                                   value="${subscriberData.encryptionAlgorithm || ''}" 
-                                                   placeholder="e.g., 2" min="0" required>
-                                        </div>
-                                    </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Encryption Algorithm</label>
+                                    <input type="number" class="form-control" id="edit_sub_encryptionAlgorithm" 
+                                           value="${authData.Opc?.EncryptionAlgorithm || 0}" 
+                                           placeholder="e.g., 0" min="0">
                                 </div>
                             </div>
                         </div>
@@ -918,20 +996,20 @@ export class SubscriberListManager extends BaseManager {
                                 <div class="mb-3">
                                     <label class="form-label">Key (Ki)</label>
                                     <input type="text" class="form-control" id="edit_sub_key" 
-                                           value="${subscriberData.key || ''}" 
+                                           value="${authData.PermanentKey?.PermanentKeyValue || ''}" 
                                            placeholder="32 hex chars" pattern="[0-9a-fA-F]{32}" maxlength="32" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">OPc</label>
                                     <input type="text" class="form-control" id="edit_sub_opc" 
-                                           value="${subscriberData.opc || ''}" 
+                                           value="${authData.Opc?.OpcValue || ''}" 
                                            placeholder="32 hex chars" pattern="[0-9a-fA-F]{32}" maxlength="32" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Sequence Number</label>
                                     <input type="text" class="form-control" id="edit_sub_sequenceNumber" 
-                                           value="${subscriberData.sequenceNumber || ''}" 
-                                           placeholder="e.g., 1af347" required>
+                                           value="${authData.SequenceNumber || ''}" 
+                                           placeholder="e.g., 16f3b3f70fc2" required>
                                 </div>
                             </div>
                         </div>
@@ -961,10 +1039,10 @@ export class SubscriberListManager extends BaseManager {
             }
 
             const payload = this.preparePayload(formData, true);
-            await this.updateItem(this.currentSubscriberImsi, payload);
+            await this.updateItem(this.currentSubscriberUeId, payload);
             
             // Refresh the details view
-            await this.showDetails(this.currentSubscriberImsi);
+            await this.showDetails(this.currentSubscriberUeId);
             this.toggleEditMode(false);
             
             window.app?.notificationManager?.showNotification('Subscriber updated successfully!', 'success');
@@ -977,41 +1055,13 @@ export class SubscriberListManager extends BaseManager {
 
     getEditFormData() {
         return {
-            sub_imsi: document.getElementById('edit_sub_imsi')?.value || '',
+            sub_ueId: document.getElementById('edit_sub_ueId')?.value || '',
             sub_plmnID: document.getElementById('edit_sub_plmnID')?.value || '',
             sub_key: document.getElementById('edit_sub_key')?.value || '',
             sub_opc: document.getElementById('edit_sub_opc')?.value || '',
             sub_sequenceNumber: document.getElementById('edit_sub_sequenceNumber')?.value || '',
-            sub_k4_sno: document.getElementById('edit_sub_k4_sno')?.value || '',
             sub_encryptionAlgorithm: document.getElementById('edit_sub_encryptionAlgorithm')?.value || ''
         };
-    }
-
-    async loadK4KeysForEdit() {
-        try {
-            const response = await fetch(`${SUBSCRIBER_API_BASE}/k4opt`);
-            if (response.ok) {
-                const k4Keys = await response.json();
-                const select = document.getElementById('edit_sub_k4_sno');
-                if (select && Array.isArray(k4Keys)) {
-                    select.innerHTML = '<option value="">Select a K4 Key...</option>';
-                    k4Keys.forEach(key => {
-                        const option = document.createElement('option');
-                        option.value = key.k4_sno;
-                        option.textContent = `SNO ${key.k4_sno}`;
-                        select.appendChild(option);
-                    });
-
-                    // Pre-select current K4 SNO
-                    const currentK4Sno = this.currentSubscriberData.k4_sno;
-                    if (currentK4Sno) {
-                        select.value = currentK4Sno;
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to load K4 keys:', error.message);
-        }
     }
 
     toggleEditMode(enable = null) {
@@ -1031,15 +1081,12 @@ export class SubscriberListManager extends BaseManager {
             detailsView.style.display = 'none';
             editView.style.display = 'block';
             editBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
-            
-            // Load K4 keys when entering edit mode
-            this.loadK4KeysForEdit();
         }
     }
 
     async deleteFromDetails() {
         try {
-            await this.deleteItem(this.currentSubscriberImsi);
+            await this.deleteItem(this.currentSubscriberUeId);
             window.app?.notificationManager?.showNotification('Subscriber deleted successfully!', 'success');
             
             // Navigate back to the list
@@ -1049,5 +1096,62 @@ export class SubscriberListManager extends BaseManager {
             console.error('Failed to delete subscriber:', error);
             window.app?.notificationManager?.showNotification(`Failed to delete subscriber: ${error.message}`, 'error');
         }
+    }
+
+    async createFromForm() {
+        try {
+            const formData = this.getCreateFormData();
+            const validation = this.validateFormData(formData);
+            
+            if (!validation.isValid) {
+                window.app?.notificationManager?.showNotification(validation.errors.join('<br>'), 'error');
+                return;
+            }
+
+            const payload = this.prepareCreatePayload(formData);
+            await this.createItem(payload, formData.sub_ueId);
+            
+            window.app?.notificationManager?.showNotification('Subscriber created successfully!', 'success');
+            
+            // Navigate back to the list
+            window.showSection('subscribers-list');
+            
+        } catch (error) {
+            console.error('Failed to create subscriber:', error);
+            window.app?.notificationManager?.showNotification(`Failed to create subscriber: ${error.message}`, 'error');
+        }
+    }
+
+    getCreateFormData() {
+        return {
+            sub_ueId: document.getElementById('create_sub_ueId')?.value || '',
+            sub_plmnID: document.getElementById('create_sub_plmnID')?.value || '',
+            sub_key: document.getElementById('create_sub_key')?.value || '',
+            sub_opc: document.getElementById('create_sub_opc')?.value || '',
+            sub_sequenceNumber: document.getElementById('create_sub_sequenceNumber')?.value || '',
+            sub_encryptionAlgorithm: document.getElementById('create_sub_encryptionAlgorithm')?.value || ''
+        };
+    }
+
+    prepareCreatePayload(formData) {
+        // Map form data to API structure - SubsOverrideData
+        return {
+            ueId: formData.sub_ueId,
+            plmnID: formData.sub_plmnID,
+            authenticationSubscription: {
+                sequenceNumber: formData.sub_sequenceNumber,
+                authenticationMethod: "5G_AKA",
+                permanentKey: {
+                    permanentKeyValue: formData.sub_key,
+                    encryptionKey: 0,
+                    encryptionAlgorithm: parseInt(formData.sub_encryptionAlgorithm) || 0
+                },
+                opc: {
+                    opcValue: formData.sub_opc,
+                    encryptionKey: 0,
+                    encryptionAlgorithm: parseInt(formData.sub_encryptionAlgorithm) || 0
+                }
+            }
+        };
     }
 }
