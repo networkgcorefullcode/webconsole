@@ -483,7 +483,7 @@ export class SubscriberListManager extends BaseManager {
 
     preparePayload(formData, isEdit = false) {
         // Map form data to API structure - SubsOverrideData
-        return {
+        const payload = {
             ueId: formData.sub_ueId,
             plmnID: formData.sub_plmnID,
             authenticationSubscription: {
@@ -501,11 +501,28 @@ export class SubscriberListManager extends BaseManager {
                 }
             }
         };
+
+        // Add K4 SNO if provided
+        if (formData.sub_k4_sno && formData.sub_k4_sno !== '') {
+            payload.k4_sno = parseInt(formData.sub_k4_sno);
+        }
+
+        return payload;
     }
 
-    async createItem(itemData, ueId) {
+    async createItem(itemData, ueId = null) {
         try {
-            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(ueId)}`, {
+            // If ueId is not provided as second parameter, extract it from itemData
+            const actualUeId = ueId || itemData.ueId;
+            
+            if (!actualUeId) {
+                throw new Error('UE ID is required for subscriber creation');
+            }
+            
+            console.log('Creating subscriber with UE ID:', actualUeId);
+            console.log('Payload:', itemData);
+            
+            const response = await fetch(`${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(actualUeId)}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -515,11 +532,13 @@ export class SubscriberListManager extends BaseManager {
 
             if (!response.ok) {
                 const errorText = await response.text();
+                console.error('API Error Response:', errorText);
                 throw new Error(errorText || `HTTP ${response.status}`);
             }
 
             return response.status === 201 ? {} : await response.json();
         } catch (error) {
+            console.error('Create item error:', error);
             throw error;
         }
     }
@@ -559,6 +578,70 @@ export class SubscriberListManager extends BaseManager {
             return response.status === 204 ? {} : await response.json();
         } catch (error) {
             throw error;
+        }
+    }
+
+    async loadK4Keys() {
+        try {
+            const response = await fetch(`${SUBSCRIBER_API_BASE}/k4opt`);
+            if (response.ok) {
+                const k4Keys = await response.json();
+                const select = document.getElementById('sub_k4_sno');
+                if (select && Array.isArray(k4Keys)) {
+                    select.innerHTML = '<option value="">None (Optional)</option>';
+                    k4Keys.forEach(key => {
+                        const option = document.createElement('option');
+                        option.value = key.k4_sno;
+                        option.textContent = `SNO ${key.k4_sno} - Key: ${key.k4?.substring(0, 8)}...`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No K4 keys available</option>';
+                }
+            } else {
+                const select = document.getElementById('sub_k4_sno');
+                if (select) {
+                    select.innerHTML = '<option value="">Error loading K4 keys</option>';
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load K4 keys:', error.message);
+            const select = document.getElementById('sub_k4_sno');
+            if (select) {
+                select.innerHTML = '<option value="">Error loading K4 keys</option>';
+            }
+        }
+    }
+
+    async loadK4KeysForEdit() {
+        try {
+            const response = await fetch(`${SUBSCRIBER_API_BASE}/k4opt`);
+            if (response.ok) {
+                const k4Keys = await response.json();
+                const select = document.getElementById('edit_sub_k4_sno');
+                if (select && Array.isArray(k4Keys)) {
+                    select.innerHTML = '<option value="">None (Optional)</option>';
+                    k4Keys.forEach(key => {
+                        const option = document.createElement('option');
+                        option.value = key.k4_sno;
+                        option.textContent = `SNO ${key.k4_sno} - Key: ${key.k4?.substring(0, 8)}...`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No K4 keys available</option>';
+                }
+            } else {
+                const select = document.getElementById('edit_sub_k4_sno');
+                if (select) {
+                    select.innerHTML = '<option value="">Error loading K4 keys</option>';
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load K4 keys for edit:', error.message);
+            const select = document.getElementById('edit_sub_k4_sno');
+            if (select) {
+                select.innerHTML = '<option value="">Error loading K4 keys</option>';
+            }
         }
     }
 
@@ -860,6 +943,13 @@ export class SubscriberListManager extends BaseManager {
                                            value="${authData.Opc?.EncryptionAlgorithm || 0}" 
                                            placeholder="e.g., 0" min="0">
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label">K4 SNO</label>
+                                    <select class="form-select" id="edit_sub_k4_sno">
+                                        <option value="">Loading K4 keys...</option>
+                                    </select>
+                                    <div class="form-text">K4 Serial Number reference (optional)</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -937,7 +1027,8 @@ export class SubscriberListManager extends BaseManager {
             sub_key: document.getElementById('edit_sub_key')?.value || '',
             sub_opc: document.getElementById('edit_sub_opc')?.value || '',
             sub_sequenceNumber: document.getElementById('edit_sub_sequenceNumber')?.value || '',
-            sub_encryptionAlgorithm: document.getElementById('edit_sub_encryptionAlgorithm')?.value || ''
+            sub_encryptionAlgorithm: document.getElementById('edit_sub_encryptionAlgorithm')?.value || '',
+            sub_k4_sno: document.getElementById('edit_sub_k4_sno')?.value || ''
         };
     }
 
@@ -958,6 +1049,9 @@ export class SubscriberListManager extends BaseManager {
             detailsView.style.display = 'none';
             editView.style.display = 'block';
             editBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+            
+            // Load K4 keys when entering edit mode
+            this.loadK4KeysForEdit();
         }
     }
 
@@ -978,14 +1072,20 @@ export class SubscriberListManager extends BaseManager {
     async createFromForm() {
         try {
             const formData = this.getCreateFormData();
+            console.log('Form data collected:', formData);
+            
             const validation = this.validateFormData(formData);
             
             if (!validation.isValid) {
+                console.log('Validation errors:', validation.errors);
                 window.app?.notificationManager?.showNotification(validation.errors.join('<br>'), 'error');
                 return;
             }
 
-            const payload = this.prepareCreatePayload(formData);
+            const payload = this.preparePayload(formData, false);
+            console.log('Payload prepared:', payload);
+            console.log('UE ID for API call:', formData.sub_ueId);
+            
             await this.createItem(payload, formData.sub_ueId);
             
             window.app?.notificationManager?.showNotification('Subscriber created successfully!', 'success');
@@ -1001,34 +1101,29 @@ export class SubscriberListManager extends BaseManager {
 
     getCreateFormData() {
         return {
-            sub_ueId: document.getElementById('create_sub_ueId')?.value || '',
-            sub_plmnID: document.getElementById('create_sub_plmnID')?.value || '',
-            sub_key: document.getElementById('create_sub_key')?.value || '',
-            sub_opc: document.getElementById('create_sub_opc')?.value || '',
-            sub_sequenceNumber: document.getElementById('create_sub_sequenceNumber')?.value || '',
-            sub_encryptionAlgorithm: document.getElementById('create_sub_encryptionAlgorithm')?.value || ''
+            sub_ueId: document.getElementById('sub_ueId')?.value || '',
+            sub_plmnID: document.getElementById('sub_plmnID')?.value || '',
+            sub_key: document.getElementById('sub_key')?.value || '',
+            sub_opc: document.getElementById('sub_opc')?.value || '',
+            sub_sequenceNumber: document.getElementById('sub_sequenceNumber')?.value || '',
+            sub_encryptionAlgorithm: document.getElementById('sub_encryptionAlgorithm')?.value || '',
+            sub_k4_sno: document.getElementById('sub_k4_sno')?.value || ''
         };
     }
 
-    prepareCreatePayload(formData) {
-        // Map form data to API structure - SubsOverrideData
-        return {
-            ueId: formData.sub_ueId,
-            plmnID: formData.sub_plmnID,
-            authenticationSubscription: {
-                sequenceNumber: formData.sub_sequenceNumber,
-                authenticationMethod: "5G_AKA",
-                permanentKey: {
-                    permanentKeyValue: formData.sub_key,
-                    encryptionKey: 0,
-                    encryptionAlgorithm: parseInt(formData.sub_encryptionAlgorithm) || 0
-                },
-                opc: {
-                    opcValue: formData.sub_opc,
-                    encryptionKey: 0,
-                    encryptionAlgorithm: parseInt(formData.sub_encryptionAlgorithm) || 0
-                }
-            }
-        };
+    async showCreateForm() {
+        // Call parent method first
+        await super.showCreateForm();
+        
+        // Load K4 keys for the dropdown
+        await this.loadK4Keys();
+    }
+
+    async showEditForm(ueId) {
+        // Call parent method first
+        await super.showEditForm(ueId);
+        
+        // Load K4 keys for the dropdown
+        await this.loadK4Keys();
     }
 }

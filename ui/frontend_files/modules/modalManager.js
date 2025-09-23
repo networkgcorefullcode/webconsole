@@ -82,7 +82,7 @@ export class ModalManager {
     async saveItem() {
         const manager = this.getManagerByType(this.currentEditType);
         if (!manager) {
-            app.notificationManager.showError(`Unknown type: ${this.currentEditType}`);
+            window.app.notificationManager.showError(`Unknown type: ${this.currentEditType}`);
             return;
         }
 
@@ -93,7 +93,7 @@ export class ModalManager {
         const validation = manager.validateFormData(formData);
         if (!validation.isValid) {
             const errorMessage = validation.errors.join('\n');
-            app.notificationManager.showError(errorMessage);
+            window.app.notificationManager.showError(errorMessage);
             return;
         }
 
@@ -104,10 +104,10 @@ export class ModalManager {
             // Save or update
             if (this.currentEditName) {
                 await manager.updateItem(this.currentEditName, payload);
-                app.notificationManager.showSuccess(`${manager.displayName} updated successfully`);
+                window.app.notificationManager.showSuccess(`${manager.displayName} updated successfully`);
             } else {
                 await manager.createItem(payload);
-                app.notificationManager.showSuccess(`${manager.displayName} created successfully`);
+                window.app.notificationManager.showSuccess(`${manager.displayName} created successfully`);
             }
 
             // Close modal and reload data
@@ -115,7 +115,7 @@ export class ModalManager {
             manager.loadData();
 
         } catch (error) {
-            app.notificationManager.showApiError(error, this.currentEditName ? 'update item' : 'create item');
+            window.app.notificationManager.showApiError(error, this.currentEditName ? 'update item' : 'create item');
         }
     }
 
