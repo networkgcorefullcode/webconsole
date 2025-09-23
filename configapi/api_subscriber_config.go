@@ -286,6 +286,10 @@ func GetSubscribers(c *gin.Context) {
 			logger.DbLog.Errorf("could not unmarshal subscriber %s", amData)
 		}
 
+		if servingPlmnId, plmnIdExists := amData["servingPlmnId"]; plmnIdExists {
+			subsData.PlmnID = servingPlmnId.(string)
+		}
+
 		subsList = append(subsList, subsData)
 	}
 
@@ -513,6 +517,7 @@ func PostSubscriberByID(c *gin.Context) {
 			EncryptionAlgorithm: 0,
 			EncryptionKey:       "",
 		},
+		K4_SNO:         *subsOverrideData.K4Sno,
 		SequenceNumber: subsOverrideData.SequenceNumber,
 	}
 
