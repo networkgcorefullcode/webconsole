@@ -7,11 +7,17 @@ export class UIManager {
     constructor() {
         this.sections = {
             'device-groups': 'deviceGroups',
+            'device-group-details': 'deviceGroups', // Same manager for details
             'network-slices': 'networkSlices', 
+            'network-slice-details': 'networkSlices', // Same manager for details
             'gnb-inventory': 'gnbInventory',
+            'gnb-details': 'gnbInventory', // Same manager for details
             'upf-inventory': 'upfInventory',
-            'subscribers': 'subscribers' // identificador genérico
-
+            'subscribers': 'subscribers', // identificador genérico
+            'k4-keys': 'k4Manager',
+            'k4-details': 'k4Manager',
+            'subscribers-list': 'subscriberListManager',
+            'subscriber-details': 'subscriberListManager'
         };
     }
 
@@ -48,10 +54,37 @@ export class UIManager {
     }
 
     loadSectionData(section) {
-        // Lógica para la sección de suscriptores
+        // Lógica para la sección de suscriptores (página original combinada)
         if (section === 'subscribers') {
             app.managers.k4Manager.loadData();
             app.managers.subscriberManager.renderForm();
+        } else if (section === 'k4-keys') {
+            // Load K4 keys list
+            app.managers.k4Manager.loadData();
+        } else if (section === 'subscribers-list') {
+            // Load subscribers list
+            app.managers.subscriberListManager.loadData();
+        } else if (section === 'device-groups') {
+            // Load device groups list
+            const managerKey = this.sections[section];
+            if (managerKey && app.managers[managerKey]) {
+                app.managers[managerKey].loadData();
+            }
+        } else if (section === 'network-slices') {
+            // Load network slices list
+            const managerKey = this.sections[section];
+            if (managerKey && app.managers[managerKey]) {
+                app.managers[managerKey].loadData();
+            }
+        } else if (section === 'gnb-inventory') {
+            // Load gNB inventory list
+            const managerKey = this.sections[section];
+            if (managerKey && app.managers[managerKey]) {
+                app.managers[managerKey].loadData();
+            }
+        } else if (section === 'device-group-details' || section === 'gnb-details' || section === 'network-slice-details' || section === 'k4-details' || section === 'subscriber-details') {
+            // Don't reload data for details views as they're already loaded
+            return;
         } else {
             const managerKey = this.sections[section];
             if (managerKey && app.managers[managerKey]) {

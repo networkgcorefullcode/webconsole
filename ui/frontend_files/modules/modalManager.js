@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2024 Canonical Ltd.
 
-import app from '../app.js';
-
 export class ModalManager {
     constructor() {
         this.currentEditType = '';
@@ -24,7 +22,7 @@ export class ModalManager {
         
         const manager = this.getManagerByType(type);
         if (!manager) {
-            app.notificationManager.showError(`Unknown type: ${type}`);
+            window.app.notificationManager.showError(`Unknown type: ${type}`);
             return;
         }
         
@@ -45,7 +43,7 @@ export class ModalManager {
         
         const manager = this.getManagerByType(type);
         if (!manager) {
-            app.notificationManager.showError(`Unknown type: ${type}`);
+            window.app.notificationManager.showError(`Unknown type: ${type}`);
             return;
         }
         
@@ -84,7 +82,7 @@ export class ModalManager {
     async saveItem() {
         const manager = this.getManagerByType(this.currentEditType);
         if (!manager) {
-            app.notificationManager.showError(`Unknown type: ${this.currentEditType}`);
+            window.app.notificationManager.showError(`Unknown type: ${this.currentEditType}`);
             return;
         }
 
@@ -95,7 +93,7 @@ export class ModalManager {
         const validation = manager.validateFormData(formData);
         if (!validation.isValid) {
             const errorMessage = validation.errors.join('\n');
-            app.notificationManager.showError(errorMessage);
+            window.app.notificationManager.showError(errorMessage);
             return;
         }
 
@@ -106,10 +104,10 @@ export class ModalManager {
             // Save or update
             if (this.currentEditName) {
                 await manager.updateItem(this.currentEditName, payload);
-                app.notificationManager.showSuccess(`${manager.displayName} updated successfully`);
+                window.app.notificationManager.showSuccess(`${manager.displayName} updated successfully`);
             } else {
                 await manager.createItem(payload);
-                app.notificationManager.showSuccess(`${manager.displayName} created successfully`);
+                window.app.notificationManager.showSuccess(`${manager.displayName} created successfully`);
             }
 
             // Close modal and reload data
@@ -117,7 +115,7 @@ export class ModalManager {
             manager.loadData();
 
         } catch (error) {
-            app.notificationManager.showApiError(error, this.currentEditName ? 'update item' : 'create item');
+            window.app.notificationManager.showApiError(error, this.currentEditName ? 'update item' : 'create item');
         }
     }
 
@@ -174,10 +172,11 @@ export class ModalManager {
             'network-slice': 'networkSlices',
             'gnb': 'gnbInventory',
             'upf': 'upfInventory',
-            'k4-key': 'k4Manager'
+            'k4-key': 'k4Manager',
+            'subscriber': 'subscriberListManager'
         };
         
         const managerKey = typeMapping[type];
-        return managerKey ? app.managers[managerKey] : null;
+        return managerKey ? window.app.managers[managerKey] : null;
     }
 }

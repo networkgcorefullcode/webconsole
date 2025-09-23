@@ -273,16 +273,24 @@ func GetSubscribers(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve subscribers list"})
 		return
 	}
+	logger.AppLog.Infof("GetSubscribers: amDataList: %+v, len: %d", amDataList, len(amDataList))
+	if len(amDataList) == 0 {
+		c.JSON(http.StatusOK, subsList)
+		return
+	}
 	for _, amData := range amDataList {
-		tmp := configmodels.SubsListIE{
-			UeId: amData["ueId"].(string),
+		var subsData configmodels.SubsListIE
+
+		err := json.Unmarshal(configmodels.MapToByte(amData), &subsData)
+		if err != nil {
+			logger.DbLog.Errorf("could not unmarshal subscriber %s", amData)
 		}
 
 		if servingPlmnId, plmnIdExists := amData["servingPlmnId"]; plmnIdExists {
-			tmp.PlmnID = servingPlmnId.(string)
+			subsData.PlmnID = servingPlmnId.(string)
 		}
 
-		subsList = append(subsList, tmp)
+		subsList = append(subsList, subsData)
 	}
 
 	c.JSON(http.StatusOK, subsList)
@@ -509,6 +517,7 @@ func PostSubscriberByID(c *gin.Context) {
 			EncryptionAlgorithm: 0,
 			EncryptionKey:       "",
 		},
+		K4_SNO:         *subsOverrideData.K4Sno,
 		SequenceNumber: subsOverrideData.SequenceNumber,
 	}
 

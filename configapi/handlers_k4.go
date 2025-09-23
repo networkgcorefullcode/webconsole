@@ -1,9 +1,11 @@
 package configapi
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/openapi/models"
@@ -166,11 +168,28 @@ func HandlePostK4(c *gin.Context) {
 		return
 	}
 
+	// validate data posted
+	if k4Data.K4_SNO == 0 {
+		logger.WebUILog.Errorln("K4_SNO is missing or zero in the request")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "K4_SNO must be provided and greater than zero"})
+		return
+	}
+
+	if _, err := hex.DecodeString(k4Data.K4); err != nil {
+		logger.WebUILog.Errorf("K4 key is not a valid hex string: %+v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "K4 key must be a valid hex string"})
+		return
+	}
+	// end validate data posted
+
+	// Normalize K4 to lowercase
+	k4Data.K4 = strings.ToLower(k4Data.K4)
+
 	logger.WebUILog.Infof("Parsed K4 data: %+v", k4Data)
 
 	logger.WebUILog.Infof("K4 data to be inserted: %+v", k4Data)
 
-	if err := K4HelperPut(int(k4Data.K4_SNO), &k4Data); err != nil {
+	if err := K4HelperPost(int(k4Data.K4_SNO), &k4Data); err != nil {
 		logger.DbLog.Errorf("failed to post k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to post k4 key"})
 		return
@@ -217,6 +236,23 @@ func HandlePutK4(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: failed to parse JSON."})
 		return
 	}
+
+	// validate data update
+	if k4Data.K4_SNO == 0 {
+		logger.WebUILog.Errorln("K4_SNO is missing or zero in the request")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "K4_SNO must be provided and greater than zero"})
+		return
+	}
+
+	if _, err := hex.DecodeString(k4Data.K4); err != nil {
+		logger.WebUILog.Errorf("K4 key is not a valid hex string: %+v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "K4 key must be a valid hex string"})
+		return
+	}
+	// end validate data update
+
+	// Normalize K4 to lowercase
+	k4Data.K4 = strings.ToLower(k4Data.K4)
 
 	if err := K4HelperPut(snoIdint, &k4Data); err != nil {
 		logger.DbLog.Errorf("failed to update k4 key in DB: %+v", err)
