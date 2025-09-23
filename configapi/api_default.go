@@ -37,6 +37,7 @@ const (
 	smPolicyDataColl = "policyData.ues.smData"
 	authSubsDataColl = "subscriptionData.authenticationData.authenticationSubscription"
 	k4KeysColl       = "encription.keysdata.k4"
+	k4KeysCollCom    = "encription.keysdata.k4_com"
 )
 
 // GetDeviceGroups godoc

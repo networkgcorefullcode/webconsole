@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2024 Canonical Ltd.
 
-import app from '../app.js';
-
 export class ModalManager {
     constructor() {
         this.currentEditType = '';
@@ -24,7 +22,7 @@ export class ModalManager {
         
         const manager = this.getManagerByType(type);
         if (!manager) {
-            app.notificationManager.showError(`Unknown type: ${type}`);
+            window.app.notificationManager.showError(`Unknown type: ${type}`);
             return;
         }
         
@@ -45,7 +43,7 @@ export class ModalManager {
         
         const manager = this.getManagerByType(type);
         if (!manager) {
-            app.notificationManager.showError(`Unknown type: ${type}`);
+            window.app.notificationManager.showError(`Unknown type: ${type}`);
             return;
         }
         
@@ -174,10 +172,11 @@ export class ModalManager {
             'network-slice': 'networkSlices',
             'gnb': 'gnbInventory',
             'upf': 'upfInventory',
-            'k4-key': 'k4Manager'
+            'k4-key': 'k4Manager',
+            'subscriber': 'subscriberListManager'
         };
         
         const managerKey = typeMapping[type];
-        return managerKey ? app.managers[managerKey] : null;
+        return managerKey ? window.app.managers[managerKey] : null;
     }
 }

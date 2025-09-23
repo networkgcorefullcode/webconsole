@@ -9,7 +9,7 @@ import { UpfManager } from './modules/upfInventory.js';
 import { UIManager } from './modules/uiManager.js';
 import { NotificationManager } from './modules/notifications.js';
 import { ModalManager } from './modules/modalManager.js';
-import { K4Manager, SubscriberManager, SubscriberListManager } from './modules/subscribers.js';
+import { K4Manager, SubscriberListManager } from './modules/subscribers.js';
 
 // API Base URL
 export const API_BASE = '/config/v1';
@@ -25,7 +25,6 @@ class AppState {
             gnbInventory: new GnbManager(),
             upfInventory: new UpfManager(),
             k4Manager: new K4Manager(),
-            subscriberManager: new SubscriberManager(),
             subscriberListManager: new SubscriberListManager()
         };
         this.uiManager = new UIManager();
@@ -40,6 +39,9 @@ class AppState {
 
 // Global app instance
 const app = new AppState();
+
+// Make app globally accessible
+window.app = app;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
