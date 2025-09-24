@@ -55,10 +55,10 @@ export class K4Manager extends BaseManager {
                        ${isEdit ? 'readonly' : ''} required>
             </div>
             <div class="mb-3">
-                <label class="form-label">K4 Key (32 hex chars)</label>
+                <label class="form-label">K4 Key</label>
                 <input type="text" class="form-control" id="k4" 
                        placeholder="e.g., 00112233445566778899aabbccddeeff" 
-                       pattern="[0-9a-fA-F]{32}" maxlength="32" required>
+                       pattern="[0-9a-fA-F]" required>
             </div>
         `;
     }
@@ -68,8 +68,8 @@ export class K4Manager extends BaseManager {
         if (data.k4_sno === undefined || data.k4_sno < 0) {
             errors.push('K4 SNO is required and must be a non-negative number.');
         }
-        if (!data.k4 || !/^[0-9a-fA-F]{32}$/.test(data.k4)) {
-            errors.push('K4 Key must be exactly 32 hexadecimal characters.');
+        if (!data.k4 || !/^[0-9a-fA-F]$/.test(data.k4)) {
+            errors.push('K4 Key must be a valid hexadecimal characters.');
         }
         return { isValid: errors.length === 0, errors: errors };
     }
