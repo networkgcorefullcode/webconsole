@@ -222,8 +222,8 @@ export class K4Manager extends BaseManager {
                                             <label class="form-label">K4 Key</label>
                                             <input type="text" class="form-control" id="edit_k4_key" 
                                                    value="${k4Data.k4 || ''}" placeholder="32 hex characters" 
-                                                   pattern="[0-9a-fA-F]{32}" maxlength="32" required>
-                                            <div class="form-text">Exactly 32 hexadecimal characters</div>
+                                                   pattern="[0-9a-fA-F]+" required>
+                                            <div class="form-text">hexadecimal characters</div>
                                         </div>
                                     </div>
                                 </div>
