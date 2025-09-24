@@ -525,7 +525,7 @@ func PostSubscriberByID(c *gin.Context) {
 	}
 
 	if subsOverrideData.K4Sno != nil {
-		authSubsData.K4_SNO = byte(*subsOverrideData.K4Sno)
+		authSubsData.K4_SNO = *subsOverrideData.K4Sno
 		snoIdint := int(*subsOverrideData.K4Sno)
 		filterSnoID := bson.M{"k4_sno": snoIdint}
 
