@@ -34,8 +34,7 @@ vars:
   GO_BIN_PATH: bin
   GO_SRC_PATH: ./
   C_BUILD_PATH: build
-  ROOT_PATH:
-    sh: pwd
+  ROOT_PATH: ./
 
   WEBCONSOLE: webconsole
 
