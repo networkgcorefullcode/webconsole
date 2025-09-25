@@ -64,19 +64,19 @@ tasks:
   webconsole-bin:
     desc: "Build webconsole binary"
     generates:
-      - "{{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}"
+      - "{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}"
     sources:
       - "server.go"
       - "./**/*.go"
     cmds:
       - echo "Start building {{.WEBCONSOLE}}...."
       - mkdir -p {{.GO_BIN_PATH}}
-      - CGO_ENABLED=0 go build -o {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}} ./server.go
+      - CGO_ENABLED=0 go build -o {{.GO_BIN_PATH}}/{{.WEBCONSOLE}} ./server.go
 
   webconsole-ui:
     desc: "Build webconsole binary with UI"
     generates:
-      - "{{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}"
+      - "{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}"
     sources:
       - "server.go"
       - "./**/*.go"
@@ -84,13 +84,13 @@ tasks:
     cmds:
       - echo "Start building {{.WEBCONSOLE}} with UI...."
       - mkdir -p {{.GO_BIN_PATH}}
-      - CGO_ENABLED=0 go build --tags ui -o {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}} ./server.go
+      - CGO_ENABLED=0 go build --tags ui -o {{.GO_BIN_PATH}}/{{.WEBCONSOLE}} ./server.go
 
   clean:
     desc: "Clean built binaries"
     cmds:
-      - rm -rf {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}
-      - rm -rf {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}-ui
+      - rm -rf {{.GO_BIN_PATH}}/{{.WEBCONSOLE}}
+      - rm -rf {{.GO_BIN_PATH}}/{{.WEBCONSOLE}}-ui
 
   docker-build:
     desc: "Build Docker images"
@@ -124,7 +124,7 @@ tasks:
           --build-arg org_label_schema_vcs_ref="{{.DOCKER_LABEL_VCS_REF}}" \
           --build-arg org_label_schema_build_date="{{.DOCKER_LABEL_BUILD_DATE}}" \
           --build-arg org_opencord_vcs_commit_date="{{.DOCKER_LABEL_COMMIT_DATE}}" \
-          --build-arg PATH_BINARY="{{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}" \
+          --build-arg PATH_BINARY="{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}" \
           --file="Dockerfile.fast" .
       - rm -rf vendor
 
