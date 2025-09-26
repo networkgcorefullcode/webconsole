@@ -189,6 +189,7 @@ func DeviceGroupGroupNamePut(c *gin.Context) {
 		return
 	}
 
+	requestDeviceGroup.DeviceGroupName = groupName
 	if err := isValidDeviceGroup(&requestDeviceGroup); err != nil {
 		logger.ConfigLog.Errorln(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "request_id": requestID})
@@ -269,6 +270,7 @@ func DeviceGroupGroupNamePost(c *gin.Context) {
 		return
 	}
 
+	requestDeviceGroup.DeviceGroupName = groupName
 	if err := isValidDeviceGroup(&requestDeviceGroup); err != nil {
 		logger.ConfigLog.Errorln(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "request_id": requestID})
