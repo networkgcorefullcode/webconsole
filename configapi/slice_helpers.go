@@ -94,6 +94,7 @@ func parseAndValidateSliceRequest(c *gin.Context, sliceName string) (configmodel
 		}
 	}
 
+	request.SliceName = sliceName
 	// Validate required fields are not empty
 	if strings.TrimSpace(request.SliceName) == "" {
 		return request, fmt.Errorf("slice-name cannot be empty")
