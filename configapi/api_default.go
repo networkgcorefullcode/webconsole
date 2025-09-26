@@ -189,6 +189,12 @@ func DeviceGroupGroupNamePut(c *gin.Context) {
 		return
 	}
 
+	if err := isValidDeviceGroup(&requestDeviceGroup); err != nil {
+		logger.ConfigLog.Errorln(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "request_id": requestID})
+		return
+	}
+
 	if statusCode, err := deviceGroupPostHelper(requestDeviceGroup, configmodels.Put_op, groupName); err != nil {
 		logger.WebUILog.Errorf("Device group update failed: %+v", err)
 		c.JSON(statusCode, gin.H{
@@ -258,6 +264,12 @@ func DeviceGroupGroupNamePost(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&requestDeviceGroup); err != nil {
 		err = fmt.Errorf("JSON bind error: %w", err)
+		logger.ConfigLog.Errorln(err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "request_id": requestID})
+		return
+	}
+
+	if err := isValidDeviceGroup(&requestDeviceGroup); err != nil {
 		logger.ConfigLog.Errorln(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "request_id": requestID})
 		return

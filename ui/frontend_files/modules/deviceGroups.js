@@ -89,7 +89,7 @@ export class DeviceGroupManager extends BaseManager {
         
         groups.forEach(group => {
             // Safely extract properties with fallbacks
-            const groupName = (group && (group['group-name'] || group.name)) || 'N/A';
+            const groupName = (group && group['group-name']) || 'N/A';
             const imsis = (group && Array.isArray(group.imsis)) ? group.imsis : [];
             const siteInfo = (group && group['site-info']) || 'N/A';
             const ipDomainName = (group && group['ip-domain-name']) || 'N/A';
@@ -221,8 +221,42 @@ export class DeviceGroupManager extends BaseManager {
                     </div>
                 </div>
             </div>
+            <h6 class="mt-4 mb-3">Traffic Class Info</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Traffic Class Name</label>
+                        <input type="text" class="form-control" id="traffic_class_name" placeholder="e.g., default">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">QCI/5QI/QFI</label>
+                        <input type="number" class="form-control" id="traffic_class_qci" min="0" placeholder="e.g., 9">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">ARP (Priority)</label>
+                        <input type="number" class="form-control" id="traffic_class_arp" min="0" placeholder="e.g., 1">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">PDB (ms)</label>
+                        <input type="number" class="form-control" id="traffic_class_pdb" min="0" placeholder="e.g., 300">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">PELR (%)</label>
+                        <input type="number" class="form-control" id="traffic_class_pelr" min="0" max="100" placeholder="e.g., 1">
+                    </div>
+                </div>
+            </div>
         `;
     }
+
 
     validateFormData(data) {
         const errors = [];
@@ -295,27 +329,29 @@ export class DeviceGroupManager extends BaseManager {
         if (formData.dnn_mbr_uplink) ueDnnQos['dnn-mbr-uplink'] = parseInt(formData.dnn_mbr_uplink);
         if (formData.dnn_mbr_downlink) ueDnnQos['dnn-mbr-downlink'] = parseInt(formData.dnn_mbr_downlink);
         if (formData.bitrate_unit) ueDnnQos['bitrate-unit'] = formData.bitrate_unit;
-        
+
+        // Prepare TrafficClassInfo if any values are provided
+        const trafficClassInfo = {};
+        if (formData.traffic_class_name) trafficClassInfo['name'] = formData.traffic_class_name;
+        if (formData.traffic_class_qci) trafficClassInfo['qci'] = parseInt(formData.traffic_class_qci);
+        if (formData.traffic_class_arp) trafficClassInfo['arp'] = parseInt(formData.traffic_class_arp);
+        if (formData.traffic_class_pdb) trafficClassInfo['pdb'] = parseInt(formData.traffic_class_pdb);
+        if (formData.traffic_class_pelr) trafficClassInfo['pelr'] = parseInt(formData.traffic_class_pelr);
+
+        if (Object.keys(trafficClassInfo).length > 0) {
+            ueDnnQos['traffic-class'] = trafficClassInfo;
+        }
         if (Object.keys(ueDnnQos).length > 0) {
             ipDomainExpanded['ue-dnn-qos'] = ueDnnQos;
         }
 
         const payload = {
             "group-name": formData.group_name,
-            "imsis": imsisList
+            "imsis": imsisList,
+            "site-info": formData.site_info,
+            "ip-domain-name": formData.ip_domain_name,
+            "ip-domain-expanded": ipDomainExpanded
         };
-
-        if (formData.site_info) {
-            payload["site-info"] = formData.site_info;
-        }
-
-        if (formData.ip_domain_name) {
-            payload["ip-domain-name"] = formData.ip_domain_name;
-        }
-
-        if (Object.keys(ipDomainExpanded).length > 0) {
-            payload["ip-domain-expanded"] = ipDomainExpanded;
-        }
 
         return payload;
     }
@@ -515,8 +551,28 @@ export class DeviceGroupManager extends BaseManager {
                             <div class="mb-2">
                                 <strong>Bitrate Unit:</strong> ${ueDnnQos['bitrate-unit'] || 'N/A'}
                             </div>
+                            ${ueDnnQos['traffic-class'] ? `
+                            <hr>
+                            <h6 class="mb-3">Traffic Class Info</h6>
+                            <div class="mb-2">
+                                <strong>Name:</strong> ${ueDnnQos['traffic-class'].name || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>QCI/5QI/QFI:</strong> ${ueDnnQos['traffic-class'].qci || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>ARP (Priority):</strong> ${ueDnnQos['traffic-class'].arp || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>PDB (ms):</strong> ${ueDnnQos['traffic-class'].pdb || 'N/A'}
+                            </div>
+                            <div class="mb-2">
+                                <strong>PELR (%):</strong> ${ueDnnQos['traffic-class'].pelr || 'N/A'}
+                            </div>
+                            ` : ''}
                         </div>
                     </div>
+                    
                 </div>
             </div>
         `;
@@ -640,6 +696,45 @@ export class DeviceGroupManager extends BaseManager {
                                         <option value="Gbps" ${ueDnnQos['bitrate-unit'] === 'Gbps' ? 'selected' : ''}>Gbps</option>
                                     </select>
                                 </div>
+
+                                <h6 class="mt-4 mb-3">Traffic Class Info</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">Traffic Class Name</label>
+                                            <input type="text" class="form-control" id="edit_traffic_class_name" 
+                                                   value="${(ueDnnQos['traffic-class'] && ueDnnQos['traffic-class'].name) || ''}" placeholder="e.g., default">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="mb-3">
+                                            <label class="form-label">QCI/5QI/QFI</label>
+                                            <input type="number" class="form-control" id="edit_traffic_class_qci" 
+                                                   value="${(ueDnnQos['traffic-class'] && ueDnnQos['traffic-class'].qci) || ''}" min="0" placeholder="e.g., 9">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="mb-3">
+                                            <label class="form-label">ARP (Priority)</label>
+                                            <input type="number" class="form-control" id="edit_traffic_class_arp" 
+                                                   value="${(ueDnnQos['traffic-class'] && ueDnnQos['traffic-class'].arp) || ''}" min="0" placeholder="e.g., 1">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="mb-3">
+                                            <label class="form-label">PDB (ms)</label>
+                                            <input type="number" class="form-control" id="edit_traffic_class_pdb" 
+                                                   value="${(ueDnnQos['traffic-class'] && ueDnnQos['traffic-class'].pdb) || ''}" min="0" placeholder="e.g., 300">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="mb-3">
+                                            <label class="form-label">PELR (%)</label>
+                                            <input type="number" class="form-control" id="edit_traffic_class_pelr" 
+                                                   value="${(ueDnnQos['traffic-class'] && ueDnnQos['traffic-class'].pelr) || ''}" min="0" max="100" placeholder="e.g., 1">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -695,7 +790,12 @@ export class DeviceGroupManager extends BaseManager {
             dns_secondary: document.getElementById('edit_dns_secondary')?.value || '',
             dnn_mbr_uplink: document.getElementById('edit_dnn_mbr_uplink')?.value || '',
             dnn_mbr_downlink: document.getElementById('edit_dnn_mbr_downlink')?.value || '',
-            bitrate_unit: document.getElementById('edit_bitrate_unit')?.value || 'Mbps'
+            bitrate_unit: document.getElementById('edit_bitrate_unit')?.value || 'Mbps',
+            traffic_class_name: document.getElementById('edit_traffic_class_name')?.value || '',
+            traffic_class_qci: document.getElementById('edit_traffic_class_qci')?.value || '',
+            traffic_class_arp: document.getElementById('edit_traffic_class_arp')?.value || '',
+            traffic_class_pdb: document.getElementById('edit_traffic_class_pdb')?.value || '',
+            traffic_class_pelr: document.getElementById('edit_traffic_class_pelr')?.value || ''
         };
     }
 

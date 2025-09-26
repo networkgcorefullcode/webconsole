@@ -524,27 +524,13 @@ func PostSubscriberByID(c *gin.Context) {
 		authSubsData.PermanentKey.EncryptionAlgorithm = *subsOverrideData.EncryptionAlgorithm
 	}
 
-	if subsOverrideData.K4Sno != nil {
-		authSubsData.K4_SNO = *subsOverrideData.K4Sno
-		snoIdint := int(*subsOverrideData.K4Sno)
-		filterSnoID := bson.M{"k4_sno": snoIdint}
-
-		var k4Data models.K4
-
-		k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
-
-		if err != nil {
-			logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
-		}
-
-		if k4DataInterface != nil {
-			err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
-			if err != nil {
-				logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
-			}
-		}
-
-		authSubsData.PermanentKey.EncryptionKey = k4Data.K4
+	if err := assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":      fmt.Sprintf("Failed to create subscriber %s", ueId),
+			"request_id": requestID,
+			"message":    "Please refer to the log with the provided Request ID for details, error assing the K4 Key",
+		})
+		return
 	}
 
 	logger.WebUILog.Infof("%+v", authSubsData)
@@ -638,6 +624,15 @@ func PutSubscriberByID(c *gin.Context) {
 			PermanentKeyValue:   subsOverrideData.Key,
 		},
 		SequenceNumber: subsOverrideData.SequenceNumber,
+	}
+
+	if err := assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":      fmt.Sprintf("Failed to create subscriber %s", ueId),
+			"request_id": requestID,
+			"message":    "Please refer to the log with the provided Request ID for details, error assing the K4 Key",
+		})
+		return
 	}
 
 	err = handleSubscriberPut(ueId, &authSubsData)
@@ -778,4 +773,32 @@ func GetUEPDUSessionInfo(c *gin.Context) {
 			"cause": "No SMF Found",
 		})
 	}
+}
+
+func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) error {
+	if k4Sno != nil {
+		authSubsData.K4_SNO = *k4Sno
+		snoIdint := int(*k4Sno)
+		filterSnoID := bson.M{"k4_sno": snoIdint}
+
+		var k4Data models.K4
+
+		k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
+
+		if err != nil {
+			logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
+			return err
+		}
+
+		if k4DataInterface != nil {
+			err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
+			if err != nil {
+				logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
+				return err
+			}
+		}
+
+		authSubsData.PermanentKey.EncryptionKey = k4Data.K4
+	}
+	return nil
 }

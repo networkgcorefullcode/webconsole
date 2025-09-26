@@ -94,6 +94,89 @@ func parseAndValidateSliceRequest(c *gin.Context, sliceName string) (configmodel
 		}
 	}
 
+	// Validate required fields are not empty
+	if strings.TrimSpace(request.SliceName) == "" {
+		return request, fmt.Errorf("slice-name cannot be empty")
+	}
+	if strings.TrimSpace(request.SliceId.Sst) == "" {
+		return request, fmt.Errorf("slice-id.sst cannot be empty")
+	}
+	if strings.TrimSpace(request.SliceId.Sd) == "" {
+		return request, fmt.Errorf("slice-id.sd cannot be empty")
+	}
+	if len(request.SiteDeviceGroup) == 0 {
+		return request, fmt.Errorf("site-device-group cannot be empty")
+	}
+	if strings.TrimSpace(request.SiteInfo.SiteName) == "" {
+		return request, fmt.Errorf("site-info.site-name cannot be empty")
+	}
+	if strings.TrimSpace(request.SiteInfo.Plmn.Mcc) == "" {
+		return request, fmt.Errorf("site-info.plmn.mcc cannot be empty")
+	}
+	if strings.TrimSpace(request.SiteInfo.Plmn.Mnc) == "" {
+		return request, fmt.Errorf("site-info.plmn.mnc cannot be empty")
+	}
+	if request.SiteInfo.Upf == nil {
+		return request, fmt.Errorf("site-info.upf cannot be empty")
+	}
+	if request.SiteInfo.GNodeBs == nil {
+		return request, fmt.Errorf("site-info.gnodeb cannot be empty")
+	}
+	for _, gnodeb := range request.SiteInfo.GNodeBs {
+		if gnodeb.Name == "" {
+			return request, fmt.Errorf("site-info.gnodeb.name cannot be empty")
+		}
+		if gnodeb.Tac <= 0 {
+			return request, fmt.Errorf("site-info.gnodeb.tac cannot be empty")
+		}
+	}
+
+	// Validate ApplicationFilteringRules
+	// Si no hay reglas de filtrado, agrega una por defecto
+	if len(request.ApplicationFilteringRules) == 0 {
+		request.ApplicationFilteringRules = append(request.ApplicationFilteringRules, configmodels.SliceApplicationFilteringRules{
+			RuleName:       "default",
+			Action:         "permit",
+			Endpoint:       "any",
+			Protocol:       0,
+			StartPort:      0,
+			EndPort:        65535,
+			AppMbrUplink:   0,
+			AppMbrDownlink: 0,
+			BitrateUnit:    "bps",
+		})
+	} else {
+		for i, rule := range request.ApplicationFilteringRules {
+			if strings.TrimSpace(rule.RuleName) == "" {
+				return request, fmt.Errorf("application-filtering-rules[%d]: rule-name cannot be empty", i)
+			}
+			if strings.TrimSpace(rule.Action) == "" {
+				return request, fmt.Errorf("application-filtering-rules[%d]: action cannot be empty", i)
+			}
+			if strings.TrimSpace(rule.Endpoint) == "" {
+				return request, fmt.Errorf("application-filtering-rules[%d]: endpoint cannot be empty", i)
+			}
+			if rule.Protocol < 0 {
+				return request, fmt.Errorf("application-filtering-rules[%d]: protocol must be >= 0", i)
+			}
+			if rule.StartPort < 0 || rule.EndPort < 0 {
+				return request, fmt.Errorf("application-filtering-rules[%d]: port values must be >= 0", i)
+			}
+			if rule.EndPort < rule.StartPort {
+				return request, fmt.Errorf("application-filtering-rules[%d]: dest-port-end must be >= dest-port-start", i)
+			}
+			if rule.AppMbrUplink < 0 {
+				return request, fmt.Errorf("application-filtering-rules[%d]: app-mbr-uplink must be >= 0", i)
+			}
+			if rule.AppMbrDownlink < 0 {
+				return request, fmt.Errorf("application-filtering-rules[%d]: app-mbr-downlink must be >= 0", i)
+			}
+			if rule.BitrateUnit == "" {
+				return request, fmt.Errorf("application-filtering-rules[%d]: bitrate-unit cannot be empty", i)
+			}
+		}
+	}
+
 	slices.Sort(request.SiteDeviceGroup)
 	request.SiteDeviceGroup = slices.Compact(request.SiteDeviceGroup)
 
