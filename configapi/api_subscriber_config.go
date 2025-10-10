@@ -499,6 +499,10 @@ func PostSubscriberByID(c *gin.Context) {
 	if subsOverrideData.EncryptionAlgorithm == nil {
 		*subsOverrideData.EncryptionAlgorithm = 0
 	}
+	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 4 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Encription Algoritm is not valid: Encription Algoritm must be between 0 and 4", "request_id": requestID})
+		return
+	}
 
 	authSubsData := models.AuthenticationSubscription{
 		AuthenticationManagementField: "8000",
