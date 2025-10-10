@@ -61,10 +61,10 @@ func InitConfigFactory(f string) error {
 		if WebUIConfig.Configuration.Mongodb.AuthKeysDbName == "" {
 			WebUIConfig.Configuration.Mongodb.AuthKeysDbName = "authentication"
 		}
-		if WebUIConfig.Configuration.SsmUri == "" {
-			WebUIConfig.Configuration.SsmUri = "http://aether-ssm:8080"
+		if WebUIConfig.Configuration.SSM.SsmUri == "" {
+			WebUIConfig.Configuration.SSM.SsmUri = "http://aether-ssm:8080"
 		}
-		
+
 		if WebUIConfig.Configuration.EnableAuthentication {
 			if WebUIConfig.Configuration.Mongodb.WebuiDBName == "" ||
 				WebUIConfig.Configuration.Mongodb.WebuiDBUrl == "" {
