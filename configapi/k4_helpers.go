@@ -157,8 +157,8 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
 	return nil
 }
 
-func storeKeySSM(keyLabel, keyID, keyValue string) (*ssm.StoreKeyResponse, error) {
-	storeKeyRequest := *ssm.NewStoreKeyRequest(keyLabel, keyID, keyValue)
+func storeKeySSM(keyLabel, keyID, keyValue, keyType string) (*ssm.StoreKeyResponse, error) {
+	storeKeyRequest := *ssm.NewStoreKeyRequest(keyLabel, keyID, keyValue, keyType)
 
 	configuration := ssm.NewConfiguration()
 	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SsmUri
