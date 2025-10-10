@@ -788,7 +788,7 @@ func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) e
 	if k4Sno != nil {
 		authSubsData.K4_SNO = *k4Sno
 		snoIdint := int(*k4Sno)
-		if factory.WebUIConfig.Configuration.AllowSsm {
+		if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 			authSubsData.PermanentKey.EncryptionKey = strconv.Itoa(snoIdint)
 		} else {
 			filterSnoID := bson.M{"k4_sno": snoIdint}
