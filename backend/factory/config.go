@@ -41,10 +41,14 @@ type Configuration struct {
 	EnableAuthentication    bool        `yaml:"enableAuthentication,omitempty"`
 	SendPebbleNotifications bool        `yaml:"send-pebble-notifications,omitempty"`
 	CfgPort                 int         `yaml:"cfgport,omitempty"`
-	SsmUri                  string      `yaml:"ssm-uri,omitempty"`
-	AllowSsm                bool        `yaml:"allow-ssm,omitempty"`
+	SSM                     *SSM        `yaml:"ssm,omitempty"`
 }
 
+type SSM struct {
+	SsmUri       string `yaml:"ssm-uri,omitempty"`
+	AllowSsm     bool   `yaml:"allow-ssm,omitempty"`
+	TLS_Insecure bool   `yaml:"tls-insecure,omitempty"`
+}
 type TLS struct {
 	PEM string `yaml:"pem,omitempty"`
 	Key string `yaml:"key,omitempty"`

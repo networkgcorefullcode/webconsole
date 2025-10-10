@@ -2,7 +2,9 @@ package configapi
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 
 	ssm "github.com/networkgcorefullcode/ssm/models"
 	"github.com/omec-project/webconsole/backend/factory"
@@ -161,7 +163,8 @@ func storeKeySSM(keyLabel, keyID, keyValue, keyType string) (*ssm.StoreKeyRespon
 	storeKeyRequest := *ssm.NewStoreKeyRequest(keyLabel, keyID, keyValue, keyType)
 
 	configuration := ssm.NewConfiguration()
-	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SsmUri
+	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
+	configuration.HTTPClient = getHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
 	apiClient := ssm.NewAPIClient(configuration)
 
 	resp, r, err := apiClient.KeyManagementAPI.StoreKey(context.Background()).StoreKeyRequest(storeKeyRequest).Execute()
@@ -172,4 +175,20 @@ func storeKeySSM(keyLabel, keyID, keyValue, keyType string) (*ssm.StoreKeyRespon
 	}
 	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
 	return resp, nil
+}
+
+// getHTTPClient returns an HTTP client configured based on TLS settings
+func getHTTPClient(tlsInsecure bool) *http.Client {
+	if tlsInsecure {
+		// Create client with insecure TLS configuration
+		return &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+		}
+	}
+	// Return default HTTP client for secure connections
+	return &http.Client{}
 }

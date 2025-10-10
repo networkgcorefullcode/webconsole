@@ -193,18 +193,20 @@ func HandlePostK4(c *gin.Context) {
 	logger.WebUILog.Infof("K4 data to be inserted: %+v", k4Data)
 
 	var resp *ssm.StoreKeyResponse
-	if factory.WebUIConfig.Configuration.AllowSsm {
+	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		if k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_AES &&
 			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES &&
 			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES3 {
 			logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key label is incorrect"})
+			return
 		}
 		if k4Data.K4_Label != ssm_constants.TYPE_AES &&
 			k4Data.K4_Label != ssm_constants.TYPE_DES &&
 			k4Data.K4_Label != ssm_constants.TYPE_DES3 {
 			logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key type is incorrect"})
+			return
 		}
 		if resp, err = storeKeySSM(k4Data.K4_Label, string(k4Data.K4_SNO), k4Data.K4, k4Data.K4_Type); err != nil {
 			logger.DbLog.Errorf("failed to store k4 key in SSM: %+v", err)
