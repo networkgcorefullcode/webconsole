@@ -12,11 +12,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/omec-project/openapi/models"
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/webui_context"
 	"github.com/omec-project/webconsole/configmodels"
@@ -786,26 +788,30 @@ func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) e
 	if k4Sno != nil {
 		authSubsData.K4_SNO = *k4Sno
 		snoIdint := int(*k4Sno)
-		filterSnoID := bson.M{"k4_sno": snoIdint}
+		if factory.WebUIConfig.Configuration.AllowSsm {
+			authSubsData.PermanentKey.EncryptionKey = strconv.Itoa(snoIdint)
+		} else {
+			filterSnoID := bson.M{"k4_sno": snoIdint}
 
-		var k4Data models.K4
+			var k4Data models.K4
 
-		k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
+			k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
 
-		if err != nil {
-			logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
-			return err
-		}
-
-		if k4DataInterface != nil {
-			err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
 			if err != nil {
-				logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
+				logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
 				return err
 			}
-		}
 
-		authSubsData.PermanentKey.EncryptionKey = k4Data.K4
+			if k4DataInterface != nil {
+				err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
+				if err != nil {
+					logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
+					return err
+				}
+			}
+
+			authSubsData.PermanentKey.EncryptionKey = k4Data.K4
+		}
 	}
 	return nil
 }
