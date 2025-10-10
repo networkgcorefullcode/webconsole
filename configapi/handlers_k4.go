@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/networkgcorefullcode/ssm/models"
+	ssm_constants "github.com/networkgcorefullcode/ssm/const"
+	ssm "github.com/networkgcorefullcode/ssm/models"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
@@ -56,7 +57,8 @@ func HandleGetsK4(c *gin.Context) {
 
 	for _, k4Data := range k4DataList {
 		tmp := configmodels.K4{
-			K4: k4Data["k4"].(string),
+			K4:       k4Data["k4"].(string),
+			K4_Label: k4Data["key_label"].(string),
 		}
 
 		K4SNO_Float := k4Data["k4_sno"].(float64)
@@ -190,8 +192,14 @@ func HandlePostK4(c *gin.Context) {
 
 	logger.WebUILog.Infof("K4 data to be inserted: %+v", k4Data)
 
-	var resp *models.StoreKeyResponse
+	var resp *ssm.StoreKeyResponse
 	if factory.WebUIConfig.Configuration.AllowSsm {
+		if k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_AES &&
+			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES &&
+			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES3 {
+			logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key label is incorrect"})
+		}
 		if resp, err = storeKeySSM(k4Data.K4_Label, string(k4Data.K4_SNO), k4Data.K4); err != nil {
 			logger.DbLog.Errorf("failed to store k4 key in SSM: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM"})

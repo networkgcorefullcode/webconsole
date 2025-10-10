@@ -3,7 +3,6 @@
 
 import { BaseManager } from './baseManager.js';
 import { SUBSCRIBER_API_BASE } from '../app.js';
-import app from '../app.js';
 
 // --- GESTOR PARA LAS CLAVES K4 ---
 export class K4Manager extends BaseManager {
@@ -22,20 +21,21 @@ export class K4Manager extends BaseManager {
         }
 
         let html = '<div class="table-responsive"><table class="table table-striped table-hover">';
-        html += '<thead><tr><th>Serial Number (SNO)</th><th>K4 Key</th><th>Actions</th></tr></thead><tbody>';
+        html += '<thead><tr><th>Serial Number (SNO)</th><th>Key Label</th><th>K4 Key</th><th>Actions</th></tr></thead><tbody>';
 
         keys.forEach(key => {
             html += `
                 <tr class="k4-row" onclick="showK4Details('${key.k4_sno}')" style="cursor: pointer;">
-                    <td><span class="badge bg-primary fs-6">${key.k4_sno}</span></td>
-                    <td><code>${key.k4}</code></td>
+                    <td><span class="badge bg-primary fs-6">${key.k4_sno ?? 'N/A'}</span></td>
+                    <td><span class="badge bg-primary fs-6">${key.key_label ?? 'N/A'}</span></td>
+                    <td><code>${key.k4 ?? 'N/A'}</code></td>
                     <td onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-primary me-1" title="Edit"
-                                onclick="editItem('${this.type}', '${key.k4_sno}')">
+                                onclick="editItem('${this.type}', '${key.k4_sno ?? 'N/A'}')">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger" title="Delete"
-                                onclick="deleteItem('${this.type}', '${key.k4_sno}')">
+                                onclick="deleteItem('${this.type}', '${key.k4_sno ?? 'N/A'}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -55,6 +55,12 @@ export class K4Manager extends BaseManager {
                        ${isEdit ? 'readonly' : ''} required>
             </div>
             <div class="mb-3">
+                <label class="form-label">Key Label</label>
+                <input type="text" class="form-control" id="key_label" 
+                       placeholder="Enter key label" maxlength="64">
+                <div class="form-text">Optional label for this key</div>
+            </div>
+            <div class="mb-3">
                 <label class="form-label">K4 Key</label>
                 <input type="text" class="form-control" id="k4" 
                        placeholder="e.g., 00112233445566778899aabbccddeeff" 
@@ -72,13 +78,18 @@ export class K4Manager extends BaseManager {
         if (!data.k4 || !/^[0-9a-fA-F]+$/.test(data.k4)) {
             errors.push('K4 Key must be a valid hexadecimal characters.');
         }
+
+        if (data.key_label && data.key_label.length > 20) {
+            errors.push('Key Label must be at most 20 characters.');
+        }
         return { isValid: errors.length === 0, errors: errors };
     }
 
     preparePayload(formData) {
         return {
             "k4_sno": parseInt(formData.k4_sno),
-            "k4": formData.k4.toLowerCase()
+            "k4": formData.k4.toLowerCase(),
+            "key_label":  formData.key_label
         };
     }
     
@@ -146,6 +157,14 @@ export class K4Manager extends BaseManager {
                                         <strong>Serial Number (SNO):</strong> 
                                         <div class="mt-1">
                                             <span class="badge bg-primary fs-6">${k4Data.k4_sno || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <strong>Key Label:</strong> 
+                                        <div class="mt-1">
+                                            <span class="badge bg-primary fs-6">${k4Data.key_label || 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -220,6 +239,14 @@ export class K4Manager extends BaseManager {
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
+                                            <label class="form-label">Key Label</label>
+                                            <input type="text" class="form-control" id="edit_k4_key_label" 
+                                                   value="${k4Data.key_label || ''}">
+                                            <div class="form-text">Key Label</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
                                             <label class="form-label">K4 Key</label>
                                             <input type="text" class="form-control" id="edit_k4_key" 
                                                    value="${k4Data.k4 || ''}" placeholder="32 hex characters" 
@@ -283,7 +310,8 @@ export class K4Manager extends BaseManager {
     getEditFormData() {
         return {
             k4_sno: document.getElementById('edit_k4_sno')?.value || '',
-            k4: document.getElementById('edit_k4_key')?.value || ''
+            k4: document.getElementById('edit_k4_key')?.value || '',
+            key_label: document.getElementById('edit_k4_key_label')?.value || ''
         };
     }
 
