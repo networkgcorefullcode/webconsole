@@ -1,9 +1,11 @@
 package configapi
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/omec-project/openapi/models"
+	ssm "github.com/networkgcorefullcode/ssm/models"
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
 	"github.com/omec-project/webconsole/dbadapter"
@@ -11,9 +13,9 @@ import (
 )
 
 type K4Data interface {
-	K4DataGet(k4Sno int) (k4keyData *models.K4)
-	K4DataCreate(k4Sno int, k4keyData *models.K4) error
-	K4DataUpdate(k4Sno int, k4keyData *models.K4) error
+	K4DataGet(k4Sno int) (k4keyData *configmodels.K4)
+	K4DataCreate(k4Sno int, k4keyData *configmodels.K4) error
+	K4DataUpdate(k4Sno int, k4keyData *configmodels.K4) error
 	K4DataDelete(k4Sno int) error
 }
 
@@ -21,7 +23,7 @@ type DatabaseK4Data struct {
 	K4Data
 }
 
-func K4HelperPost(k4Sno int, k4keyData *models.K4) error {
+func K4HelperPost(k4Sno int, k4keyData *configmodels.K4) error {
 	rwLock.Lock()
 	defer rwLock.Unlock()
 	k4Data := DatabaseK4Data{}
@@ -34,7 +36,7 @@ func K4HelperPost(k4Sno int, k4keyData *models.K4) error {
 	return nil
 }
 
-func K4HelperPut(k4Sno int, k4keyData *models.K4) error {
+func K4HelperPut(k4Sno int, k4keyData *configmodels.K4) error {
 	rwLock.Lock()
 	defer rwLock.Unlock()
 	k4Data := DatabaseK4Data{}
@@ -61,7 +63,7 @@ func K4HelperDelete(k4Sno int) error {
 }
 
 // Interfaces definition
-func (k4Database DatabaseK4Data) K4DataCreate(k4Sno int, k4Data *models.K4) error {
+func (k4Database DatabaseK4Data) K4DataCreate(k4Sno int, k4Data *configmodels.K4) error {
 	filter := bson.M{"k4_sno": k4Sno}
 	logger.WebUILog.Infof("%+v", k4Data)
 	k4DataBsonA := configmodels.ToBsonM(k4Data)
@@ -87,7 +89,7 @@ func (k4Database DatabaseK4Data) K4DataCreate(k4Sno int, k4Data *models.K4) erro
 	return nil
 }
 
-func (k4Database DatabaseK4Data) K4DataUpdate(k4Sno int, k4Data *models.K4) error {
+func (k4Database DatabaseK4Data) K4DataUpdate(k4Sno int, k4Data *configmodels.K4) error {
 	filter := bson.M{"k4_sno": k4Sno}
 	k4DataBsonA := configmodels.ToBsonM(k4Data)
 	// get backup
@@ -153,4 +155,21 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
 	}
 	logger.WebUILog.Debugf("successfully deleted k4 key from amData collection: %s", k4Sno)
 	return nil
+}
+
+func storeKeySSM(keyLabel, keyID, keyValue string) (*ssm.StoreKeyResponse, error) {
+	storeKeyRequest := *ssm.NewStoreKeyRequest(keyLabel, keyID, keyValue)
+
+	configuration := ssm.NewConfiguration()
+	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SsmUri
+	apiClient := ssm.NewAPIClient(configuration)
+
+	resp, r, err := apiClient.KeyManagementAPI.StoreKey(context.Background()).StoreKeyRequest(storeKeyRequest).Execute()
+	if err != nil {
+		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
+		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		return nil, err
+	}
+	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
+	return resp, nil
 }

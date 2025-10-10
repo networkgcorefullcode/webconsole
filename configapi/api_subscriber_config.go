@@ -496,6 +496,9 @@ func PostSubscriberByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required authentication data: OPc and Key must be provided", "request_id": requestID})
 		return
 	}
+	if subsOverrideData.EncryptionAlgorithm == nil {
+		*subsOverrideData.EncryptionAlgorithm = 0
+	}
 
 	authSubsData := models.AuthenticationSubscription{
 		AuthenticationManagementField: "8000",
@@ -514,7 +517,7 @@ func PostSubscriberByID(c *gin.Context) {
 		},
 		PermanentKey: &models.PermanentKey{
 			PermanentKeyValue:   subsOverrideData.Key,
-			EncryptionAlgorithm: 0,
+			EncryptionAlgorithm: *subsOverrideData.EncryptionAlgorithm,
 			EncryptionKey:       "",
 		},
 		SequenceNumber: subsOverrideData.SequenceNumber,
@@ -619,7 +622,7 @@ func PutSubscriberByID(c *gin.Context) {
 			OpcValue:            subsOverrideData.OPc,
 		},
 		PermanentKey: &models.PermanentKey{
-			EncryptionAlgorithm: 0,
+			EncryptionAlgorithm: *subsOverrideData.EncryptionAlgorithm,
 			EncryptionKey:       "",
 			PermanentKeyValue:   subsOverrideData.Key,
 		},

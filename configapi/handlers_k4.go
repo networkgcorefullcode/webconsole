@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/omec-project/openapi/models"
+	"github.com/networkgcorefullcode/ssm/models"
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
 	"github.com/omec-project/webconsole/dbadapter"
@@ -45,7 +46,7 @@ func HandleGetsK4(c *gin.Context) {
 
 	logger.WebUILog.Infoln("Get All K4 keys List")
 
-	k4List := make([]models.K4, 0)
+	k4List := make([]configmodels.K4, 0)
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(k4KeysColl, bson.M{})
 	if errGetMany != nil {
 		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
@@ -54,7 +55,7 @@ func HandleGetsK4(c *gin.Context) {
 	}
 
 	for _, k4Data := range k4DataList {
-		tmp := models.K4{
+		tmp := configmodels.K4{
 			K4: k4Data["k4"].(string),
 		}
 
@@ -99,7 +100,7 @@ func HandleGetK4(c *gin.Context) {
 
 	filterSnoID := bson.M{"k4_sno": snoIdint}
 
-	var k4Data models.K4
+	var k4Data configmodels.K4
 
 	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
 
@@ -149,7 +150,7 @@ func HandlePostK4(c *gin.Context) {
 
 	logger.WebUILog.Infoln("Post One K4 key Data")
 
-	var k4Data models.K4
+	var k4Data configmodels.K4
 	var err error
 
 	rawData, err := c.GetRawData()
@@ -188,6 +189,16 @@ func HandlePostK4(c *gin.Context) {
 	logger.WebUILog.Infof("Parsed K4 data: %+v", k4Data)
 
 	logger.WebUILog.Infof("K4 data to be inserted: %+v", k4Data)
+
+	var resp *models.StoreKeyResponse
+	if factory.WebUIConfig.Configuration.AllowSsm {
+		if resp, err = storeKeySSM(k4Data.K4_Label, string(k4Data.K4_SNO), k4Data.K4); err != nil {
+			logger.DbLog.Errorf("failed to store k4 key in SSM: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM"})
+			return
+		}
+		k4Data.K4 = *resp.CipherKey
+	}
 
 	if err := K4HelperPost(int(k4Data.K4_SNO), &k4Data); err != nil {
 		logger.DbLog.Errorf("failed to post k4 key in DB: %+v", err)
@@ -229,7 +240,7 @@ func HandlePutK4(c *gin.Context) {
 
 	snoId := c.Param("idsno")
 	snoIdint, _ := strconv.Atoi(snoId)
-	var k4Data models.K4
+	var k4Data configmodels.K4
 
 	if err := c.ShouldBindJSON(&k4Data); err != nil {
 		logger.WebUILog.Errorf("Put One K4 key Data - ShouldBindJSON failed: %+v", err)
