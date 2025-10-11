@@ -213,7 +213,11 @@ func HandlePostK4(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM"})
 			return
 		}
-		k4Data.K4 = *resp.CipherKey
+		if resp.CipherKey != nil {
+			k4Data.K4 = *resp.CipherKey
+		} else {
+			k4Data.K4 = ""
+		}
 	}
 
 	if err := K4HelperPost(int(k4Data.K4_SNO), &k4Data); err != nil {
