@@ -208,7 +208,7 @@ func HandlePostK4(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key type is incorrect"})
 			return
 		}
-		if resp, err = storeKeySSM(k4Data.K4_Label, string(k4Data.K4_SNO), k4Data.K4, k4Data.K4_Type); err != nil {
+		if resp, err = storeKeySSM(k4Data.K4_Label, strconv.Itoa(int(k4Data.K4_SNO)), k4Data.K4, k4Data.K4_Type); err != nil {
 			logger.DbLog.Errorf("failed to store k4 key in SSM: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM"})
 			return
