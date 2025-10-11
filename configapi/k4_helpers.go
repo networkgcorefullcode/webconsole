@@ -161,7 +161,12 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
 
 func storeKeySSM(keyLabel, keyID, keyValue, keyType string) (*ssm.StoreKeyResponse, error) {
 	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", keyLabel, keyID, keyType)
-	storeKeyRequest := *ssm.NewStoreKeyRequest(keyLabel, keyID, keyValue, keyType)
+	var storeKeyRequest ssm.StoreKeyRequest = ssm.StoreKeyRequest{
+		KeyLabel: keyLabel,
+		Id:       keyID,
+		KeyValue: keyValue,
+		KeyType:  keyType,
+	}
 	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", storeKeyRequest.KeyLabel, storeKeyRequest.Id, storeKeyRequest.KeyType)
 
 	configuration := ssm.NewConfiguration()
