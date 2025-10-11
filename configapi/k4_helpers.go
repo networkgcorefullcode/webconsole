@@ -160,7 +160,9 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
 }
 
 func storeKeySSM(keyLabel, keyID, keyValue, keyType string) (*ssm.StoreKeyResponse, error) {
+	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", keyLabel, keyID, keyType)
 	storeKeyRequest := *ssm.NewStoreKeyRequest(keyLabel, keyID, keyValue, keyType)
+	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", storeKeyRequest.KeyLabel, storeKeyRequest.Id, storeKeyRequest.KeyType)
 
 	configuration := ssm.NewConfiguration()
 	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
