@@ -498,8 +498,9 @@ func PostSubscriberByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required authentication data: OPc and Key must be provided", "request_id": requestID})
 		return
 	}
+	var ceroValue int32
 	if subsOverrideData.EncryptionAlgorithm == nil {
-		*subsOverrideData.EncryptionAlgorithm = 0
+		subsOverrideData.EncryptionAlgorithm = &ceroValue
 	}
 	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 4 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Encription Algoritm is not valid: Encription Algoritm must be between 0 and 4", "request_id": requestID})
