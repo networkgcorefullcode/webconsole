@@ -201,9 +201,9 @@ func HandlePostK4(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key label is incorrect"})
 			return
 		}
-		if k4Data.K4_Label != ssm_constants.TYPE_AES &&
-			k4Data.K4_Label != ssm_constants.TYPE_DES &&
-			k4Data.K4_Label != ssm_constants.TYPE_DES3 {
+		if k4Data.K4_Type != ssm_constants.TYPE_AES &&
+			k4Data.K4_Type != ssm_constants.TYPE_DES &&
+			k4Data.K4_Type != ssm_constants.TYPE_DES3 {
 			logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key type is incorrect"})
 			return
