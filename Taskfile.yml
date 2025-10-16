@@ -11,8 +11,8 @@ vars:
     sh: cat ./VERSION 2>/dev/null || echo "latest"
 
   # Docker related
-  DOCKER_REGISTRY: '{{.DOCKER_REGISTRY | default ""}}'
-  DOCKER_REPOSITORY: '{{.DOCKER_REPOSITORY | default ""}}'
+  DOCKER_REGISTRY: "192.168.12.15:8083/"
+  DOCKER_REPOSITORY: "omecproject/"
   DOCKER_TAG: "{{.DOCKER_TAG | default .DOCKER_VERSION}}"
   DOCKER_IMAGENAME: "{{.DOCKER_REGISTRY}}{{.DOCKER_REPOSITORY}}{{.PROJECT_NAME}}:{{.DOCKER_TAG}}"
   DOCKER_BUILDKIT: '{{.DOCKER_BUILDKIT | default "1"}}'
@@ -34,8 +34,7 @@ vars:
   GO_BIN_PATH: bin
   GO_SRC_PATH: ./
   C_BUILD_PATH: build
-  ROOT_PATH:
-    sh: pwd
+  ROOT_PATH: ./
 
   WEBCONSOLE: webconsole
 
@@ -65,32 +64,33 @@ tasks:
   webconsole-bin:
     desc: "Build webconsole binary"
     generates:
-      - "{{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}"
+      - "{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}"
     sources:
       - "server.go"
       - "./**/*.go"
     cmds:
       - echo "Start building {{.WEBCONSOLE}}...."
       - mkdir -p {{.GO_BIN_PATH}}
-      - CGO_ENABLED=0 go build -o {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}} ./server.go
+      - CGO_ENABLED=0 go build -o {{.GO_BIN_PATH}}/{{.WEBCONSOLE}} ./server.go
 
   webconsole-ui:
     desc: "Build webconsole binary with UI"
     generates:
-      - "{{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}-ui"
+      - "{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}"
     sources:
       - "server.go"
       - "./**/*.go"
+      - "ui/frontend_files/**/*"
     cmds:
-      - echo "Start building {{.WEBCONSOLE}}-ui with UI...."
+      - echo "Start building {{.WEBCONSOLE}} with UI...."
       - mkdir -p {{.GO_BIN_PATH}}
-      - CGO_ENABLED=0 go build --tags ui -o {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}-ui ./server.go
+      - CGO_ENABLED=0 go build --tags ui -o {{.GO_BIN_PATH}}/{{.WEBCONSOLE}} ./server.go
 
   clean:
     desc: "Clean built binaries"
     cmds:
-      - rm -rf {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}
-      - rm -rf {{.ROOT_PATH}}/{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}-ui
+      - rm -rf {{.GO_BIN_PATH}}/{{.WEBCONSOLE}}
+      - rm -rf {{.GO_BIN_PATH}}/{{.WEBCONSOLE}}-ui
 
   docker-build:
     desc: "Build Docker images"
@@ -109,6 +109,23 @@ tasks:
             --build-arg org_opencord_vcs_commit_date="{{.DOCKER_LABEL_COMMIT_DATE}}" \
             . || exit 1
         done
+      - rm -rf vendor
+  
+  docker-build-fast:
+    desc: "Build Docker image for AMF more fasted"
+    cmds:
+      - go mod vendor
+      - |
+        DOCKER_BUILDKIT={{.DOCKER_BUILDKIT}} docker build {{.DOCKER_BUILD_ARGS}} \
+          --target {{.DOCKER_TARGETS}} \
+          --tag {{.DOCKER_REGISTRY}}{{.DOCKER_REPOSITORY}}5gc-{{.DOCKER_TARGETS}}:{{.DOCKER_TAG}} \
+          --build-arg org_label_schema_version="{{.DOCKER_VERSION}}" \
+          --build-arg org_label_schema_vcs_url="{{.DOCKER_LABEL_VCS_URL}}" \
+          --build-arg org_label_schema_vcs_ref="{{.DOCKER_LABEL_VCS_REF}}" \
+          --build-arg org_label_schema_build_date="{{.DOCKER_LABEL_BUILD_DATE}}" \
+          --build-arg org_opencord_vcs_commit_date="{{.DOCKER_LABEL_COMMIT_DATE}}" \
+          --build-arg PATH_BINARY="{{.GO_BIN_PATH}}/{{.WEBCONSOLE}}" \
+          --file="Dockerfile.fast" .
       - rm -rf vendor
 
   docker-push:
