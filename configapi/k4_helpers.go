@@ -159,7 +159,7 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
 	return nil
 }
 
-func storeKeySSM(keyLabel, keyID, keyValue, keyType string) (*ssm.StoreKeyResponse, error) {
+func storeKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.StoreKeyResponse, error) {
 	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", keyLabel, keyID, keyType)
 	var storeKeyRequest ssm.StoreKeyRequest = ssm.StoreKeyRequest{
 		KeyLabel: keyLabel,
