@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -787,11 +786,10 @@ func GetUEPDUSessionInfo(c *gin.Context) {
 
 func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) error {
 	if k4Sno != nil {
-		authSubsData.K4_SNO = *k4Sno
-		snoIdint := int(*k4Sno)
 		if factory.WebUIConfig.Configuration.SSM.AllowSsm {
-			authSubsData.PermanentKey.EncryptionKey = strconv.Itoa(snoIdint)
+			authSubsData.K4_SNO = *k4Sno
 		} else {
+			snoIdint := int(*k4Sno)
 			filterSnoID := bson.M{"k4_sno": snoIdint}
 
 			var k4Data models.K4
