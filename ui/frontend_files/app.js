@@ -59,9 +59,9 @@ window.deleteK4Item = async (k4Sno, keyLabel) => {
     if (!confirmed) return;
     
     try {
-        await app.managers.k4Keys.deleteItem(k4Sno, keyLabel);
+        await app.managers.k4Manager.deleteItem(k4Sno, keyLabel);
         app.notificationManager.showNotification('K4 key deleted successfully!', 'success');
-        await app.managers.k4Keys.loadData();
+        await app.managers.k4Manager.loadData();
     } catch (error) {
         console.error('Failed to delete K4 key:', error);
         app.notificationManager.showNotification(`Failed to delete K4 key: ${error.message}`, 'error');
