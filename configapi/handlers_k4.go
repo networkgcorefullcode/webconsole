@@ -58,6 +58,7 @@ func HandleGetsK4(c *gin.Context) {
 		tmp := configmodels.K4{
 			K4:       k4Data["k4"].(string),
 			K4_Label: k4Data["key_label"].(string),
+			K4_Type:  k4Data["key_type"].(string),
 		}
 
 		K4SNO_Float := k4Data["k4_sno"].(float64)

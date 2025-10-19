@@ -55,35 +55,37 @@ export class K4Manager extends BaseManager {
             <div class="mb-3">
                 <label class="form-label">K4 Serial Number (SNO)</label>
                 <input type="number" class="form-control" id="k4_sno" min="0" max="255"
-                       ${isEdit ? 'readonly' : ''} required>
+                       ${isEdit ? 'readonly disabled' : ''} ${isEdit ? '' : 'required'}>
                 <div class="form-text">Value between 0-255 (byte)</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Key Label</label>
-                <select class="form-select" id="key_label" required>
+                <select class="form-select" id="key_label" ${isEdit ? 'disabled' : ''} ${isEdit ? '' : 'required'}>
                     <option value="">Select key label...</option>
                     <option value="K4_AES">K4_AES</option>
                     <option value="K4_DES">K4_DES</option>
                     <option value="K4_DES3">K4_DES3</option>
                 </select>
-                <div class="form-text">Select the encryption key label</div>
+                ${isEdit ? '<input type="hidden" id="key_label_hidden" />' : ''}
+                <div class="form-text">${isEdit ? 'Key Label cannot be changed in edit mode' : 'Select the encryption key label'}</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Key Type</label>
-                <select class="form-select" id="key_type" required>
+                <select class="form-select" id="key_type" ${isEdit ? 'disabled' : ''} ${isEdit ? '' : 'required'}>
                     <option value="">Select key type...</option>
                     <option value="AES">AES</option>
                     <option value="DES">DES</option>
                     <option value="DES3">DES3</option>
                 </select>
-                <div class="form-text">Select the encryption algorithm type</div>
+                ${isEdit ? '<input type="hidden" id="key_type_hidden" />' : ''}
+                <div class="form-text">${isEdit ? 'Key Type cannot be changed in edit mode' : 'Select the encryption algorithm type'}</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">K4 Key</label>
                 <input type="text" class="form-control" id="k4" 
                        placeholder="e.g., 00112233445566778899aabbccddeeff" 
                        pattern="[0-9a-fA-F]+" required>
-                <div class="form-text">Hexadecimal key value</div>
+                <div class="form-text">Hexadecimal key value${isEdit ? ' — editable in edit mode only' : ''}</div>
             </div>
         `;
     }
@@ -323,8 +325,8 @@ export class K4Manager extends BaseManager {
                         </div>
                         
                         <div class="d-flex justify-content-end mt-3">
-                            <button type="button" class="btn btn-secondary me-2" onclick="cancelK4KeyEdit()">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="saveK4KeyDetailsEdit()">Save Changes</button>
+                            <button type="button" class="btn btn-secondary me-2" onclick="cancelK4Edit()">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveK4DetailsEdit()">Save Changes</button>
                         </div>
                     </div>
                 </div>
