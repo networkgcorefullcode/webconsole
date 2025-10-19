@@ -381,7 +381,7 @@ func HandleDeleteK4(c *gin.Context) {
 		}
 	}
 
-	if err := K4HelperDelete(snoIdint); err != nil {
+	if err := K4HelperDelete(snoIdint, keylabel); err != nil {
 		logger.DbLog.Errorf("failed to delete k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key"})
 		return

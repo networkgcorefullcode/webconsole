@@ -118,7 +118,7 @@ var apiRoutes = Routes{
 		HandlePutK4,
 	},
 	{
-		"Get k4 keys",
+		"Delete k4 keys",
 		http.MethodDelete,
 		"/k4opt/:idsno/:keylabel",
 		HandleDeleteK4,

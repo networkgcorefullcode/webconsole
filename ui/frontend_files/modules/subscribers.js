@@ -24,6 +24,8 @@ export class K4Manager extends BaseManager {
         html += '<thead><tr><th>Serial Number (SNO)</th><th>Key Label</th><th>Key Type</th><th>K4 Key</th><th>Actions</th></tr></thead><tbody>';
 
         keys.forEach(key => {
+            // Store both k4_sno and key_label for delete operation
+            const k4Identifier = JSON.stringify({sno: key.k4_sno, label: key.key_label});
             html += `
                 <tr class="k4-row" onclick="showK4Details('${key.k4_sno}')" style="cursor: pointer;">
                     <td><span class="badge bg-primary fs-6">${key.k4_sno ?? 'N/A'}</span></td>
@@ -36,7 +38,7 @@ export class K4Manager extends BaseManager {
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger" title="Delete"
-                                onclick="deleteItem('${this.type}', '${key.k4_sno ?? 'N/A'}')">
+                                onclick="deleteK4Item('${key.k4_sno ?? 'N/A'}', '${key.key_label ?? ''}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -86,22 +88,27 @@ export class K4Manager extends BaseManager {
         `;
     }
 
-    validateFormData(data) {
+    validateFormData(data, isEdit = false) {
         const errors = [];
-        if (data.k4_sno === undefined || data.k4_sno < 0 || data.k4_sno > 255) {
-            errors.push('K4 SNO is required and must be between 0-255.');
+        
+        if (!isEdit) {
+            // For creation, validate all fields
+            if (data.k4_sno === undefined || data.k4_sno < 0 || data.k4_sno > 255) {
+                errors.push('K4 SNO is required and must be between 0-255.');
+            }
+
+            if (!data.key_label || data.key_label === '') {
+                errors.push('Key Label is required.');
+            }
+
+            if (!data.key_type || data.key_type === '') {
+                errors.push('Key Type is required.');
+            }
         }
 
+        // Always validate k4 key value
         if (!data.k4 || !/^[0-9a-fA-F]+$/.test(data.k4)) {
             errors.push('K4 Key must contain only hexadecimal characters.');
-        }
-
-        if (!data.key_label || data.key_label === '') {
-            errors.push('Key Label is required.');
-        }
-
-        if (!data.key_type || data.key_type === '') {
-            errors.push('Key Type is required.');
         }
 
         return { isValid: errors.length === 0, errors: errors };
@@ -266,20 +273,16 @@ export class K4Manager extends BaseManager {
                                         <div class="mb-3">
                                             <label class="form-label">Serial Number (SNO)</label>
                                             <input type="number" class="form-control" id="edit_k4_sno" 
-                                                   value="${k4Data.k4_sno || ''}" readonly min="0" max="255">
+                                                   value="${k4Data.k4_sno || ''}" readonly min="0" max="255" disabled>
                                             <div class="form-text">SNO cannot be changed</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Key Label</label>
-                                            <select class="form-select" id="edit_key_label" required>
-                                                <option value="">Select key label...</option>
-                                                <option value="K4_AES" ${k4Data.key_label === 'K4_AES' ? 'selected' : ''}>K4_AES</option>
-                                                <option value="K4_DES" ${k4Data.key_label === 'K4_DES' ? 'selected' : ''}>K4_DES</option>
-                                                <option value="K4_DES3" ${k4Data.key_label === 'K4_DES3' ? 'selected' : ''}>K4_DES3</option>
-                                            </select>
-                                            <div class="form-text">Select the encryption key label</div>
+                                            <input type="text" class="form-control" id="edit_key_label" 
+                                                   value="${k4Data.key_label || ''}" readonly disabled>
+                                            <div class="form-text">Key Label cannot be changed</div>
                                         </div>
                                     </div>
                                 </div>
@@ -287,22 +290,18 @@ export class K4Manager extends BaseManager {
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Key Type</label>
-                                            <select class="form-select" id="edit_key_type" required>
-                                                <option value="">Select key type...</option>
-                                                <option value="AES" ${k4Data.key_type === 'AES' ? 'selected' : ''}>AES</option>
-                                                <option value="DES" ${k4Data.key_type === 'DES' ? 'selected' : ''}>DES</option>
-                                                <option value="DES3" ${k4Data.key_type === 'DES3' ? 'selected' : ''}>DES3</option>
-                                            </select>
-                                            <div class="form-text">Select the encryption algorithm type</div>
+                                            <input type="text" class="form-control" id="edit_key_type" 
+                                                   value="${k4Data.key_type || ''}" readonly disabled>
+                                            <div class="form-text">Key Type cannot be changed</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="form-label">K4 Key</label>
+                                            <label class="form-label">K4 Key <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="edit_k4_key" 
                                                    value="${k4Data.k4 || ''}" placeholder="Hexadecimal characters" 
                                                    pattern="[0-9a-fA-F]+" required>
-                                            <div class="form-text">Hexadecimal key value</div>
+                                            <div class="form-text">Only the K4 key value can be edited</div>
                                         </div>
                                     </div>
                                 </div>
@@ -312,12 +311,12 @@ export class K4Manager extends BaseManager {
                                 <div class="bg-light p-3 rounded mb-3">
                                     <h6 class="mb-2"><i class="fas fa-info-circle me-2"></i>About K4 Keys</h6>
                                     <p class="mb-1 small">
-                                        K4 keys are used for subscriber authentication in 5G networks. 
-                                        Each key must be unique and contain only hexadecimal characters.
+                                        <i class="fas fa-lock me-1"></i>
+                                        <strong>Read-only fields:</strong> SNO, Key Label, and Key Type cannot be modified.
                                     </p>
-                                    <p class="mb-0 small text-muted">
-                                        <i class="fas fa-lightbulb me-1"></i>
-                                        Ensure the key follows proper cryptographic standards for security.
+                                    <p class="mb-0 small">
+                                        <i class="fas fa-edit me-1"></i>
+                                        <strong>Editable:</strong> Only the K4 key value can be updated.
                                     </p>
                                 </div>
                             </div>
@@ -336,14 +335,21 @@ export class K4Manager extends BaseManager {
     async saveEdit() {
         try {
             const formData = this.getEditFormData();
-            const validation = this.validateFormData(formData);
+            const validation = this.validateFormData(formData, true); // isEdit = true
             
             if (!validation.isValid) {
                 window.app?.notificationManager?.showNotification(validation.errors.join('<br>'), 'error');
                 return;
             }
 
-            const payload = this.preparePayload(formData);
+            // For edit, only send the k4 value, keep other fields from currentK4Data
+            const payload = {
+                "k4_sno": parseInt(formData.k4_sno),
+                "k4": formData.k4.toLowerCase(),
+                "key_label": formData.key_label,
+                "key_type": formData.key_type
+            };
+            
             await this.updateItem(this.currentK4Sno, payload);
             
             // Refresh the details view
@@ -365,6 +371,25 @@ export class K4Manager extends BaseManager {
             key_label: document.getElementById('edit_key_label')?.value || '',
             key_type: document.getElementById('edit_key_type')?.value || ''
         };
+    }
+
+    async deleteItem(k4Sno, keyLabel) {
+        try {
+            // Use the new endpoint format: /k4opt/:idsno/:keylabel
+            const response = await fetch(
+                `${this.apiBase}${this.apiEndpoint}/${encodeURIComponent(k4Sno)}/${encodeURIComponent(keyLabel)}`,
+                { method: 'DELETE' }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP ${response.status}`);
+            }
+
+            return response.status === 204 ? {} : await response.json();
+        } catch (error) {
+            throw error;
+        }
     }
 
     toggleEditMode(enable = null) {
@@ -389,7 +414,11 @@ export class K4Manager extends BaseManager {
 
     async deleteFromDetails() {
         try {
-            await this.deleteItem(this.currentK4Sno);
+            // Use the currentK4Data to get both sno and key_label
+            const k4Sno = this.currentK4Data.k4_sno;
+            const keyLabel = this.currentK4Data.key_label;
+            
+            await this.deleteItem(k4Sno, keyLabel);
             window.app?.notificationManager?.showNotification('K4 key deleted successfully!', 'success');
             
             // Navigate back to the list

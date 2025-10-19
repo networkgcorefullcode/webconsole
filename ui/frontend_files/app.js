@@ -53,6 +53,20 @@ window.showSection = (section) => app.uiManager.showSection(section);
 window.showCreateForm = async (type) => await app.modalManager.showCreateForm(type);
 window.editItem = async (type, name) => await app.modalManager.editItem(type, name);
 window.deleteItem = async (type, name) => await app.modalManager.deleteItem(type, name);
+window.deleteK4Item = async (k4Sno, keyLabel) => {
+    // Special delete handler for K4 keys that requires both sno and key_label
+    const confirmed = confirm(`Are you sure you want to delete K4 key with SNO ${k4Sno} and label ${keyLabel}?`);
+    if (!confirmed) return;
+    
+    try {
+        await app.managers.k4Keys.deleteItem(k4Sno, keyLabel);
+        app.notificationManager.showNotification('K4 key deleted successfully!', 'success');
+        await app.managers.k4Keys.loadData();
+    } catch (error) {
+        console.error('Failed to delete K4 key:', error);
+        app.notificationManager.showNotification(`Failed to delete K4 key: ${error.message}`, 'error');
+    }
+};
 window.saveItem = async () => await app.modalManager.saveItem();
 
 // Device Group Details functions

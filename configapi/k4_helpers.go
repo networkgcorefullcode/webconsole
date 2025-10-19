@@ -51,11 +51,11 @@ func K4HelperPut(k4Sno int, k4keyData *configmodels.K4) error {
 	return nil
 }
 
-func K4HelperDelete(k4Sno int) error {
+func K4HelperDelete(k4Sno int, keyLabel string) error {
 	rwLock.Lock()
 	defer rwLock.Unlock()
 	k4Data := DatabaseK4Data{}
-	err := k4Data.K4DataDelete(k4Sno)
+	err := k4Data.K4DataDelete(k4Sno, keyLabel)
 	if err != nil {
 		logger.DbLog.Errorln("K4 Key DeK4DataDelete Error:", err)
 		return err
@@ -67,6 +67,9 @@ func K4HelperDelete(k4Sno int) error {
 // Interfaces definition
 func (k4Database DatabaseK4Data) K4DataCreate(k4Sno int, k4Data *configmodels.K4) error {
 	filter := bson.M{"k4_sno": k4Sno}
+	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
+		filter = bson.M{"k4_sno": k4Sno, "key_label": k4Data.K4_Label}
+	}
 	logger.WebUILog.Infof("%+v", k4Data)
 	k4DataBsonA := configmodels.ToBsonM(k4Data)
 	// write to AuthDB
@@ -93,6 +96,9 @@ func (k4Database DatabaseK4Data) K4DataCreate(k4Sno int, k4Data *configmodels.K4
 
 func (k4Database DatabaseK4Data) K4DataUpdate(k4Sno int, k4Data *configmodels.K4) error {
 	filter := bson.M{"k4_sno": k4Sno}
+	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
+		filter = bson.M{"k4_sno": k4Sno, "key_label": k4Data.K4_Label}
+	}
 	k4DataBsonA := configmodels.ToBsonM(k4Data)
 	// get backup
 	backup, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filter)
@@ -123,9 +129,13 @@ func (k4Database DatabaseK4Data) K4DataUpdate(k4Sno int, k4Data *configmodels.K4
 	return nil
 }
 
-func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int) error {
+func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int, keyLabel string) error {
 	logger.WebUILog.Debugf("delete k4 key from authenticationSubscription collection: %s", k4Sno)
 	filter := bson.M{"k4_sno": k4Sno}
+
+	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
+		filter = bson.M{"k4_sno": k4Sno, "key_label": keyLabel}
+	}
 
 	origAuthData, getErr := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filter)
 	if getErr != nil {
