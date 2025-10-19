@@ -120,7 +120,7 @@ var apiRoutes = Routes{
 	{
 		"Get k4 keys",
 		http.MethodDelete,
-		"/k4opt/:idsno",
+		"/k4opt/:idsno/:keylabel",
 		HandleDeleteK4,
 	},
 }

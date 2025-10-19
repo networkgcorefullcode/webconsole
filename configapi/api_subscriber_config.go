@@ -613,6 +613,14 @@ func PutSubscriberByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required authentication data: OPc, Key and Sequence number must be provided", "request_id": requestID})
 		return
 	}
+	var ceroValue int32
+	if subsOverrideData.EncryptionAlgorithm == nil {
+		subsOverrideData.EncryptionAlgorithm = &ceroValue
+	}
+	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 4 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Encription Algoritm is not valid: Encription Algoritm must be between 0 and 4", "request_id": requestID})
+		return
+	}
 	authSubsData := models.AuthenticationSubscription{
 		AuthenticationManagementField: "8000",
 		AuthenticationMethod:          "5G_AKA",
@@ -634,6 +642,10 @@ func PutSubscriberByID(c *gin.Context) {
 			PermanentKeyValue:   subsOverrideData.Key,
 		},
 		SequenceNumber: subsOverrideData.SequenceNumber,
+	}
+
+	if subsOverrideData.EncryptionAlgorithm != nil {
+		authSubsData.PermanentKey.EncryptionAlgorithm = *subsOverrideData.EncryptionAlgorithm
 	}
 
 	if err := assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {
@@ -794,7 +806,7 @@ func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) e
 		} else {
 			filterSnoID := bson.M{"k4_sno": snoIdint}
 
-			var k4Data models.K4
+			var k4Data configmodels.K4
 
 			k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
 

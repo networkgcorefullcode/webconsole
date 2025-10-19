@@ -21,13 +21,14 @@ export class K4Manager extends BaseManager {
         }
 
         let html = '<div class="table-responsive"><table class="table table-striped table-hover">';
-        html += '<thead><tr><th>Serial Number (SNO)</th><th>Key Label</th><th>K4 Key</th><th>Actions</th></tr></thead><tbody>';
+        html += '<thead><tr><th>Serial Number (SNO)</th><th>Key Label</th><th>Key Type</th><th>K4 Key</th><th>Actions</th></tr></thead><tbody>';
 
         keys.forEach(key => {
             html += `
                 <tr class="k4-row" onclick="showK4Details('${key.k4_sno}')" style="cursor: pointer;">
                     <td><span class="badge bg-primary fs-6">${key.k4_sno ?? 'N/A'}</span></td>
-                    <td><span class="badge bg-primary fs-6">${key.key_label ?? 'N/A'}</span></td>
+                    <td><span class="badge bg-info fs-6">${key.key_label ?? 'N/A'}</span></td>
+                    <td><span class="badge bg-secondary fs-6">${key.key_type ?? 'N/A'}</span></td>
                     <td><code>${key.k4 ?? 'N/A'}</code></td>
                     <td onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-primary me-1" title="Edit"
@@ -51,37 +52,58 @@ export class K4Manager extends BaseManager {
         return `
             <div class="mb-3">
                 <label class="form-label">K4 Serial Number (SNO)</label>
-                <input type="number" class="form-control" id="k4_sno" min="0" 
+                <input type="number" class="form-control" id="k4_sno" min="0" max="255"
                        ${isEdit ? 'readonly' : ''} required>
+                <div class="form-text">Value between 0-255 (byte)</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Key Label</label>
-                <input type="text" class="form-control" id="key_label" 
-                       placeholder="Enter key label" maxlength="64">
-                <div class="form-text">Optional label for this key</div>
+                <select class="form-select" id="key_label" required>
+                    <option value="">Select key label...</option>
+                    <option value="K4_AES">K4_AES</option>
+                    <option value="K4_DES">K4_DES</option>
+                    <option value="K4_DES3">K4_DES3</option>
+                </select>
+                <div class="form-text">Select the encryption key label</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Key Type</label>
+                <select class="form-select" id="key_type" required>
+                    <option value="">Select key type...</option>
+                    <option value="AES">AES</option>
+                    <option value="DES">DES</option>
+                    <option value="DES3">DES3</option>
+                </select>
+                <div class="form-text">Select the encryption algorithm type</div>
             </div>
             <div class="mb-3">
                 <label class="form-label">K4 Key</label>
                 <input type="text" class="form-control" id="k4" 
                        placeholder="e.g., 00112233445566778899aabbccddeeff" 
                        pattern="[0-9a-fA-F]+" required>
+                <div class="form-text">Hexadecimal key value</div>
             </div>
         `;
     }
 
     validateFormData(data) {
         const errors = [];
-        if (data.k4_sno === undefined || data.k4_sno < 0) {
-            errors.push('K4 SNO is required and must be a non-negative number.');
+        if (data.k4_sno === undefined || data.k4_sno < 0 || data.k4_sno > 255) {
+            errors.push('K4 SNO is required and must be between 0-255.');
         }
 
         if (!data.k4 || !/^[0-9a-fA-F]+$/.test(data.k4)) {
-            errors.push('K4 Key must be a valid hexadecimal characters.');
+            errors.push('K4 Key must contain only hexadecimal characters.');
         }
 
-        if (data.key_label && data.key_label.length > 20) {
-            errors.push('Key Label must be at most 20 characters.');
+        if (!data.key_label || data.key_label === '') {
+            errors.push('Key Label is required.');
         }
+
+        if (!data.key_type || data.key_type === '') {
+            errors.push('Key Type is required.');
+        }
+
         return { isValid: errors.length === 0, errors: errors };
     }
 
@@ -89,7 +111,8 @@ export class K4Manager extends BaseManager {
         return {
             "k4_sno": parseInt(formData.k4_sno),
             "k4": formData.k4.toLowerCase(),
-            "key_label":  formData.key_label
+            "key_label": formData.key_label,
+            "key_type": formData.key_type
         };
     }
     
@@ -156,7 +179,7 @@ export class K4Manager extends BaseManager {
                                     <div class="mb-3">
                                         <strong>Serial Number (SNO):</strong> 
                                         <div class="mt-1">
-                                            <span class="badge bg-primary fs-6">${k4Data.k4_sno || 'N/A'}</span>
+                                            <span class="badge bg-primary fs-6">${k4Data.k4_sno ?? 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -164,7 +187,17 @@ export class K4Manager extends BaseManager {
                                     <div class="mb-3">
                                         <strong>Key Label:</strong> 
                                         <div class="mt-1">
-                                            <span class="badge bg-primary fs-6">${k4Data.key_label || 'N/A'}</span>
+                                            <span class="badge bg-info fs-6">${k4Data.key_label ?? 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <strong>Key Type:</strong> 
+                                        <div class="mt-1">
+                                            <span class="badge bg-secondary fs-6">${k4Data.key_type ?? 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -172,7 +205,7 @@ export class K4Manager extends BaseManager {
                                     <div class="mb-3">
                                         <strong>K4 Key:</strong>
                                         <div class="mt-1">
-                                            <code class="text-break">${k4Data.k4 || 'N/A'}</code>
+                                            <code class="text-break">${k4Data.k4 ?? 'N/A'}</code>
                                         </div>
                                     </div>
                                 </div>
@@ -191,7 +224,7 @@ export class K4Manager extends BaseManager {
                                             </div>
                                             <div class="col-md-6">
                                                 <small class="text-muted">Format:</small>
-                                                <div><strong>32 Hexadecimal Characters</strong></div>
+                                                <div><strong>Hexadecimal Characters</strong></div>
                                             </div>
                                         </div>
                                         <div class="row mt-2">
@@ -233,25 +266,43 @@ export class K4Manager extends BaseManager {
                                         <div class="mb-3">
                                             <label class="form-label">Serial Number (SNO)</label>
                                             <input type="number" class="form-control" id="edit_k4_sno" 
-                                                   value="${k4Data.k4_sno || ''}" readonly min="0">
+                                                   value="${k4Data.k4_sno || ''}" readonly min="0" max="255">
                                             <div class="form-text">SNO cannot be changed</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Key Label</label>
-                                            <input type="text" class="form-control" id="edit_k4_key_label" 
-                                                   value="${k4Data.key_label || ''}">
-                                            <div class="form-text">Key Label</div>
+                                            <select class="form-select" id="edit_key_label" required>
+                                                <option value="">Select key label...</option>
+                                                <option value="K4_AES" ${k4Data.key_label === 'K4_AES' ? 'selected' : ''}>K4_AES</option>
+                                                <option value="K4_DES" ${k4Data.key_label === 'K4_DES' ? 'selected' : ''}>K4_DES</option>
+                                                <option value="K4_DES3" ${k4Data.key_label === 'K4_DES3' ? 'selected' : ''}>K4_DES3</option>
+                                            </select>
+                                            <div class="form-text">Select the encryption key label</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Key Type</label>
+                                            <select class="form-select" id="edit_key_type" required>
+                                                <option value="">Select key type...</option>
+                                                <option value="AES" ${k4Data.key_type === 'AES' ? 'selected' : ''}>AES</option>
+                                                <option value="DES" ${k4Data.key_type === 'DES' ? 'selected' : ''}>DES</option>
+                                                <option value="DES3" ${k4Data.key_type === 'DES3' ? 'selected' : ''}>DES3</option>
+                                            </select>
+                                            <div class="form-text">Select the encryption algorithm type</div>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">K4 Key</label>
                                             <input type="text" class="form-control" id="edit_k4_key" 
-                                                   value="${k4Data.k4 || ''}" placeholder="32 hex characters" 
+                                                   value="${k4Data.k4 || ''}" placeholder="Hexadecimal characters" 
                                                    pattern="[0-9a-fA-F]+" required>
-                                            <div class="form-text">hexadecimal characters</div>
+                                            <div class="form-text">Hexadecimal key value</div>
                                         </div>
                                     </div>
                                 </div>
@@ -262,7 +313,7 @@ export class K4Manager extends BaseManager {
                                     <h6 class="mb-2"><i class="fas fa-info-circle me-2"></i>About K4 Keys</h6>
                                     <p class="mb-1 small">
                                         K4 keys are used for subscriber authentication in 5G networks. 
-                                        Each key must be unique and exactly 32 hexadecimal characters long.
+                                        Each key must be unique and contain only hexadecimal characters.
                                     </p>
                                     <p class="mb-0 small text-muted">
                                         <i class="fas fa-lightbulb me-1"></i>
@@ -311,7 +362,8 @@ export class K4Manager extends BaseManager {
         return {
             k4_sno: document.getElementById('edit_k4_sno')?.value || '',
             k4: document.getElementById('edit_k4_key')?.value || '',
-            key_label: document.getElementById('edit_k4_key_label')?.value || ''
+            key_label: document.getElementById('edit_key_label')?.value || '',
+            key_type: document.getElementById('edit_key_type')?.value || ''
         };
     }
 

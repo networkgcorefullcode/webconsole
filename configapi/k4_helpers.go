@@ -184,6 +184,54 @@ func storeKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.StoreKey
 	return resp, nil
 }
 
+func updateKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.UpdateKeyResponse, error) {
+	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", keyLabel, keyID, keyType)
+	var updateKeyRequest ssm.UpdateKeyRequest = ssm.UpdateKeyRequest{
+		KeyLabel: keyLabel,
+		Id:       keyID,
+		KeyValue: keyValue,
+		KeyType:  keyType,
+	}
+	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", updateKeyRequest.KeyLabel, updateKeyRequest.Id, updateKeyRequest.KeyType)
+
+	configuration := ssm.NewConfiguration()
+	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
+	configuration.HTTPClient = getHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
+	apiClient := ssm.NewAPIClient(configuration)
+
+	resp, r, err := apiClient.KeyManagementAPI.UpdateKey(context.Background()).UpdateKeyRequest(updateKeyRequest).Execute()
+	if err != nil {
+		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
+		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		return nil, err
+	}
+	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
+	return resp, nil
+}
+
+func deleteKeySSM(keyLabel string, keyID int32) (*ssm.DeleteKeyResponse, error) {
+	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", keyLabel, keyID)
+	var deleteKeyRequest ssm.DeleteKeyRequest = ssm.DeleteKeyRequest{
+		KeyLabel: keyLabel,
+		Id:       keyID,
+	}
+	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", deleteKeyRequest.KeyLabel, deleteKeyRequest.Id)
+
+	configuration := ssm.NewConfiguration()
+	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
+	configuration.HTTPClient = getHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
+	apiClient := ssm.NewAPIClient(configuration)
+
+	resp, r, err := apiClient.KeyManagementAPI.DeleteKey(context.Background()).DeleteKeyRequest(deleteKeyRequest).Execute()
+	if err != nil {
+		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
+		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		return nil, err
+	}
+	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
+	return resp, nil
+}
+
 // getHTTPClient returns an HTTP client configured based on TLS settings
 func getHTTPClient(tlsInsecure bool) *http.Client {
 	if tlsInsecure {

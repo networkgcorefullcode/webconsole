@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
-	ssm "github.com/networkgcorefullcode/ssm/models"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
@@ -192,8 +191,10 @@ func HandlePostK4(c *gin.Context) {
 
 	logger.WebUILog.Infof("K4 data to be inserted: %+v", k4Data)
 
-	var resp *ssm.StoreKeyResponse
+	// SSM
+	// Store the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
+		// Check the K4 label keys (AES, DES or DES3)
 		if k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_AES &&
 			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES &&
 			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES3 {
@@ -201,6 +202,7 @@ func HandlePostK4(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key label is incorrect"})
 			return
 		}
+		// Check the K4 type to specified the key type that will be store
 		if k4Data.K4_Type != ssm_constants.TYPE_AES &&
 			k4Data.K4_Type != ssm_constants.TYPE_DES &&
 			k4Data.K4_Type != ssm_constants.TYPE_DES3 {
@@ -208,11 +210,14 @@ func HandlePostK4(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key type is incorrect"})
 			return
 		}
-		if resp, err = storeKeySSM(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO)); err != nil {
+		// Send the request to the SSM
+		resp, err := storeKeySSM(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO))
+		if err != nil {
 			logger.DbLog.Errorf("failed to store k4 key in SSM: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM"})
 			return
 		}
+		// Check if in the response CipherKey is fill, if it is empty K4 must be a empty string ""
 		if resp.CipherKey != "" {
 			k4Data.K4 = resp.CipherKey
 		} else {
@@ -220,6 +225,8 @@ func HandlePostK4(c *gin.Context) {
 		}
 	}
 
+	// MongoDB
+	// Save the K4 data in MongoDB
 	if err := K4HelperPost(int(k4Data.K4_SNO), &k4Data); err != nil {
 		logger.DbLog.Errorf("failed to post k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to post k4 key"})
@@ -285,6 +292,40 @@ func HandlePutK4(c *gin.Context) {
 	// Normalize K4 to lowercase
 	k4Data.K4 = strings.ToLower(k4Data.K4)
 
+	// SSM
+	// Update the K4 in the SSM if this option is allow
+	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
+		// Check the K4 label keys (AES, DES or DES3)
+		if k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_AES &&
+			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES &&
+			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES3 {
+			logger.DbLog.Error("failed to update k4 key in SSM the label key is not valid")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in SSM must key label is incorrect"})
+			return
+		}
+		// Check the K4 type to specified the key type that will be update
+		if k4Data.K4_Type != ssm_constants.TYPE_AES &&
+			k4Data.K4_Type != ssm_constants.TYPE_DES &&
+			k4Data.K4_Type != ssm_constants.TYPE_DES3 {
+			logger.DbLog.Error("failed to update k4 key in SSM the label key is not valid")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in SSM must key type is incorrect"})
+			return
+		}
+		// Send the request to the SSM
+		resp, err := updateKeySSM(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO))
+		if err != nil {
+			logger.DbLog.Errorf("failed to update k4 key in SSM: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in SSM"})
+			return
+		}
+		// Check if in the response CipherKey is fill, if it is empty K4 must be a empty string ""
+		if resp.CipherKey != "" {
+			k4Data.K4 = resp.CipherKey
+		} else {
+			k4Data.K4 = ""
+		}
+	}
+
 	if err := K4HelperPut(snoIdint, &k4Data); err != nil {
 		logger.DbLog.Errorf("failed to update k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key"})
@@ -318,7 +359,27 @@ func HandleDeleteK4(c *gin.Context) {
 	logger.WebUILog.Infoln("Delete One K4 key Data")
 
 	snoId := c.Param("idsno")
+	keylabel := c.Param("keylabel")
 	snoIdint, _ := strconv.Atoi(snoId)
+
+	// SSM
+	// Update the K4 in the SSM if this option is allow
+	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
+		// Send the request to the SSM
+		if keylabel != ssm_constants.LABEL_K4_KEY_AES &&
+			keylabel != ssm_constants.LABEL_K4_KEY_DES &&
+			keylabel != ssm_constants.LABEL_K4_KEY_DES3 {
+			logger.DbLog.Error("failed to delete k4 key in SSM the label key is not valid")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key in SSM must key label is incorrect"})
+			return
+		}
+		_, err := deleteKeySSM(keylabel, int32(snoIdint))
+		if err != nil {
+			logger.DbLog.Errorf("failed to delete k4 key in SSM: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key in SSM"})
+			return
+		}
+	}
 
 	if err := K4HelperDelete(snoIdint); err != nil {
 		logger.DbLog.Errorf("failed to delete k4 key in DB: %+v", err)
