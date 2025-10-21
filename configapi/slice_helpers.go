@@ -384,7 +384,7 @@ func updateAmPolicyData(imsi string) error {
 	amPolicyDatBsonA := configmodels.ToBsonM(amPolicy)
 	amPolicyDatBsonA["ueId"] = "imsi-" + imsi
 	filter := bson.M{"ueId": "imsi-" + imsi}
-	_, err := dbadapter.CommonDBClient.RestfulAPIPost(amPolicyDataColl, filter, amPolicyDatBsonA)
+	_, err := dbadapter.CommonDBClient.RestfulAPIPost(AmPolicyDataColl, filter, amPolicyDatBsonA)
 	if err != nil {
 		logger.DbLog.Errorf("failed to update AM Policy Data for IMSI %s: %+v", imsi, err)
 		return err
@@ -409,7 +409,7 @@ func updateSmPolicyData(snssai *models.Snssai, dnn string, imsi string) error {
 	smPolicyDatBsonA := configmodels.ToBsonM(smPolicyData)
 	smPolicyDatBsonA["ueId"] = "imsi-" + imsi
 	filter := bson.M{"ueId": "imsi-" + imsi}
-	_, err := dbadapter.CommonDBClient.RestfulAPIPost(smPolicyDataColl, filter, smPolicyDatBsonA)
+	_, err := dbadapter.CommonDBClient.RestfulAPIPost(SmPolicyDataColl, filter, smPolicyDatBsonA)
 	if err != nil {
 		logger.DbLog.Errorf("failed to update SM Policy Data for IMSI %s: %+v", imsi, err)
 		return err
@@ -442,7 +442,7 @@ func updateAmProvisionedData(snssai *models.Snssai, qos *configmodels.DeviceGrou
 			{"servingPlmnId": bson.M{"$exists": false}},
 		},
 	}
-	_, err := dbadapter.CommonDBClient.RestfulAPIPost(amDataColl, filter, amDataBsonA)
+	_, err := dbadapter.CommonDBClient.RestfulAPIPost(AmDataColl, filter, amDataBsonA)
 	if err != nil {
 		logger.DbLog.Errorf("failed to update AM provisioned Data for IMSI %s: %+v", imsi, err)
 		return err
@@ -485,7 +485,7 @@ func updateSmProvisionedData(snssai *models.Snssai, qos *configmodels.DeviceGrou
 	smDataBsonA["ueId"] = "imsi-" + imsi
 	smDataBsonA["servingPlmnId"] = mcc + mnc
 	filter := bson.M{"ueId": "imsi-" + imsi, "servingPlmnId": mcc + mnc}
-	_, err := dbadapter.CommonDBClient.RestfulAPIPost(smDataColl, filter, smDataBsonA)
+	_, err := dbadapter.CommonDBClient.RestfulAPIPost(SmDataColl, filter, smDataBsonA)
 	if err != nil {
 		logger.DbLog.Errorf("failed to update SM provisioned Data for IMSI %s: %+v", imsi, err)
 		return err
@@ -510,7 +510,7 @@ func updateSmfSelectionProvisionedData(snssai *models.Snssai, mcc, mnc, dnn, ims
 	smfSelecDataBsonA["ueId"] = "imsi-" + imsi
 	smfSelecDataBsonA["servingPlmnId"] = mcc + mnc
 	filter := bson.M{"ueId": "imsi-" + imsi, "servingPlmnId": mcc + mnc}
-	_, err := dbadapter.CommonDBClient.RestfulAPIPost(smfSelDataColl, filter, smfSelecDataBsonA)
+	_, err := dbadapter.CommonDBClient.RestfulAPIPost(SmfSelDataColl, filter, smfSelecDataBsonA)
 	if err != nil {
 		logger.DbLog.Errorf("failed to update SMF selection provisioned data for IMSI %s: %+v", imsi, err)
 		return err

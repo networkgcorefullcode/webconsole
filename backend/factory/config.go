@@ -45,13 +45,21 @@ type Configuration struct {
 }
 
 type SSM struct {
-	SsmUri       string `yaml:"ssm-uri,omitempty"`
-	AllowSsm     bool   `yaml:"allow-ssm,omitempty"`
-	TLS_Insecure bool   `yaml:"tls-insecure,omitempty"`
+	SsmUri       string  `yaml:"ssm-uri,omitempty"`
+	AllowSsm     bool    `yaml:"allow-ssm,omitempty"`
+	TLS_Insecure bool    `yaml:"tls-insecure,omitempty"`
+	SsmSync      SsmSync `yaml:"ssm-synchronize,omitempty"`
 }
 type TLS struct {
 	PEM string `yaml:"pem,omitempty"`
 	Key string `yaml:"key,omitempty"`
+}
+
+type SsmSync struct {
+	Enable         bool `yaml:"enable,omitempty"`
+	IntervalMinute int  `yaml:"interval-minute,omitempty"`
+	MaxKeysCreate  int  `yaml:"max-keys-create,omitempty"`
+	DeleteMissing  bool `yaml:"delete-missing,omitempty"`
 }
 
 type Mongodb struct {

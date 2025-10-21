@@ -30,14 +30,14 @@ import (
 const (
 	devGroupDataColl = "webconsoleData.snapshots.devGroupData"
 	sliceDataColl    = "webconsoleData.snapshots.sliceData"
-	amDataColl       = "subscriptionData.provisionedData.amData"
-	smDataColl       = "subscriptionData.provisionedData.smData"
-	smfSelDataColl   = "subscriptionData.provisionedData.smfSelectionSubscriptionData"
-	amPolicyDataColl = "policyData.ues.amData"
-	smPolicyDataColl = "policyData.ues.smData"
-	authSubsDataColl = "subscriptionData.authenticationData.authenticationSubscription"
-	k4KeysColl       = "encription.keysdata.k4"
-	k4KeysCollCom    = "encription.keysdata.k4_com"
+	AmDataColl       = "subscriptionData.provisionedData.amData"
+	SmDataColl       = "subscriptionData.provisionedData.smData"
+	SmfSelDataColl   = "subscriptionData.provisionedData.smfSelectionSubscriptionData"
+	AmPolicyDataColl = "policyData.ues.amData"
+	SmPolicyDataColl = "policyData.ues.smData"
+	AuthSubsDataColl = "subscriptionData.authenticationData.authenticationSubscription"
+	K4KeysColl       = "encryption.keysdata.k4"
+	k4KeysCollCom    = "encryption.keysdata.k4_com"
 )
 
 // GetDeviceGroups godoc

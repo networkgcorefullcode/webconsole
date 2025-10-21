@@ -47,7 +47,7 @@ func HandleGetsK4(c *gin.Context) {
 	logger.WebUILog.Infoln("Get All K4 keys List")
 
 	k4List := make([]configmodels.K4, 0)
-	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(k4KeysColl, bson.M{})
+	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(K4KeysColl, bson.M{})
 	if errGetMany != nil {
 		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve k4 keys list"})
@@ -104,7 +104,7 @@ func HandleGetK4(c *gin.Context) {
 
 	var k4Data configmodels.K4
 
-	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
+	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(K4KeysColl, filterSnoID)
 
 	if err != nil {
 		logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
@@ -196,18 +196,14 @@ func HandlePostK4(c *gin.Context) {
 	// Store the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		// Check the K4 label keys (AES, DES or DES3)
-		if k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_AES &&
-			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES &&
-			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES3 {
+		if isValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsInternalAllow[:]) {
 			logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key label is incorrect"})
 			return
 		}
 		// Check the K4 type to specified the key type that will be store
-		if k4Data.K4_Type != ssm_constants.TYPE_AES &&
-			k4Data.K4_Type != ssm_constants.TYPE_DES &&
-			k4Data.K4_Type != ssm_constants.TYPE_DES3 {
-			logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
+		if !isValidKeyIdentifier(k4Data.K4_Type, ssm_constants.KeyTypeAllow[:]) {
+			logger.DbLog.Error("failed to store k4 key in SSM the type key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key type is incorrect"})
 			return
 		}
@@ -297,18 +293,14 @@ func HandlePutK4(c *gin.Context) {
 	// Update the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		// Check the K4 label keys (AES, DES or DES3)
-		if k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_AES &&
-			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES &&
-			k4Data.K4_Label != ssm_constants.LABEL_K4_KEY_DES3 {
+		if !isValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsInternalAllow[:]) {
 			logger.DbLog.Error("failed to update k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in SSM must key label is incorrect"})
 			return
 		}
 		// Check the K4 type to specified the key type that will be update
-		if k4Data.K4_Type != ssm_constants.TYPE_AES &&
-			k4Data.K4_Type != ssm_constants.TYPE_DES &&
-			k4Data.K4_Type != ssm_constants.TYPE_DES3 {
-			logger.DbLog.Error("failed to update k4 key in SSM the label key is not valid")
+		if !isValidKeyIdentifier(k4Data.K4_Type, ssm_constants.KeyTypeAllow[:]) {
+			logger.DbLog.Error("failed to update k4 key in SSM the type key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in SSM must key type is incorrect"})
 			return
 		}

@@ -327,8 +327,8 @@ func Test_handleSubscriberPost5G(t *testing.T) {
 	if postErr != nil {
 		t.Errorf("Could not handle subscriber post: %v", postErr)
 	}
-	expectedAuthSubCollection := authSubsDataColl
-	expectedAmDataCollection := amDataColl
+	expectedAuthSubCollection := AuthSubsDataColl
+	expectedAmDataCollection := AmDataColl
 	if postData[0]["coll"] != expectedAuthSubCollection {
 		t.Errorf("Expected collection %v, got %v", expectedAuthSubCollection, postData[0]["coll"])
 	}
@@ -380,8 +380,8 @@ func Test_handleSubscriberDelete5G(t *testing.T) {
 	if delErr != nil {
 		t.Errorf("Could not handle subscriber delete: %v", delErr)
 	}
-	expectedAuthSubCollection := authSubsDataColl
-	expectedAmDataCollection := amDataColl
+	expectedAuthSubCollection := AuthSubsDataColl
+	expectedAmDataCollection := AmDataColl
 	if deleteData[0]["coll"] != expectedAuthSubCollection {
 		t.Errorf("Expected collection %v, got %v", expectedAuthSubCollection, deleteData[0]["coll"])
 	}

@@ -35,7 +35,7 @@ func init() {
 	}
 }
 
-func sliceToByte(data []map[string]interface{}) ([]byte, error) {
+func SliceToByte(data []map[string]interface{}) ([]byte, error) {
 	ret, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal data: %w", err)
@@ -268,7 +268,7 @@ func GetSubscribers(c *gin.Context) {
 	logger.WebUILog.Infoln("Get All Subscribers List")
 
 	subsList := make([]configmodels.SubsListIE, 0)
-	amDataList, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(amDataColl, bson.M{})
+	amDataList, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(AmDataColl, bson.M{})
 	if errGetMany != nil {
 		logger.DbLog.Errorf("failed to retrieve subscribers list with error: %+v", errGetMany)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve subscribers list"})
@@ -320,37 +320,37 @@ func GetSubscriberByID(c *gin.Context) {
 
 	var subsData configmodels.SubsData
 
-	authSubsDataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(authSubsDataColl, filterUeIdOnly)
+	authSubsDataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(AuthSubsDataColl, filterUeIdOnly)
 	if err != nil {
 		logger.DbLog.Errorf("failed to fetch authentication subscription data from DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch the requested subscriber record from DB"})
 		return
 	}
-	amDataDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(amDataColl, filterUeIdOnly)
+	amDataDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(AmDataColl, filterUeIdOnly)
 	if err != nil {
 		logger.DbLog.Errorf("failed to fetch am data from DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch the requested subscriber record from DB"})
 		return
 	}
-	smDataDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetMany(smDataColl, filterUeIdOnly)
+	smDataDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetMany(SmDataColl, filterUeIdOnly)
 	if err != nil {
 		logger.DbLog.Errorf("failed to fetch sm data from DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch the requested subscriber record from DB"})
 		return
 	}
-	smfSelDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(smfSelDataColl, filterUeIdOnly)
+	smfSelDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(SmfSelDataColl, filterUeIdOnly)
 	if err != nil {
 		logger.DbLog.Errorf("failed to fetch smf selection data from DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch the requested subscriber record from DB"})
 		return
 	}
-	amPolicyDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(amPolicyDataColl, filterUeIdOnly)
+	amPolicyDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(AmPolicyDataColl, filterUeIdOnly)
 	if err != nil {
 		logger.DbLog.Errorf("failed to fetch am policy data from DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch the requested subscriber record from DB"})
 		return
 	}
-	smPolicyDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(smPolicyDataColl, filterUeIdOnly)
+	smPolicyDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(SmPolicyDataColl, filterUeIdOnly)
 	if err != nil {
 		logger.DbLog.Errorf("failed to fetch sm policy data from DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch the requested subscriber record from DB"})
@@ -390,7 +390,7 @@ func GetSubscriberByID(c *gin.Context) {
 
 	var smDataData []models.SessionManagementSubscriptionData
 	if smDataDataInterface != nil {
-		bytesData, err := sliceToByte(smDataDataInterface)
+		bytesData, err := SliceToByte(smDataDataInterface)
 		if err != nil {
 			logger.WebUILog.Errorf("failed to convert slice to byte: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve subscriber"})
@@ -483,7 +483,7 @@ func PostSubscriberByID(c *gin.Context) {
 
 	// Check if the IMSI already exists in the database
 	filter := bson.M{"ueId": ueId}
-	subscriber, err := dbadapter.CommonDBClient.RestfulAPIGetOne(amDataColl, filter)
+	subscriber, err := dbadapter.CommonDBClient.RestfulAPIGetOne(AmDataColl, filter)
 	if err != nil {
 		logger.DbLog.Errorf("failed querying subscriber existence for IMSI: %s; Error: %+v", ueId, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to check subscriber: %s existence", ueId), "request_id": requestID})
@@ -597,7 +597,7 @@ func PutSubscriberByID(c *gin.Context) {
 	logger.WebUILog.Infoln("Received Put Subscriber Data from Roc/Simapp:", ueId)
 
 	filter := bson.M{"ueId": ueId}
-	subscriber, err := dbadapter.CommonDBClient.RestfulAPIGetOne(amDataColl, filter)
+	subscriber, err := dbadapter.CommonDBClient.RestfulAPIGetOne(AmDataColl, filter)
 	if err != nil {
 		logger.DbLog.Errorf("failed querying subscriber existence for IMSI: %s; Error: %+v", ueId, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to check subscriber: %s existence", ueId), "request_id": requestID})
@@ -656,7 +656,7 @@ func PutSubscriberByID(c *gin.Context) {
 		return
 	}
 
-	err = handleSubscriberPut(ueId, &authSubsData)
+	err = HandleSubscriberPut(ueId, &authSubsData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":      fmt.Sprintf("Failed to update subscriber %s", ueId),
@@ -806,7 +806,7 @@ func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) e
 
 			var k4Data configmodels.K4
 
-			k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(k4KeysColl, filterSnoID)
+			k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(K4KeysColl, filterSnoID)
 
 			if err != nil {
 				logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)

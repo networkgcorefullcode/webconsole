@@ -23,6 +23,7 @@ import (
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/metrics"
+	ssmsync "github.com/omec-project/webconsole/backend/ssm_sync"
 	"github.com/omec-project/webconsole/backend/webui_context"
 	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
@@ -115,6 +116,14 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 			logger.InitLog.Fatalln("HTTP server setup failed:", err)
 		}
 	}()
+
+	SsmSyncMsg := make(chan *ssmsync.SsmSyncMessage, 10)
+	// Init a gorutine to sincronize SSM functionality
+	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
+		ssmsync.SetCfgChannel(configMsgChan)
+		go ssmsync.SyncSsm(SsmSyncMsg)
+		go ssmsync.SsmSyncInitDefault(SsmSyncMsg)
+	}
 
 	if factory.WebUIConfig.Configuration.Mode5G {
 		self := webui_context.WEBUI_Self()
