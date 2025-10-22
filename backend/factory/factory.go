@@ -62,28 +62,28 @@ func InitConfigFactory(f string) error {
 			WebUIConfig.Configuration.Mongodb.AuthKeysDbName = "authentication"
 		}
 		if WebUIConfig.Configuration.SSM == nil {
-			WebUIConfig.Configuration.SSM = SSM{
-				SsmUri: "0.0.0.0:9000",
-				AllowSsm: false,
+			WebUIConfig.Configuration.SSM = &SSM{
+				SsmUri:       "0.0.0.0:9000",
+				AllowSsm:     false,
 				TLS_Insecure: true,
-				SsmSync: SsmSync{
-					Enable: false,        
-					IntervalMinute: 0, 
-					MaxKeysCreate: 5,  
-					DeleteMissing: false,  
+				SsmSync: &SsmSync{
+					Enable:         false,
+					IntervalMinute: 0,
+					MaxKeysCreate:  5,
+					DeleteMissing:  false,
 				},
 			}
 		}
 		if WebUIConfig.Configuration.SSM.SsmUri == "" {
 			WebUIConfig.Configuration.SSM.SsmUri = "0.0.0.0:9000"
 		}
-		if WebUIConfig.Configuration.SSM.SsmSync == nil && WebUIConfig.Configuration.SSM.AllowSsm{
-			WebUIConfig.Configuration.SSM.SsmSync = SsmSync{
-					Enable: true,        
-					IntervalMinute: 60, 
-					MaxKeysCreate: 5,  
-					DeleteMissing: true,  
-				},
+		if WebUIConfig.Configuration.SSM.SsmSync == nil && WebUIConfig.Configuration.SSM.AllowSsm {
+			WebUIConfig.Configuration.SSM.SsmSync = &SsmSync{
+				Enable:         true,
+				IntervalMinute: 60,
+				MaxKeysCreate:  5,
+				DeleteMissing:  true,
+			}
 		}
 
 		if WebUIConfig.Configuration.EnableAuthentication {

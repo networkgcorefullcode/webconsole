@@ -63,9 +63,9 @@ func SyncSsm(ssmSyncMsg chan *SsmSyncMessage) {
 
 func SsmSyncInitDefault(ssmSyncMsg chan *SsmSyncMessage) {
 	// Initialize default SSM synchronization messages
-	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, msg.Action)
+	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, "SYNC_OUR_KEYS")
 	for _, keyLabel := range ssm_constants.KeyLabelsInternalAllow {
-		SyncKeys(keyLabel, msg.Action)
+		SyncKeys(keyLabel, "SYNC_OUR_KEYS")
 	}
 
 	ssmSyncMsg <- &SsmSyncMessage{Action: "SYNC_EXTERNAL_KEYS", Info: "Initial sync of keys"}
