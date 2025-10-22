@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
@@ -196,7 +197,7 @@ func HandlePostK4(c *gin.Context) {
 	// Store the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		// Check the K4 label keys (AES, DES or DES3)
-		if isValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsInternalAllow[:]) {
+		if !isValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsInternalAllow[:]) {
 			logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key label is incorrect"})
 			return
@@ -221,6 +222,9 @@ func HandlePostK4(c *gin.Context) {
 			k4Data.K4 = ""
 		}
 	}
+
+	k4Data.TimeCreated = time.Now()
+	k4Data.TimeUpdated = k4Data.TimeCreated
 
 	// MongoDB
 	// Save the K4 data in MongoDB
@@ -318,6 +322,9 @@ func HandlePutK4(c *gin.Context) {
 			k4Data.K4 = ""
 		}
 	}
+
+	k4Data.TimeCreated = time.Now()
+	k4Data.TimeUpdated = k4Data.TimeCreated
 
 	if err := K4HelperPut(snoIdint, &k4Data); err != nil {
 		logger.DbLog.Errorf("failed to update k4 key in DB: %+v", err)

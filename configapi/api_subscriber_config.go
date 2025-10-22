@@ -16,6 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	"github.com/omec-project/openapi/models"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
@@ -501,7 +502,7 @@ func PostSubscriberByID(c *gin.Context) {
 	if subsOverrideData.EncryptionAlgorithm == nil {
 		subsOverrideData.EncryptionAlgorithm = &ceroValue
 	}
-	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 4 {
+	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 8 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Encription Algoritm is not valid: Encription Algoritm must be between 0 and 4", "request_id": requestID})
 		return
 	}
@@ -616,7 +617,7 @@ func PutSubscriberByID(c *gin.Context) {
 	if subsOverrideData.EncryptionAlgorithm == nil {
 		subsOverrideData.EncryptionAlgorithm = &ceroValue
 	}
-	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 4 {
+	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 8 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Encription Algoritm is not valid: Encription Algoritm must be between 0 and 4", "request_id": requestID})
 		return
 	}
@@ -798,31 +799,33 @@ func GetUEPDUSessionInfo(c *gin.Context) {
 
 func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) error {
 	if k4Sno != nil {
+		snoIdint := int(*k4Sno)
+		filter := bson.M{"k4_sno": snoIdint}
 		if factory.WebUIConfig.Configuration.SSM.AllowSsm {
-			authSubsData.K4_SNO = *k4Sno
-		} else {
-			snoIdint := int(*k4Sno)
-			filterSnoID := bson.M{"k4_sno": snoIdint}
+			filter = bson.M{
+				"key_label": ssm_constants.AlgorithmLabelMap[int(authSubsData.PermanentKey.EncryptionAlgorithm)],
+				"k4_sno":    snoIdint,
+			}
+		}
 
-			var k4Data configmodels.K4
+		var k4Data configmodels.K4
 
-			k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(K4KeysColl, filterSnoID)
+		k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(K4KeysColl, filter)
 
+		if err != nil {
+			logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
+			return err
+		}
+
+		if k4DataInterface != nil {
+			err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
 			if err != nil {
-				logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
+				logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
 				return err
 			}
-
-			if k4DataInterface != nil {
-				err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
-				if err != nil {
-					logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
-					return err
-				}
-			}
-
-			authSubsData.PermanentKey.EncryptionKey = k4Data.K4
 		}
+
+		authSubsData.PermanentKey.EncryptionKey = k4Data.K4
 	}
 	return nil
 }

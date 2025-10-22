@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	ssm "github.com/networkgcorefullcode/ssm/models"
@@ -26,6 +27,32 @@ func getMongoDBLabelFilter(keyLabel string, k4listChan chan []configmodels.K4) {
 		tmp := configmodels.K4{
 			K4:      k4Data["k4"].(string),
 			K4_Type: k4Data["key_type"].(string),
+		}
+
+		K4SNO_Float := k4Data["k4_sno"].(float64)
+		K4SNO_Int := int(K4SNO_Float)
+		K4_SNO := byte(K4SNO_Int)
+
+		tmp.K4_SNO = K4_SNO
+
+		k4List = append(k4List, tmp)
+	}
+	k4listChan <- k4List
+}
+
+func getMongoDBAllK4(k4listChan chan []configmodels.K4) {
+	k4List := make([]configmodels.K4, 0)
+	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.K4KeysColl, bson.M{})
+	if errGetMany != nil {
+		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+	}
+
+	for _, k4Data := range k4DataList {
+		tmp := configmodels.K4{
+			K4:          k4Data["k4"].(string),
+			K4_Type:     k4Data["key_type"].(string),
+			TimeCreated: k4Data["time_created"].(time.Time),
+			TimeUpdated: k4Data["time_updated"].(time.Time),
 		}
 
 		K4SNO_Float := k4Data["k4_sno"].(float64)
@@ -105,19 +132,22 @@ func createNewKeySSM(keyLabel string, id int32) (configmodels.K4, error) {
 	// Determine which creator to use based on key type embedded in label
 	// Assuming labels follow pattern: K4_AES, K4_DES, K4_DES3
 	switch keyLabel {
-	case ssm_constants.LABEL_ENCRIPTION_KEY_AES128:
+	case ssm_constants.LABEL_ENCRYPTION_KEY_AES128:
 		creator = &CreateAES128SSM{}
-	case ssm_constants.LABEL_ENCRIPTION_KEY_AES256:
+	case ssm_constants.LABEL_ENCRYPTION_KEY_AES256:
 		creator = &CreateAES256SSM{}
-	case ssm_constants.LABEL_ENCRIPTION_KEY_DES3:
+	case ssm_constants.LABEL_ENCRYPTION_KEY_DES3:
 		creator = &CreateDes3SSM{}
-	case ssm_constants.LABEL_ENCRIPTION_KEY_DES:
+	case ssm_constants.LABEL_ENCRYPTION_KEY_DES:
 		creator = &CreateDesSSM{}
 	default:
 		return configmodels.K4{}, fmt.Errorf("unsupported key label: %s", keyLabel)
 	}
+	k4, err := creator.CreateNewKeySSM(keyLabel, id)
 
-	return creator.CreateNewKeySSM(keyLabel, id)
+	k4.TimeCreated = time.Now()
+	k4.TimeUpdated = k4.TimeCreated
+	return k4, err
 }
 
 func getUsers() []configmodels.SubsListIE {
@@ -162,45 +192,13 @@ func getSubscriberData(ueId string) (*configmodels.SubsData, error) {
 	if err != nil {
 		logger.DbLog.Errorf("failed to fetch authentication subscription data from DB: %+v", err)
 		return &subsData, fmt.Errorf("failed to fetch authentication subscription data: %w", err)
-	}
-	amDataDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(configapi.AmDataColl, filterUeIdOnly)
-	if err != nil {
-		logger.DbLog.Errorf("failed to fetch am data from DB: %+v", err)
-		return &subsData, fmt.Errorf("failed to fetch am data: %w", err)
-	}
-	smDataDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetMany(configapi.SmDataColl, filterUeIdOnly)
-	if err != nil {
-		logger.DbLog.Errorf("failed to fetch sm data from DB: %+v", err)
-		return &subsData, fmt.Errorf("failed to fetch sm data: %w", err)
-	}
-	smfSelDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(configapi.SmfSelDataColl, filterUeIdOnly)
-	if err != nil {
-		logger.DbLog.Errorf("failed to fetch smf selection data from DB: %+v", err)
-		return &subsData, fmt.Errorf("failed to fetch smf selection data: %w", err)
-	}
-	amPolicyDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(configapi.AmPolicyDataColl, filterUeIdOnly)
-	if err != nil {
-		logger.DbLog.Errorf("failed to fetch am policy data from DB: %+v", err)
-		return &subsData, fmt.Errorf("failed to fetch am policy data: %w", err)
-	}
-	smPolicyDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(configapi.SmPolicyDataColl, filterUeIdOnly)
-	if err != nil {
-		logger.DbLog.Errorf("failed to fetch sm policy data from DB: %+v", err)
-		return &subsData, fmt.Errorf("failed to fetch sm policy data: %w", err)
-	}
-	// If all fetched data is empty, return error
-	if authSubsDataInterface == nil &&
-		amDataDataInterface == nil &&
-		smDataDataInterface == nil &&
-		smfSelDataInterface == nil &&
-		amPolicyDataInterface == nil &&
-		smPolicyDataInterface == nil {
-		logger.WebUILog.Errorf("subscriber with ID %s not found", ueId)
-		return &subsData, fmt.Errorf("subscriber with ID %s not found", ueId)
-	}
+	} // If all fetched data is empty, return error
 
 	var authSubsData models.AuthenticationSubscription
-	if authSubsDataInterface != nil {
+	if authSubsDataInterface == nil {
+		logger.WebUILog.Errorf("subscriber with ID %s not found", ueId)
+		return &subsData, fmt.Errorf("subscriber with ID %s not found", ueId)
+	} else {
 		err := json.Unmarshal(configmodels.MapToByte(authSubsDataInterface), &authSubsData)
 		if err != nil {
 			logger.WebUILog.Errorf("error unmarshalling authentication subscription data: %+v", err)
@@ -208,64 +206,9 @@ func getSubscriberData(ueId string) (*configmodels.SubsData, error) {
 		}
 	}
 
-	var amDataData models.AccessAndMobilitySubscriptionData
-	if amDataDataInterface != nil {
-		err := json.Unmarshal(configmodels.MapToByte(amDataDataInterface), &amDataData)
-		if err != nil {
-			logger.WebUILog.Errorf("error unmarshalling access and mobility subscription data: %+v", err)
-			return &subsData, fmt.Errorf("failed to unmarshal access and mobility subscription data: %w", err)
-		}
-	}
-
-	var smDataData []models.SessionManagementSubscriptionData
-	if smDataDataInterface != nil {
-		bytesData, err := configapi.SliceToByte(smDataDataInterface)
-		if err != nil {
-			logger.WebUILog.Errorf("failed to convert slice to byte: %+v", err)
-			return &subsData, fmt.Errorf("failed to convert slice to byte: %w", err)
-		}
-		err = json.Unmarshal(bytesData, &smDataData)
-		if err != nil {
-			logger.WebUILog.Errorf("error unmarshalling session management subscription data: %+v", err)
-			return &subsData, fmt.Errorf("failed to unmarshal session management subscription data: %w", err)
-		}
-	}
-
-	var smfSelData models.SmfSelectionSubscriptionData
-	if smfSelDataInterface != nil {
-		err := json.Unmarshal(configmodels.MapToByte(smfSelDataInterface), &smfSelData)
-		if err != nil {
-			logger.WebUILog.Errorf("error unmarshalling smf selection subscription data: %+v", err)
-			return &subsData, fmt.Errorf("failed to unmarshal smf selection subscription data: %w", err)
-		}
-	}
-
-	var amPolicyData models.AmPolicyData
-	if amPolicyDataInterface != nil {
-		err := json.Unmarshal(configmodels.MapToByte(amPolicyDataInterface), &amPolicyData)
-		if err != nil {
-			logger.WebUILog.Errorf("error unmarshalling am policy data: %+v", err)
-			return &subsData, fmt.Errorf("failed to unmarshal am policy data: %w", err)
-		}
-	}
-
-	var smPolicyData models.SmPolicyData
-	if smPolicyDataInterface != nil {
-		err := json.Unmarshal(configmodels.MapToByte(smPolicyDataInterface), &smPolicyData)
-		if err != nil {
-			logger.WebUILog.Errorf("error unmarshalling sm policy data: %+v", err)
-			return &subsData, fmt.Errorf("failed to unmarshal sm policy data: %w", err)
-		}
-	}
-
 	subsData = configmodels.SubsData{
-		UeId:                              ueId,
-		AuthenticationSubscription:        authSubsData,
-		AccessAndMobilitySubscriptionData: amDataData,
-		SessionManagementSubscriptionData: smDataData,
-		SmfSelectionSubscriptionData:      smfSelData,
-		AmPolicyData:                      amPolicyData,
-		SmPolicyData:                      smPolicyData,
+		UeId:                       ueId,
+		AuthenticationSubscription: authSubsData,
 	}
 
 	return &subsData, nil
