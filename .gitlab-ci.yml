@@ -18,10 +18,14 @@ include:
         when: always
       - if: '$CI_COMMIT_REF_NAME == "dev"'
         when: always
-    
 initJob:
   stage: init
   tags:
     - aether-runner-3
   script:
     - echo "hello world"
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: always
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "dev"'
+      when: always
