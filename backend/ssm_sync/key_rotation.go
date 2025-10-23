@@ -3,6 +3,7 @@ package ssmsync
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -57,6 +58,11 @@ func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) {
 	go getMongoDBAllK4(k4listChanMDB)
 
 	k4List := <-k4listChanMDB
+
+	if k4List == nil {
+		ErrorSyncChan <- errors.New("invalid operation in ssm sync check the logs to read more information")
+		return
+	}
 
 	// Group keys by remaining days until 90-day expiration
 	var firstHalf []configmodels.K4    // 45-90 days remaining
@@ -115,6 +121,11 @@ func rotateExpiredKeys(ssmSyncMsg chan *SsmSyncMessage) {
 	k4listChanMDB := make(chan []configmodels.K4)
 	go getMongoDBAllK4(k4listChanMDB)
 	k4List := <-k4listChanMDB
+
+	if k4List == nil {
+		ErrorSyncChan <- errors.New("invalid operation in ssm sync check the logs to read more information")
+		return
+	}
 
 	// Filter keys older than 90 days
 	now := time.Now()
