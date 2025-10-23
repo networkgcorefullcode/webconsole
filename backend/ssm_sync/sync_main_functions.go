@@ -2,6 +2,7 @@ package ssmsync
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
@@ -40,6 +41,11 @@ func SyncKeys(keyLabel, action string) {
 	// get the keys from both sources
 	k4ListMDB := <-k4listChanMDB
 	k4ListSSM := <-k4listChanSSM
+
+	if k4ListMDB == nil || k4ListSSM == nil {
+		ErrorSyncChan <- errors.New("invalid operation in ssm sync check the logs to read more information")
+		return
+	}
 
 	// now we can compare both lists and synchronize as needed
 	// cases to handle:

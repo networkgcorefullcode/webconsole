@@ -21,6 +21,7 @@ func getMongoDBLabelFilter(keyLabel string, k4listChan chan []configmodels.K4) {
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.K4KeysColl, bson.M{"key_label": keyLabel})
 	if errGetMany != nil {
 		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+		k4listChan <- nil
 		ErrorSyncChan <- errGetMany
 		return
 	}
@@ -50,6 +51,7 @@ func getMongoDBAllK4(k4listChan chan []configmodels.K4) {
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.K4KeysColl, bson.M{})
 	if errGetMany != nil {
 		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+		k4listChan <- nil
 		ErrorSyncChan <- errGetMany
 		return
 	}
@@ -93,6 +95,7 @@ func getSSMLabelFilter(keyLabel string, dataKeyInfoListChan chan []ssm.DataKeyIn
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GetDataKeys`: %v", err)
 		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		dataKeyInfoListChan <- nil
 		ErrorSyncChan <- err
 	}
 
