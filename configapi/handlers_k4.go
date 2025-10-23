@@ -197,7 +197,7 @@ func HandlePostK4(c *gin.Context) {
 	// Store the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		// Check the K4 label keys (AES, DES or DES3)
-		if !isValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsInternalAllow[:]) {
+		if !isValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsExternalAllow[:]) {
 			logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM must key label is incorrect"})
 			return
@@ -297,7 +297,7 @@ func HandlePutK4(c *gin.Context) {
 	// Update the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		// Check the K4 label keys (AES, DES or DES3)
-		if !isValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsInternalAllow[:]) {
+		if !isValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsExternalAllow[:]) {
 			logger.DbLog.Error("failed to update k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in SSM must key label is incorrect"})
 			return
@@ -366,9 +366,7 @@ func HandleDeleteK4(c *gin.Context) {
 	// Update the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		// Send the request to the SSM
-		if keylabel != ssm_constants.LABEL_K4_KEY_AES &&
-			keylabel != ssm_constants.LABEL_K4_KEY_DES &&
-			keylabel != ssm_constants.LABEL_K4_KEY_DES3 {
+		if !isValidKeyIdentifier(keylabel, ssm_constants.KeyLabelsExternalAllow[:]) && !isValidKeyIdentifier(keylabel, ssm_constants.KeyLabelsInternalAllow[:]) {
 			logger.DbLog.Error("failed to delete k4 key in SSM the label key is not valid")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key in SSM must key label is incorrect"})
 			return

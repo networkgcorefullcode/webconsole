@@ -57,6 +57,9 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 	} else {
 		configapi.AddApiService(subconfig_router)
 		configapi.AddConfigV1Service(subconfig_router, nFConfigSyncMiddleware)
+		if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
+			ssmsync.AddSyncSSMService(subconfig_router)
+		}
 	}
 	AddSwaggerUiService(subconfig_router)
 	AddUiService(subconfig_router)
@@ -86,7 +89,6 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 		time.Sleep(time.Second * 5) // stop work to send the health check function
 		go ssmsync.SyncSsm(ssmSyncMsg)
 		go ssmsync.SsmSyncInitDefault(ssmSyncMsg)
-		ssmsync.AddSyncSSMService(subconfig_router)
 	}
 
 	go func() {
