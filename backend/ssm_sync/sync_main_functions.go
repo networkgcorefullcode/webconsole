@@ -15,6 +15,10 @@ import (
 
 func SsmSyncInitDefault(ssmSyncMsg chan *SsmSyncMessage) {
 	// Initialize default SSM synchronization messages
+	if readStopCondition() {
+		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
+		return
+	}
 	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, "SYNC_OUR_KEYS")
 	for _, keyLabel := range ssm_constants.KeyLabelsInternalAllow {
 		SyncKeys(keyLabel, "SYNC_OUR_KEYS")
@@ -27,6 +31,11 @@ func SsmSyncInitDefault(ssmSyncMsg chan *SsmSyncMessage) {
 // Function that will be called concurrently to handle SSM synchronization
 func SyncKeys(keyLabel, action string) {
 	// Logic to synchronize keys with SSM
+
+	if readStopCondition() {
+		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
+		return
+	}
 
 	//channels
 	k4listChanMDB := make(chan []configmodels.K4)
@@ -133,7 +142,10 @@ func SyncKeys(keyLabel, action string) {
 
 func SyncUsers() {
 	// Logic to synchronize users with SSM encryption user data that are not stored in SSM
-
+	if readStopCondition() {
+		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
+		return
+	}
 	userList := getUsers()
 
 	for _, user := range userList {

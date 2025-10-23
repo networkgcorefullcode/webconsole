@@ -16,6 +16,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+func readStopCondition() bool {
+	healthMutex.Lock()
+	defer healthMutex.Unlock()
+	return StopSSMsyncFunction
+}
+
 func getMongoDBLabelFilter(keyLabel string, k4listChan chan []configmodels.K4) {
 	k4List := make([]configmodels.K4, 0)
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.K4KeysColl, bson.M{"key_label": keyLabel})

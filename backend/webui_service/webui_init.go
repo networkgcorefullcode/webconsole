@@ -121,6 +121,7 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 	// Init a gorutine to sincronize SSM functionality
 	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
 		// ssmsync.SetCfgChannel(configMsgChan)
+		go ssmsync.HealthCheckSSM()
 		go ssmsync.SyncSsm(SsmSyncMsg)
 		go ssmsync.SsmSyncInitDefault(SsmSyncMsg)
 	}

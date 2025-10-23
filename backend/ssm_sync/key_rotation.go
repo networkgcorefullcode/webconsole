@@ -42,7 +42,10 @@ func keyRotationListen(ssmSyncMsg chan *SsmSyncMessage) {
 
 func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) {
 	// check the key life periodicly
-
+	if readStopCondition() {
+		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
+		return
+	}
 	// first sync the keys
 	SsmSyncInitDefault(ssmSyncMsg)
 
@@ -101,7 +104,10 @@ func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) {
 
 func rotateExpiredKeys(ssmSyncMsg chan *SsmSyncMessage) {
 	// rotate the keys that are older than 90 days
-
+	if readStopCondition() {
+		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
+		return
+	}
 	// 1st syncronize the keys
 	SsmSyncInitDefault(ssmSyncMsg)
 

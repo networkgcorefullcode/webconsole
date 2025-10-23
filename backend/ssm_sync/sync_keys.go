@@ -31,7 +31,6 @@ func syncKeyListen(ssmSyncMsg chan *SsmSyncMessage) {
 			case "SYNC_USERS":
 				// Logic to synchronize users with SSM encryption user data that are not stored in SSM
 				go SyncUsers()
-			// TODO: implement health check action
 			default:
 				logger.AppLog.Warnf("Unknown SSM sync action: %s", msg.Action)
 			}

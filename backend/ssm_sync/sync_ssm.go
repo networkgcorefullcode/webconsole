@@ -16,6 +16,8 @@ type SsmSyncMessage struct {
 	Info   string
 }
 
+var StopSSMsyncFunction bool = false
+
 var ErrorSyncChan chan error = make(chan error, 10)
 var ErrorRotationChan chan error = make(chan error, 10)
 
@@ -26,10 +28,13 @@ var ErrorRotationChan chan error = make(chan error, 10)
 // Implementation of SSM synchronization logic
 func SyncSsm(ssmSyncMsg chan *SsmSyncMessage) {
 	// A select statement to listen for messages or timers
+
 	go syncKeyListen(ssmSyncMsg)
 
 	// Listen for rotation operations
 	go keyRotationListen(ssmSyncMsg)
+
+	// TODO: implement health check action
 
 	for {
 		select {
