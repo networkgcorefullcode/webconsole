@@ -50,6 +50,12 @@ func getMongoDBAllK4(k4listChan chan []configmodels.K4) {
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.K4KeysColl, bson.M{})
 	if errGetMany != nil {
 		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+		ErrorSyncChan <- errGetMany
+		return
+	}
+	if len(k4DataList) == 0 {
+		k4listChan <- k4List
+		return
 	}
 
 	for _, k4Data := range k4DataList {
@@ -107,6 +113,7 @@ func deleteKeyToSSM(k4 configmodels.K4) error {
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.DeleteKey`: %v", err)
 		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		return err
 	}
 
 	return nil
