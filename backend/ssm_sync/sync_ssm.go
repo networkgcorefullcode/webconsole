@@ -7,7 +7,7 @@ import (
 
 // TODO: analise this implementation and add mutex to avoid race conditions
 
-var cfgChannel chan *configmodels.ConfigMessage
+// var cfgChannel chan *configmodels.ConfigMessage
 
 // Message structure for SSM synchronization
 // List of actions: "SYNC_EXTERNAL_KEYS", "SYNC_USERS", "SYNC_OUR_KEYS", "HEALTH_CHECK" see below
