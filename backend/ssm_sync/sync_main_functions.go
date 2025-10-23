@@ -168,6 +168,7 @@ func SyncUsers() {
 				if err != nil {
 					logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
 					logger.DbLog.Errorf("Full HTTP response: %v", r)
+					return
 				}
 				newSubAuthData := subsData.AuthenticationSubscription
 
@@ -188,13 +189,13 @@ func SyncUsers() {
 				}
 				logger.WebUILog.Infof("Subscriber %s updated successfully", user.UeId)
 
-				msg := configmodels.ConfigMessage{
-					MsgType:     configmodels.Sub_data,
-					MsgMethod:   configmodels.Put_op,
-					AuthSubData: &newSubAuthData,
-					Imsi:        user.UeId,
-				}
-				cfgChannel <- &msg
+				// msg := configmodels.ConfigMessage{
+				// 	MsgType:     configmodels.Sub_data,
+				// 	MsgMethod:   configmodels.Put_op,
+				// 	AuthSubData: &newSubAuthData,
+				// 	Imsi:        user.UeId,
+				// }
+				// cfgChannel <- &msg
 			}
 
 		}()

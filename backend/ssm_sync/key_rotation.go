@@ -257,13 +257,13 @@ func encryptUserKey(user *models.AuthenticationSubscription, k4 configmodels.K4,
 	}
 	logger.WebUILog.Infof("Subscriber %s updated successfully", ueId)
 
-	msg := configmodels.ConfigMessage{
-		MsgType:     configmodels.Sub_data,
-		MsgMethod:   configmodels.Put_op,
-		AuthSubData: user,
-		Imsi:        ueId,
-	}
-	cfgChannel <- &msg
+	// msg := configmodels.ConfigMessage{
+	// 	MsgType:     configmodels.Sub_data,
+	// 	MsgMethod:   configmodels.Put_op,
+	// 	AuthSubData: user,
+	// 	Imsi:        ueId,
+	// }
+	// cfgChannel <- &msg
 }
 
 func getUsersForRotation(k4 configmodels.K4) (map[string]models.AuthenticationSubscription, error) {
