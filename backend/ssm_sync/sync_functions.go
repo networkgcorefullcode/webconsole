@@ -35,19 +35,17 @@ func getMongoDBLabelFilter(keyLabel string, k4listChan chan []configmodels.K4) {
 		k4listChan <- k4List
 		return
 	}
-	for _, k4Data := range k4DataList {
-		tmp := configmodels.K4{
-			K4:      k4Data["k4"].(string),
-			K4_Type: k4Data["key_type"].(string),
+
+	var k4Data configmodels.K4
+	for _, k4DataInterface := range k4DataList {
+		err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
+		if err != nil {
+			k4listChan <- nil
+			ErrorSyncChan <- err
+			return
 		}
 
-		K4SNO_Float := k4Data["k4_sno"].(float64)
-		K4SNO_Int := int(K4SNO_Float)
-		K4_SNO := byte(K4SNO_Int)
-
-		tmp.K4_SNO = K4_SNO
-
-		k4List = append(k4List, tmp)
+		k4List = append(k4List, k4Data)
 	}
 	k4listChan <- k4List
 }
@@ -66,21 +64,16 @@ func getMongoDBAllK4(k4listChan chan []configmodels.K4) {
 		return
 	}
 
-	for _, k4Data := range k4DataList {
-		tmp := configmodels.K4{
-			K4:          k4Data["k4"].(string),
-			K4_Type:     k4Data["key_type"].(string),
-			TimeCreated: k4Data["time_created"].(time.Time),
-			TimeUpdated: k4Data["time_updated"].(time.Time),
+	var k4Data configmodels.K4
+	for _, k4DataInterface := range k4DataList {
+		err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
+		if err != nil {
+			k4listChan <- nil
+			ErrorSyncChan <- err
+			return
 		}
 
-		K4SNO_Float := k4Data["k4_sno"].(float64)
-		K4SNO_Int := int(K4SNO_Float)
-		K4_SNO := byte(K4SNO_Int)
-
-		tmp.K4_SNO = K4_SNO
-
-		k4List = append(k4List, tmp)
+		k4List = append(k4List, k4Data)
 	}
 	k4listChan <- k4List
 }

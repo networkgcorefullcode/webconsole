@@ -55,20 +55,16 @@ func HandleGetsK4(c *gin.Context) {
 		return
 	}
 
-	for _, k4Data := range k4DataList {
-		tmp := configmodels.K4{
-			K4:       k4Data["k4"].(string),
-			K4_Label: k4Data["key_label"].(string),
-			K4_Type:  k4Data["key_type"].(string),
+	var k4Data configmodels.K4
+	for _, k4DataInterface := range k4DataList {
+		err := json.Unmarshal(configmodels.MapToByte(k4DataInterface), &k4Data)
+		if err != nil {
+			logger.WebUILog.Errorf("error unmarshalling k4 key data: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve k4 key"})
+			return
 		}
 
-		K4SNO_Float := k4Data["k4_sno"].(float64)
-		K4SNO_Int := int(K4SNO_Float)
-		K4_SNO := byte(K4SNO_Int)
-
-		tmp.K4_SNO = K4_SNO
-
-		k4List = append(k4List, tmp)
+		k4List = append(k4List, k4Data)
 	}
 
 	c.JSON(http.StatusOK, k4List)
