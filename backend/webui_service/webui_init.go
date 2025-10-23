@@ -78,6 +78,17 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 		MaxAge:           86400,
 	}))
 
+	// Init a gorutine to sincronize SSM functionality
+	ssmSyncMsg := make(chan *ssmsync.SsmSyncMessage, 10)
+	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
+		// ssmsync.SetCfgChannel(configMsgChan)
+		go ssmsync.HealthCheckSSM()
+		time.Sleep(time.Second * 5) // stop work to send the health check function
+		go ssmsync.SyncSsm(ssmSyncMsg)
+		go ssmsync.SsmSyncInitDefault(ssmSyncMsg)
+		ssmsync.AddSyncSSMService(subconfig_router)
+	}
+
 	go func() {
 		httpAddr := ":" + strconv.Itoa(factory.WebUIConfig.Configuration.CfgPort)
 		logger.InitLog.Infoln("Webui HTTP addr", httpAddr)
@@ -116,16 +127,6 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 			logger.InitLog.Fatalln("HTTP server setup failed:", err)
 		}
 	}()
-
-	SsmSyncMsg := make(chan *ssmsync.SsmSyncMessage, 10)
-	// Init a gorutine to sincronize SSM functionality
-	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
-		// ssmsync.SetCfgChannel(configMsgChan)
-		go ssmsync.HealthCheckSSM()
-		time.Sleep(time.Second * 5) // stop work to send the health check function
-		go ssmsync.SyncSsm(SsmSyncMsg)
-		go ssmsync.SsmSyncInitDefault(SsmSyncMsg)
-	}
 
 	if factory.WebUIConfig.Configuration.Mode5G {
 		self := webui_context.WEBUI_Self()

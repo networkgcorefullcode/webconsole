@@ -18,6 +18,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+var CheckMutex, RotationMutex sync.Mutex
+
 func keyRotationListen(ssmSyncMsg chan *SsmSyncMessage) {
 	ticker24h := time.NewTicker(24 * time.Hour)
 	ticker90d := time.NewTicker(90 * 24 * time.Hour)
@@ -42,6 +44,11 @@ func keyRotationListen(ssmSyncMsg chan *SsmSyncMessage) {
 }
 
 func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) {
+	CheckMutex.Lock()
+	RotationMutex.Lock()
+
+	defer CheckMutex.Unlock()
+	defer RotationMutex.Unlock()
 	// check the key life periodicly
 	if readStopCondition() {
 		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
@@ -109,6 +116,11 @@ func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) {
 }
 
 func rotateExpiredKeys(ssmSyncMsg chan *SsmSyncMessage) {
+	CheckMutex.Lock()
+	RotationMutex.Lock()
+
+	defer CheckMutex.Unlock()
+	defer RotationMutex.Unlock()
 	// rotate the keys that are older than 90 days
 	if readStopCondition() {
 		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")

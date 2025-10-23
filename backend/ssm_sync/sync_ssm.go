@@ -28,6 +28,7 @@ var ErrorRotationChan chan error = make(chan error, 10)
 // Implementation of SSM synchronization logic
 func SyncSsm(ssmSyncMsg chan *SsmSyncMessage) {
 	// A select statement to listen for messages or timers
+	setSyncChanHandle(ssmSyncMsg)
 
 	go syncKeyListen(ssmSyncMsg)
 

@@ -1,6 +1,7 @@
 package ssmsync
 
 import (
+	"sync"
 	"time"
 
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
@@ -8,26 +9,22 @@ import (
 	"github.com/omec-project/webconsole/backend/logger"
 )
 
+var SyncOurKeysMutex sync.Mutex
+var SyncExternalKeysMutex sync.Mutex
+var SyncUserMutex sync.Mutex
+
 func syncKeyListen(ssmSyncMsg chan *SsmSyncMessage) {
 	period := time.Duration(factory.WebUIConfig.Configuration.SSM.SsmSync.IntervalMinute) * time.Minute
 	ticker := time.NewTicker(period)
 	defer ticker.Stop()
-
 	for {
 		select {
 		case msg := <-ssmSyncMsg:
 			switch msg.Action {
 			case "SYNC_OUR_KEYS":
-				// Logic to synchronize our keys with SSM this process check if we have keys like as AES, DES or DES3
-				SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, msg.Action)
-				for _, keyLabel := range ssm_constants.KeyLabelsInternalAllow {
-					go SyncKeys(keyLabel, msg.Action)
-				}
+				go syncOurKeys(msg.Action)
 			case "SYNC_EXTERNAL_KEYS":
-				// Logic to synchronize keys with SSM
-				for _, keyLabel := range ssm_constants.KeyLabelsExternalAllow {
-					go SyncKeys(keyLabel, msg.Action)
-				}
+				go syncExternalKeys(msg.Action)
 			case "SYNC_USERS":
 				// Logic to synchronize users with SSM encryption user data that are not stored in SSM
 				go SyncUsers()
@@ -40,4 +37,44 @@ func syncKeyListen(ssmSyncMsg chan *SsmSyncMessage) {
 			SsmSyncInitDefault(ssmSyncMsg)
 		}
 	}
+}
+
+func syncOurKeys(action string) {
+	SyncOurKeysMutex.Lock()
+	defer SyncOurKeysMutex.Unlock()
+
+	// wait group
+	var wg sync.WaitGroup
+
+	// Logic to synchronize our keys with SSM this process check if we have keys like as AES, DES or DES3
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, action)
+	}()
+	for _, keyLabel := range ssm_constants.KeyLabelsInternalAllow {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			SyncKeys(keyLabel, action)
+		}()
+	}
+	wg.Wait()
+}
+
+func syncExternalKeys(action string) {
+	SyncExternalKeysMutex.Lock()
+	defer SyncExternalKeysMutex.Unlock()
+	// wait group
+	var wg sync.WaitGroup
+
+	// Logic to synchronize keys with SSM
+	for _, keyLabel := range ssm_constants.KeyLabelsExternalAllow {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			SyncKeys(keyLabel, action)
+		}()
+	}
+	wg.Wait()
 }
