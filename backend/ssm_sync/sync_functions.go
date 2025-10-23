@@ -97,6 +97,7 @@ func getSSMLabelFilter(keyLabel string, dataKeyInfoListChan chan []ssm.DataKeyIn
 		logger.DbLog.Errorf("Full HTTP response: %v", r)
 		dataKeyInfoListChan <- nil
 		ErrorSyncChan <- err
+		return
 	}
 
 	dataKeyInfoListChan <- resp.Keys
