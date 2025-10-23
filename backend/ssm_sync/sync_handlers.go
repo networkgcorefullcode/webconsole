@@ -16,9 +16,23 @@ func setSyncChanHandle(ch chan *SsmSyncMessage) {
 
 func handleSyncKey(c *gin.Context) {
 	// Try to get the priority
-	if !SyncExternalKeysMutex.TryLock() ||
-		!SyncOurKeysMutex.TryLock() ||
-		!SyncUserMutex.TryLock() {
+	externalLocked := SyncExternalKeysMutex.TryLock()
+	ourKeysLocked := SyncOurKeysMutex.TryLock()
+	userLocked := SyncUserMutex.TryLock()
+
+	// If any lock failed, cleanup and return error
+	if !externalLocked || !ourKeysLocked || !userLocked {
+		// Unlock only the ones we successfully locked
+		if externalLocked {
+			SyncExternalKeysMutex.Unlock()
+		}
+		if ourKeysLocked {
+			SyncOurKeysMutex.Unlock()
+		}
+		if userLocked {
+			SyncUserMutex.Unlock()
+		}
+
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "sync function is running"})
 		return
 	}
@@ -61,9 +75,20 @@ func handleSyncKey(c *gin.Context) {
 }
 
 func handleCheckK4Life(c *gin.Context) {
-	// Try to get the priority
-	if !CheckMutex.TryLock() &&
-		!RotationMutex.TryLock() {
+	// Try to acquire all locks individually
+	checkLocked := CheckMutex.TryLock()
+	rotationLocked := RotationMutex.TryLock()
+
+	// If any lock failed, cleanup and return error
+	if !checkLocked || !rotationLocked {
+		// Unlock only the ones we successfully locked
+		if checkLocked {
+			CheckMutex.Unlock()
+		}
+		if rotationLocked {
+			RotationMutex.Unlock()
+		}
+
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "the operation check life k4 or rotation k4 is running"})
 		return
 	}
@@ -77,9 +102,20 @@ func handleCheckK4Life(c *gin.Context) {
 }
 
 func handleRotationKey(c *gin.Context) {
-	// Try to get the priority
-	if !CheckMutex.TryLock() &&
-		!RotationMutex.TryLock() {
+	// Try to acquire all locks individually
+	checkLocked := CheckMutex.TryLock()
+	rotationLocked := RotationMutex.TryLock()
+
+	// If any lock failed, cleanup and return error
+	if !checkLocked || !rotationLocked {
+		// Unlock only the ones we successfully locked
+		if checkLocked {
+			CheckMutex.Unlock()
+		}
+		if rotationLocked {
+			RotationMutex.Unlock()
+		}
+
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "the operation check life k4 or rotation k4 is running"})
 		return
 	}
