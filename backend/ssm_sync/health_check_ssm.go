@@ -24,6 +24,7 @@ func HealthCheckSSM() {
 			logger.DbLog.Errorf("Full HTTP response: %v", r)
 			StopSSMsyncFunction = true
 			healthMutex.Unlock()
+			time.Sleep(time.Second * 5)
 			continue
 		}
 
