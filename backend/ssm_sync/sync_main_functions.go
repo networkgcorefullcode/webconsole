@@ -141,13 +141,13 @@ func SyncKeys(keyLabel, action string) {
 }
 
 func SyncUsers() {
+	SyncUserMutex.Lock()
+	defer SyncUserMutex.Unlock()
+
 	coreUserSync()
 }
 
 func coreUserSync() {
-	SyncUserMutex.Lock()
-	defer SyncUserMutex.Unlock()
-
 	if readStopCondition() {
 		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
 		return

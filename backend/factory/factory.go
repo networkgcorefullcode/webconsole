@@ -67,10 +67,13 @@ func InitConfigFactory(f string) error {
 				AllowSsm:     false,
 				TLS_Insecure: true,
 				SsmSync: &SsmSync{
-					Enable:         false,
-					IntervalMinute: 0,
-					MaxKeysCreate:  5,
-					DeleteMissing:  false,
+					Enable:           false,
+					IntervalMinute:   0,
+					MaxKeysCreate:    5,
+					DeleteMissing:    false,
+					MaxSyncKeys:      0,
+					MaxSyncUsers:     0,
+					MaxSyncRotations: 0,
 				},
 			}
 		}
@@ -79,10 +82,13 @@ func InitConfigFactory(f string) error {
 		}
 		if WebUIConfig.Configuration.SSM.SsmSync == nil && WebUIConfig.Configuration.SSM.AllowSsm {
 			WebUIConfig.Configuration.SSM.SsmSync = &SsmSync{
-				Enable:         true,
-				IntervalMinute: 60,
-				MaxKeysCreate:  5,
-				DeleteMissing:  true,
+				Enable:           true,
+				IntervalMinute:   60,
+				MaxKeysCreate:    5,
+				DeleteMissing:    true,
+				MaxSyncKeys:      5,
+				MaxSyncUsers:     5,
+				MaxSyncRotations: 5,
 			}
 		}
 

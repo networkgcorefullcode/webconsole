@@ -47,11 +47,7 @@ func syncOurKeys(action string) {
 	var wg sync.WaitGroup
 
 	// Logic to synchronize our keys with SSM this process check if we have keys like as AES, DES or DES3
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, action)
-	}()
+	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, action)
 	for _, keyLabel := range ssm_constants.KeyLabelsInternalAllow {
 		wg.Add(1)
 		go func() {

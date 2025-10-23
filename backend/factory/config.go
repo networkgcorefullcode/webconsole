@@ -45,9 +45,9 @@ type Configuration struct {
 }
 
 type SSM struct {
-	SsmUri       string  `yaml:"ssm-uri,omitempty"`
-	AllowSsm     bool    `yaml:"allow-ssm,omitempty"`
-	TLS_Insecure bool    `yaml:"tls-insecure,omitempty"`
+	SsmUri       string   `yaml:"ssm-uri,omitempty"`
+	AllowSsm     bool     `yaml:"allow-ssm,omitempty"`
+	TLS_Insecure bool     `yaml:"tls-insecure,omitempty"`
 	SsmSync      *SsmSync `yaml:"ssm-synchronize,omitempty"`
 }
 type TLS struct {
@@ -56,10 +56,13 @@ type TLS struct {
 }
 
 type SsmSync struct {
-	Enable         bool `yaml:"enable,omitempty"`
-	IntervalMinute int  `yaml:"interval-minute,omitempty"`
-	MaxKeysCreate  int  `yaml:"max-keys-create,omitempty"`
-	DeleteMissing  bool `yaml:"delete-missing,omitempty"`
+	Enable           bool `yaml:"enable,omitempty"`
+	IntervalMinute   int  `yaml:"interval-minute,omitempty"`
+	MaxKeysCreate    int  `yaml:"max-keys-create,omitempty"`
+	DeleteMissing    bool `yaml:"delete-missing,omitempty"`
+	MaxSyncKeys      int  `yaml:"max-sync-keys,omitempty"`
+	MaxSyncUsers     int  `yaml:"max-sync-users,omitempty"`
+	MaxSyncRotations int  `yaml:"max-sync-users,omitempty"`
 }
 
 type Mongodb struct {
