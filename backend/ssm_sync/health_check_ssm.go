@@ -15,8 +15,8 @@ func HealthCheckSSM() {
 
 	apiClient := getSSMAPIClient()
 	for {
-		time.Sleep(time.Second * 5)
 		healthMutex.Lock()
+		logger.AppLog.Debug("Send a heathcheck to the ssm")
 		resp, r, err := apiClient.HealthAPI.HealthCheckGet(context.Background()).Execute()
 
 		if err != nil {
@@ -33,5 +33,6 @@ func HealthCheckSSM() {
 			}
 		}
 		healthMutex.Unlock()
+		time.Sleep(time.Second * 5)
 	}
 }

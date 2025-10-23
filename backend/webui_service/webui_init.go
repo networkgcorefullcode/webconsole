@@ -122,6 +122,7 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
 		// ssmsync.SetCfgChannel(configMsgChan)
 		go ssmsync.HealthCheckSSM()
+		time.Sleep(time.Second * 5) // stop work to send the health check function
 		go ssmsync.SyncSsm(SsmSyncMsg)
 		go ssmsync.SsmSyncInitDefault(SsmSyncMsg)
 	}
