@@ -2,7 +2,6 @@ package ssmsync
 
 import (
 	"github.com/omec-project/webconsole/backend/logger"
-	"github.com/omec-project/webconsole/configmodels"
 )
 
 // TODO: analise this implementation and add mutex to avoid race conditions
@@ -20,9 +19,9 @@ type SsmSyncMessage struct {
 var ErrorSyncChan chan error = make(chan error, 10)
 var ErrorRotationChan chan error = make(chan error, 10)
 
-func SetCfgChannel(ch chan *configmodels.ConfigMessage) {
-	cfgChannel = ch
-}
+// func SetCfgChannel(ch chan *configmodels.ConfigMessage) {
+// 	cfgChannel = ch
+// }
 
 // Implementation of SSM synchronization logic
 func SyncSsm(ssmSyncMsg chan *SsmSyncMessage) {
