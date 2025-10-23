@@ -16,8 +16,8 @@ func setSyncChanHandle(ch chan *SsmSyncMessage) {
 
 func handleSyncKey(c *gin.Context) {
 	// Try to get the priority
-	if !SyncExternalKeysMutex.TryLock() &&
-		!SyncOurKeysMutex.TryLock() &&
+	if !SyncExternalKeysMutex.TryLock() ||
+		!SyncOurKeysMutex.TryLock() ||
 		!SyncUserMutex.TryLock() {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "sync function is running"})
 		return
