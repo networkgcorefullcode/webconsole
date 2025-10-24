@@ -62,7 +62,7 @@ type SsmSync struct {
 	DeleteMissing    bool `yaml:"delete-missing,omitempty"`
 	MaxSyncKeys      int  `yaml:"max-sync-keys,omitempty"`
 	MaxSyncUsers     int  `yaml:"max-sync-users,omitempty"`
-	MaxSyncRotations int  `yaml:"max-sync-users,omitempty"`
+	MaxSyncRotations int  `yaml:"max-sync-rotations,omitempty"`
 }
 
 type Mongodb struct {

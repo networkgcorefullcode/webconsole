@@ -54,7 +54,7 @@ configuration:
       enable: true
       interval-minute: 30
       max-keys-create: 5
-      delete-missing: false
+      delete-missing: true
       max-sync-keys: 5
       max-sync-users: 5
       max-sync-rotations: 5

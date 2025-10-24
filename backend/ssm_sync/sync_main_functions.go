@@ -117,7 +117,7 @@ func SyncKeys(keyLabel, action string) {
 
 	// Case 3: Keys in SSM but not in MDB - log warning
 	for identifier := range ssmKeysMap {
-		if k4, existsInMDB := mdbKeysMap[identifier]; !existsInMDB {
+		if _, existsInMDB := mdbKeysMap[identifier]; !existsInMDB {
 			logger.AppLog.Warnf("Key identifier %d exists in SSM but not in MongoDB - Label: %s", identifier, keyLabel)
 			// Policy decision: we can either remove from SSM or just log
 			// For safety, we'll just log by default
@@ -125,6 +125,11 @@ func SyncKeys(keyLabel, action string) {
 			if factory.WebUIConfig.Configuration.SSM.SsmSync.DeleteMissing {
 				go func() {
 					logger.AppLog.Infof("Removing key identifier %d from SSM as per policy", identifier)
+					dataInfo := ssmKeysMap[identifier]
+					k4 := configmodels.K4{
+						K4_SNO:   byte(dataInfo.Id),
+						K4_Label: keyLabel,
+					}
 					if err := deleteKeyToSSM(k4); err != nil {
 						logger.AppLog.Errorf("Failed to remove key identifier %d from SSM: %v", identifier, err)
 					} else {
