@@ -126,10 +126,12 @@ func storeInMongoDB(k4 configmodels.K4, keyLabel string) error {
 	logger.AppLog.Infof("Storing new key SNO %d in MongoDB with label %s", k4.K4_SNO, keyLabel)
 
 	k4Data := bson.M{
-		"k4":        k4.K4,
-		"k4_sno":    k4.K4_SNO,
-		"key_label": k4.K4_Label,
-		"key_type":  k4.K4_Type,
+		"k4":           k4.K4,
+		"k4_sno":       k4.K4_SNO,
+		"key_label":    k4.K4_Label,
+		"key_type":     k4.K4_Type,
+		"time_created": time.Now(),
+		"time_updated": time.Now(),
 	}
 
 	_, err := dbadapter.AuthDBClient.RestfulAPIPutOne(configapi.K4KeysColl, bson.M{"k4_sno": k4.K4_SNO, "key_label": keyLabel}, k4Data)
