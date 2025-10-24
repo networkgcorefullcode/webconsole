@@ -1,0 +1,64 @@
+info:
+  version: 1.0.0
+  description: WebUI Configuration
+  http-version: 2
+
+configuration:
+  # 5G mode
+  spec-compliant-sdf: false
+  enableAuthentication: false
+  send-pebble-notifications: false
+  cfgport: 5000
+
+  # MongoDB configuration
+  mongodb:
+    name: aether
+    url: mongodb://localhost:27017
+    authKeysDbName: authentication
+    authUrl: mongodb://localhost:27017
+    webuiDbName: aether
+    webuiDbUrl: mongodb://localhost:27017
+    checkReplica: false
+
+  # WebUI TLS configuration
+  # webui-tls:
+  #   pem: config/TLS/webuicert.pem
+  #   key: config/TLS/webuikey.pem
+
+  # NF Config TLS configuration
+  # nfconfig-tls:
+  #   pem: config/TLS/nfconfigcert.pem
+  #   key: config/TLS/nfconfigkey.pem
+
+  # ROC endpoint configuration
+  managedByConfigPod:
+    syncUrl: http://roc-service:8080/sync
+    enabled: false
+
+  # LTE endpoints configuration
+  # endpoints:
+  #   - type: mme
+  #     configPushUrl: http://mme-service:8080/config
+  #     configCheckUrl: http://mme-service:8080/check
+  #   - type: spgwc
+  #     configPushUrl: http://spgwc-service:8080/config
+  #     configCheckUrl: http://spgwc-service:8080/check
+
+
+  # SSM (Secure Storage Module) configuration
+  ssm:
+    ssm-uri: https://localhost:9000
+    allow-ssm: true
+    tls-insecure: true
+    ssm-synchronize:
+      enable: true
+      interval-minute: 30
+      max-keys-create: 5
+      delete-missing: false
+      max-sync-keys: 5
+      max-sync-users: 5
+      max-sync-rotations: 5
+
+logger:
+  WEBUI:
+    debugLevel: debug
