@@ -48,7 +48,7 @@ configuration:
   # SSM (Secure Storage Module) configuration
   ssm:
     ssm-uri: https://localhost:9000
-    allow-ssm: true
+    allow-ssm: false
     tls-insecure: true
     ssm-synchronize:
       enable: true
