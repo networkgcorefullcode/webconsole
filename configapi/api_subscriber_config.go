@@ -18,7 +18,8 @@ import (
 	"github.com/google/uuid"
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	"github.com/omec-project/openapi/models"
-	"github.com/omec-project/webconsole/backend/factory"
+
+	//	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/webui_context"
 	"github.com/omec-project/webconsole/configmodels"
@@ -800,13 +801,13 @@ func GetUEPDUSessionInfo(c *gin.Context) {
 func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) error {
 	if k4Sno != nil {
 		snoIdint := int(*k4Sno)
-		filter := bson.M{"k4_sno": snoIdint}
-		if factory.WebUIConfig.Configuration.SSM.AllowSsm {
-			filter = bson.M{
-				"key_label": ssm_constants.AlgorithmLabelMap[int(authSubsData.PermanentKey.EncryptionAlgorithm)],
-				"k4_sno":    snoIdint,
-			}
+		//		filter := bson.M{"k4_sno": snoIdint}
+		//		if factory.WebUIConfig.Configuration.SSM.AllowSsm {
+		filter := bson.M{
+			"key_label": ssm_constants.AlgorithmLabelMap[int(authSubsData.PermanentKey.EncryptionAlgorithm)],
+			"k4_sno":    snoIdint,
 		}
+		//		}
 
 		var k4Data configmodels.K4
 
