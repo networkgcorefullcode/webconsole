@@ -17,6 +17,99 @@ features Configuration Service provides APIs for subscriber management.
 4. 5G clients can connect & get complete configuration copy through grpc interface.
 5. 4G clients communicate with Webconsole through REST interface
 
+
+## Repository Structure 
+
+```
+Below is a high-level view of the repository and its main components:
+
+.
+├── backend/               # Backend service logic
+│   ├── auth/              
+│   ├── factory/           
+│   ├── logger/           
+│   ├── metrics/           
+│   ├── nfconfig/          
+│   ├── ssm_sync/          
+│   ├── webui_context/     
+│   └── webui_service/     
+│
+├── config/                # Default and example configuration files
+│   ├── default-ue-data.json
+│   └── override-sample.json
+│
+├── configapi/             # REST API implementation
+│   ├── api/               
+│   ├── handlers_*.go      
+│   └── routers*.go        
+│
+├── configmodels/          # Data models (device groups, slices, users, etc.)
+│   ├── model_slice.go
+│   ├── model_device_groups.go
+│   └── model_subs_data.go
+│
+├── dbadapter/             # Database adapters and mock clients
+│   ├── db_adapter.go
+│   └── mock_client.go
+│
+├── docs/                  # Technical documentation and diagrams
+│   ├── curl-commands.md
+│   └── images/architecture1.png
+│
+├── proto/                 # gRPC protobuf definitions and generated code
+│   ├── config.proto
+│   ├── sdcoreConfig/
+│   └── server/
+│
+├── ui/                    # Embedded web frontend
+│   ├── embed.go
+│   └── frontend_files/    # HTML, JS, and CSS files for the dashboard
+│
+├── vendor/                # Vendored Go dependencies
+│
+├── bin/                   # Compiled binaries
+│   └── webconsole-ui
+│
+├── server.go              # Main entry point for the webconsole service
+├── Makefile               # Build and test automation
+├── Taskfile.yml           # Build and test automation
+└── Dockerfile*            # Container build definitions
+```
+
+## Configuration and Deployment
+
+
+**Docker**
+
+To build the container image:
+
+```bash
+task mod-start
+task webconsole-ui
+task docker-build-fast
+```
+
+**Kubernetes**
+
+The standard deployment uses [Helm charts](https://charts.aetherproject.org) from the Aether project. The version of the Chart can be found in the OnRamp repository in the `vars/main.yml` file.
+
+
+## Quick Navigation
+
+
+| Path                 | Description                        |
+| -------------------- | ---------------------------------- |
+| `backend/`           | Core backend logic                 |
+| `configapi/`         | REST API implementation            |
+| `configmodels/`      | Data models and schema definitions |
+| `proto/`             | gRPC and protobuf definitions      |
+| `ui/frontend_files/` | Embedded web frontend              |
+| `server.go`          | Service entry point                |
+| `Dockerfile`         | Container image definition         |
+| `docs/`              | Documentation and diagrams         |
+
+
+
 ## UI
 
 Webconsole can optionally serve static files, which constitute the frontend part of the application.
