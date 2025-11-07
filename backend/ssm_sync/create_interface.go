@@ -1,7 +1,11 @@
 package ssmsync
 
 import (
-	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"net/http"
+	"os"
 
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	ssm "github.com/networkgcorefullcode/ssm/models"
@@ -15,12 +19,58 @@ type CreateKeySSM interface {
 	CreateNewKeySSM(keyLabel string, id int32) (configmodels.K4, error)
 }
 
+var apiClient *ssm.APIClient
+
 // getSSMAPIClient creates and returns a configured SSM API client
 func getSSMAPIClient() *ssm.APIClient {
+	if apiClient != nil {
+		return apiClient
+	}
 	configuration := ssm.NewConfiguration()
 	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
 	configuration.HTTPClient = configapi.GetHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
-	return ssm.NewAPIClient(configuration)
+
+	if factory.WebUIConfig.Configuration.SSM.MTls == nil {
+		// 1️⃣ Load client certificate for mTLS
+		cert, err := tls.LoadX509KeyPair("client.crt", "client.key")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading client certificate: %v\n", err)
+			return nil
+		}
+
+		// 2️⃣ Load root certificate (CA) that signed the server
+		caCert, err := os.ReadFile("ca.crt")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading CA: %v\n", err)
+			return nil
+		}
+
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(caCert)
+
+		// 3️⃣ Configure TLS
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert}, // client authentication
+			RootCAs:      caCertPool,              // verify server
+			MinVersion:   tls.VersionTLS12,
+		}
+
+		// 4️⃣ Create an HTTP client with this configuration
+		transport := &http.Transport{TLSClientConfig: tlsConfig}
+		httpClient := &http.Client{Transport: transport}
+
+		if factory.WebUIConfig.Configuration.SSM.TLS_Insecure {
+			httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = true
+		}
+
+		// 5️⃣ Configure the OpenAPI client
+		configuration := ssm.NewConfiguration()
+		configuration.HTTPClient = httpClient
+	}
+
+	apiClient = ssm.NewAPIClient(configuration)
+
+	return apiClient
 }
 
 type CreateAES128SSM struct{}
@@ -35,7 +85,7 @@ func (c *CreateAES128SSM) CreateNewKeySSM(keyLabel string, id int32) (configmode
 
 	apiClient := getSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(context.Background()).GenAESKeyRequest(genAESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
@@ -63,7 +113,7 @@ func (c *CreateAES256SSM) CreateNewKeySSM(keyLabel string, id int32) (configmode
 
 	apiClient := getSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(context.Background()).GenAESKeyRequest(genAESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
@@ -90,7 +140,7 @@ func (c *CreateDes3SSM) CreateNewKeySSM(keyLabel string, id int32) (configmodels
 
 	apiClient := getSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateDES3Key(context.Background()).GenDES3KeyRequest(genDES3KeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateDES3Key(AuthContext).GenDES3KeyRequest(genDES3KeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateDES3Key`: %v", err)
@@ -117,7 +167,7 @@ func (c *CreateDesSSM) CreateNewKeySSM(keyLabel string, id int32) (configmodels.
 
 	apiClient := getSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateDESKey(context.Background()).GenDESKeyRequest(genDESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateDESKey(AuthContext).GenDESKeyRequest(genDESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateDESKey`: %v", err)

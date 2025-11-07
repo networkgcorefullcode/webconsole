@@ -1,7 +1,6 @@
 package ssmsync
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -89,7 +88,7 @@ func getSSMLabelFilter(keyLabel string, dataKeyInfoListChan chan []ssm.DataKeyIn
 
 	apiClient := getSSMAPIClient()
 
-	resp, r, err := apiClient.KeyManagementAPI.GetDataKeys(context.Background()).GetDataKeysRequest(getDataKeysRequest).Execute()
+	resp, r, err := apiClient.KeyManagementAPI.GetDataKeys(AuthContext).GetDataKeysRequest(getDataKeysRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GetDataKeys`: %v", err)
@@ -111,7 +110,7 @@ func deleteKeyToSSM(k4 configmodels.K4) error {
 		KeyLabel: k4.K4_Label,
 	}
 
-	_, r, err := apiClient.KeyManagementAPI.DeleteKey(context.Background()).DeleteKeyRequest(deleteDataKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.DeleteKey(AuthContext).DeleteKeyRequest(deleteDataKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.DeleteKey`: %v", err)

@@ -1,7 +1,6 @@
 package ssmsync
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -17,7 +16,7 @@ func HealthCheckSSM() {
 	for {
 		healthMutex.Lock()
 		logger.AppLog.Debug("Send a heathcheck to the ssm")
-		resp, r, err := apiClient.HealthAPI.HealthCheckGet(context.Background()).Execute()
+		resp, r, err := apiClient.HealthAPI.HealthCheckGet(AuthContext).Execute()
 
 		if err != nil {
 			logger.DbLog.Errorf("Error when calling `HealthCheck`: %v", err)

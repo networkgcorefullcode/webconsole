@@ -45,14 +45,28 @@ type Configuration struct {
 }
 
 type SSM struct {
-	SsmUri       string   `yaml:"ssm-uri,omitempty"`
-	AllowSsm     bool     `yaml:"allow-ssm,omitempty"`
-	TLS_Insecure bool     `yaml:"tls-insecure,omitempty"`
-	SsmSync      *SsmSync `yaml:"ssm-synchronize,omitempty"`
+	SsmUri       string    `yaml:"ssm-uri,omitempty"`
+	AllowSsm     bool      `yaml:"allow-ssm,omitempty"`
+	TLS_Insecure bool      `yaml:"tls-insecure,omitempty"`
+	SsmSync      *SsmSync  `yaml:"ssm-synchronize,omitempty"`
+	MTls         *TLS2     `yaml:"m-tls,omitempty"`
+	Login        *SSMLogin `yaml:"login,omitempty"` // use this config only for development purposes use environment variables in production
 }
 type TLS struct {
 	PEM string `yaml:"pem,omitempty"`
 	Key string `yaml:"key,omitempty"`
+	Ca  string `yaml:"ca,omitempty"`
+}
+
+type TLS2 struct {
+	Crt string `yaml:"crt,omitempty"`
+	Key string `yaml:"key,omitempty"`
+	Ca  string `yaml:"ca,omitempty"`
+}
+
+type SSMLogin struct {
+	ServiceId string `yaml:"service-id,omitempty"`
+	Password  string `yaml:"password,omitempty"`
 }
 
 type SsmSync struct {

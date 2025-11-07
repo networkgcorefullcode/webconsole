@@ -1,7 +1,6 @@
 package ssmsync
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -241,7 +240,7 @@ func decryptUserKI(user *models.AuthenticationSubscription, k4 configmodels.K4) 
 	}
 
 	// 3. Execute the SSM API call
-	decryptedResp, _, decryptErr := ssmClient.EncryptionAPI.DecryptData(context.Background()).DecryptRequest(decryptReq).Execute()
+	decryptedResp, _, decryptErr := ssmClient.EncryptionAPI.DecryptData(AuthContext).DecryptRequest(decryptReq).Execute()
 	if decryptErr != nil {
 		logger.AppLog.Errorf("SSM decryption failed: %+v", decryptErr)
 		return
@@ -262,7 +261,7 @@ func encryptUserKey(user *models.AuthenticationSubscription, k4 configmodels.K4,
 
 	apiClient := getSSMAPIClient()
 
-	resp, r, err := apiClient.EncryptionAPI.EncryptData(context.Background()).EncryptRequest(encryptRequest).Execute()
+	resp, r, err := apiClient.EncryptionAPI.EncryptData(AuthContext).EncryptRequest(encryptRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)

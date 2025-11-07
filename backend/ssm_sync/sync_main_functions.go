@@ -1,7 +1,6 @@
 package ssmsync
 
 import (
-	"context"
 	"errors"
 	"strconv"
 
@@ -186,7 +185,7 @@ func coreUserSync() {
 
 				apiClient := getSSMAPIClient()
 
-				resp, r, err := apiClient.EncryptionAPI.EncryptData(context.Background()).EncryptRequest(encryptRequest).Execute()
+				resp, r, err := apiClient.EncryptionAPI.EncryptData(AuthContext).EncryptRequest(encryptRequest).Execute()
 
 				if err != nil {
 					logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
