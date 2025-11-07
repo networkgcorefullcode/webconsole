@@ -95,8 +95,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/networkgcorefullcode/openapi v1.7.5 h1:UL+VKLUQZiZDO077mzojDhaw0O0UohOHJ3lczi47ayU=
 github.com/networkgcorefullcode/openapi v1.7.5/go.mod h1:4nwAVKA4GUXw5OnjxYOU8LAoRrpGTG/ruJLgKiE/Ccs=
-github.com/networkgcorefullcode/ssm v1.2.5 h1:mSIAYGQb5Vqo105uJOeVCwdrFQJ7SrA+vlE+o+8pwzU=
-github.com/networkgcorefullcode/ssm v1.2.5/go.mod h1:2DuQf+pkp0MoEO2E6hTJmtEP4RzibA1ATQgT3LoFPzc=
+github.com/networkgcorefullcode/ssm v1.5.0 h1:z56VyO0Virrc2SkrCceXmjeEmg4HZDWkxUDX6eh0bVs=
+github.com/networkgcorefullcode/ssm v1.5.0/go.mod h1:RGm7l87LawhpU7WeMee+ugIh0Qy82ViEwpFoVuVgB2I=
 github.com/omec-project/config5g v1.6.2 h1:bfLxwVSt6LAWCQtBmjUuks5CO3qambvcy3VjSVAMHdk=
 github.com/omec-project/config5g v1.6.2/go.mod h1:LuaRiJTCJXCkQF7nKB5fOcz6oVMF/8oid+EKCYFAy0E=
 github.com/omec-project/util v1.5.4 h1:CfT1qDRUeRJwzQ/aVKPHKCGukSwAjXU0ThjKjjeVK+M=
