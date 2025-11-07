@@ -32,7 +32,7 @@ func LoginSSM(serviceId, password string) (string, error) {
 		return "", err
 	}
 	// response from `UserLogin`: LoginResponse
-	logger.WebUILog.Infof("Response from `AuthenticationAPI.UserLogin`: %v", resp)
+	logger.WebUILog.Infof("Response from `AuthenticationAPI.UserLogin`: %s", resp.Message)
 	SetAuthContext(resp.Token)
 	return resp.Token, nil
 }
