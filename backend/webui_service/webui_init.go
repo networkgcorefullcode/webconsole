@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/util/http2_util"
 	utilLogger "github.com/omec-project/util/logger"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/auth"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
@@ -90,7 +91,7 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 			logger.WebUILog.Errorf("Error getting SSM login credentials: %v", err)
 			return
 		}
-		if _, err = ssmsync.LoginSSM(serviceId, password); err != nil {
+		if _, err = apiclient.LoginSSM(serviceId, password); err != nil {
 			logger.WebUILog.Errorf("Error logging into SSM: %v", err)
 			return
 		}

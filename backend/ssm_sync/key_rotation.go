@@ -10,6 +10,7 @@ import (
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	ssm "github.com/networkgcorefullcode/ssm/models"
 	"github.com/omec-project/openapi/models"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
@@ -223,7 +224,7 @@ func rotateKey(k4 configmodels.K4) {
 
 func decryptUserKI(user *models.AuthenticationSubscription, k4 configmodels.K4) {
 	// 1. Configure the SSM client
-	ssmClient := getSSMAPIClient()
+	ssmClient := apiclient.GetSSMAPIClient()
 
 	// 2. Prepare the decryption request
 	encryptionAlgorithm := int(user.PermanentKey.EncryptionAlgorithm)
@@ -240,7 +241,7 @@ func decryptUserKI(user *models.AuthenticationSubscription, k4 configmodels.K4) 
 	}
 
 	// 3. Execute the SSM API call
-	decryptedResp, _, decryptErr := ssmClient.EncryptionAPI.DecryptData(AuthContext).DecryptRequest(decryptReq).Execute()
+	decryptedResp, _, decryptErr := ssmClient.EncryptionAPI.DecryptData(apiclient.AuthContext).DecryptRequest(decryptReq).Execute()
 	if decryptErr != nil {
 		logger.AppLog.Errorf("SSM decryption failed: %+v", decryptErr)
 		return
@@ -259,9 +260,9 @@ func encryptUserKey(user *models.AuthenticationSubscription, k4 configmodels.K4,
 		EncryptionAlgorithm: int32(ssm_constants.LabelAlgorithmMap[k4.K4_Label]),
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	resp, r, err := apiClient.EncryptionAPI.EncryptData(AuthContext).EncryptRequest(encryptRequest).Execute()
+	resp, r, err := apiClient.EncryptionAPI.EncryptData(apiclient.AuthContext).EncryptRequest(encryptRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)

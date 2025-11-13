@@ -1,13 +1,11 @@
 package configapi
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"slices"
 
 	ssm "github.com/networkgcorefullcode/ssm/models"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
@@ -180,12 +178,9 @@ func storeKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.StoreKey
 	}
 	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", storeKeyRequest.KeyLabel, storeKeyRequest.Id, storeKeyRequest.KeyType)
 
-	configuration := ssm.NewConfiguration()
-	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
-	configuration.HTTPClient = GetHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
-	apiClient := ssm.NewAPIClient(configuration)
+	apiClient := apiclient.GetSSMAPIClient()
 
-	resp, r, err := apiClient.KeyManagementAPI.StoreKey(context.Background()).StoreKeyRequest(storeKeyRequest).Execute()
+	resp, r, err := apiClient.KeyManagementAPI.StoreKey(apiclient.AuthContext).StoreKeyRequest(storeKeyRequest).Execute()
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
 		logger.DbLog.Errorf("Full HTTP response: %v", r)
@@ -205,12 +200,9 @@ func updateKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.UpdateK
 	}
 	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", updateKeyRequest.KeyLabel, updateKeyRequest.Id, updateKeyRequest.KeyType)
 
-	configuration := ssm.NewConfiguration()
-	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
-	configuration.HTTPClient = GetHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
-	apiClient := ssm.NewAPIClient(configuration)
+	apiClient := apiclient.GetSSMAPIClient()
 
-	resp, r, err := apiClient.KeyManagementAPI.UpdateKey(context.Background()).UpdateKeyRequest(updateKeyRequest).Execute()
+	resp, r, err := apiClient.KeyManagementAPI.UpdateKey(apiclient.AuthContext).UpdateKeyRequest(updateKeyRequest).Execute()
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
 		logger.DbLog.Errorf("Full HTTP response: %v", r)
@@ -228,12 +220,9 @@ func deleteKeySSM(keyLabel string, keyID int32) (*ssm.DeleteKeyResponse, error) 
 	}
 	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", deleteKeyRequest.KeyLabel, deleteKeyRequest.Id)
 
-	configuration := ssm.NewConfiguration()
-	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
-	configuration.HTTPClient = GetHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
-	apiClient := ssm.NewAPIClient(configuration)
+	apiClient := apiclient.GetSSMAPIClient()
 
-	resp, r, err := apiClient.KeyManagementAPI.DeleteKey(context.Background()).DeleteKeyRequest(deleteKeyRequest).Execute()
+	resp, r, err := apiClient.KeyManagementAPI.DeleteKey(apiclient.AuthContext).DeleteKeyRequest(deleteKeyRequest).Execute()
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
 		logger.DbLog.Errorf("Full HTTP response: %v", r)
@@ -241,22 +230,6 @@ func deleteKeySSM(keyLabel string, keyID int32) (*ssm.DeleteKeyResponse, error) 
 	}
 	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
 	return resp, nil
-}
-
-// getHTTPClient returns an HTTP client configured based on TLS settings
-func GetHTTPClient(tlsInsecure bool) *http.Client {
-	if tlsInsecure {
-		// Create client with insecure TLS configuration
-		return &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
-		}
-	}
-	// Return default HTTP client for secure connections
-	return &http.Client{}
 }
 
 func isValidKeyIdentifier(keyLabel string, keyIdentifier []string) bool {

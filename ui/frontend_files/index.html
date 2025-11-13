@@ -17,9 +17,8 @@
     <meta name="theme-color" content="#0d6efd">
     
     <link href="bootstrap.min.css" rel="stylesheet">
-    <link href="all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <link href="fontawesome/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css"></head>
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -66,6 +65,11 @@
                                 <i class="fas fa-users me-2"></i>Subscribers
                             </a></li>
                         </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('admin-options')">
+                            <i class="fas fa-cog me-1"></i>Admin Options
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -410,6 +414,71 @@
                         <div class="card-body">
                             <div id="subscriber-details-content">
                                 <!-- Subscriber details will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Options Section -->
+        <div id="admin-options" class="content-section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-cog me-2"></i>Admin Options - SSM Sync Management</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-primary">
+                                        <div class="card-body">
+                                            <h5 class="card-title">
+                                                <i class="fas fa-sync-alt me-2 text-primary"></i>Sync K4 Keys
+                                            </h5>
+                                            <p class="card-text">Synchronize K4 keys and users with the SSM</p>
+                                            <button class="btn btn-primary w-100" onclick="syncK4Keys()">
+                                                <i class="fas fa-play me-1"></i>Execute Sync
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-success">
+                                        <div class="card-body">
+                                            <h5 class="card-title">
+                                                <i class="fas fa-heartbeat me-2 text-success"></i>Check K4 Life
+                                            </h5>
+                                            <p class="card-text">Health check to K4 keys lifecycle</p>
+                                            <button class="btn btn-success w-100" onclick="checkK4Life()">
+                                                <i class="fas fa-play me-1"></i>Execute Check
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card border-warning">
+                                        <div class="card-body">
+                                            <h5 class="card-title">
+                                                <i class="fas fa-rotate me-2 text-warning"></i>K4 Rotation
+                                            </h5>
+                                            <p class="card-text">Initialize K4 key rotation manually</p>
+                                            <button class="btn btn-warning w-100" onclick="rotateK4Keys()">
+                                                <i class="fas fa-play me-1"></i>Execute Rotation
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Operation Results</h6>
+                                    <div id="admin-results" class="bg-light p-3 rounded">
+                                        <p class="text-muted mb-0">No operations executed yet. Click on any button above to execute an admin operation.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

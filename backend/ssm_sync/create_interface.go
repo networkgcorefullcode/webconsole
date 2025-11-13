@@ -1,93 +1,15 @@
 package ssmsync
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"fmt"
-	"net/http"
-	"os"
-
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	ssm "github.com/networkgcorefullcode/ssm/models"
-	"github.com/omec-project/webconsole/backend/factory"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/logger"
-	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
 )
 
 type CreateKeySSM interface {
 	CreateNewKeySSM(keyLabel string, id int32) (configmodels.K4, error)
-}
-
-var apiClient *ssm.APIClient
-
-// getSSMAPIClient creates and returns a configured SSM API client
-func getSSMAPIClient() *ssm.APIClient {
-	if apiClient != nil {
-		logger.AppLog.Debugf("Returning existing SSM API client")
-		return apiClient
-	}
-
-	logger.AppLog.Infof("Creating new SSM API client for URI: %s", factory.WebUIConfig.Configuration.SSM.SsmUri)
-
-	configuration := ssm.NewConfiguration()
-	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
-	configuration.HTTPClient = configapi.GetHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
-
-	if factory.WebUIConfig.Configuration.SSM.MTls != nil {
-		logger.AppLog.Infof("Configuring mTLS for SSM client")
-
-		// 1️⃣ Load client certificate for mTLS
-		logger.AppLog.Debugf("Loading client certificate from: %s", factory.WebUIConfig.Configuration.SSM.MTls.Crt)
-		cert, err := tls.LoadX509KeyPair(factory.WebUIConfig.Configuration.SSM.MTls.Crt, factory.WebUIConfig.Configuration.SSM.MTls.Key)
-		if err != nil {
-			logger.AppLog.Errorf("Error loading client certificate: %v", err)
-			fmt.Fprintf(os.Stderr, "Error loading client certificate: %v\n", err)
-			return nil
-		}
-		logger.AppLog.Infof("Client certificate loaded successfully")
-
-		// 2️⃣ Load root certificate (CA) that signed the server
-		logger.AppLog.Debugf("Loading CA certificate from: %s", factory.WebUIConfig.Configuration.SSM.MTls.Ca)
-		caCert, err := os.ReadFile(factory.WebUIConfig.Configuration.SSM.MTls.Ca)
-		if err != nil {
-			logger.AppLog.Errorf("Error reading CA certificate: %v", err)
-			fmt.Fprintf(os.Stderr, "Error reading CA: %v\n", err)
-			return nil
-		}
-
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
-		logger.AppLog.Infof("CA certificate loaded successfully")
-
-		// 3️⃣ Configure TLS
-		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{cert}, // client authentication
-			RootCAs:      caCertPool,              // verify server
-			MinVersion:   tls.VersionTLS12,
-		}
-		logger.AppLog.Debugf("TLS configuration created with MinVersion: TLS 1.2")
-
-		// 4️⃣ Create an HTTP client with this configuration
-		transport := &http.Transport{TLSClientConfig: tlsConfig}
-		httpClient := &http.Client{Transport: transport}
-
-		if factory.WebUIConfig.Configuration.SSM.TLS_Insecure {
-			logger.AppLog.Warnf("TLS_Insecure enabled - skipping certificate verification")
-			httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = true
-		}
-
-		// 5️⃣ Configure the OpenAPI client to use this HTTP client
-		configuration.HTTPClient = httpClient
-		logger.AppLog.Infof("mTLS HTTP client configured successfully")
-	} else {
-		logger.AppLog.Infof("mTLS not configured, using default HTTP client")
-	}
-
-	apiClient = ssm.NewAPIClient(configuration)
-	logger.AppLog.Infof("SSM API client created successfully")
-
-	return apiClient
 }
 
 type CreateAES128SSM struct{}
@@ -100,9 +22,9 @@ func (c *CreateAES128SSM) CreateNewKeySSM(keyLabel string, id int32) (configmode
 		Bits: 128,
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(apiclient.AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
@@ -128,9 +50,9 @@ func (c *CreateAES256SSM) CreateNewKeySSM(keyLabel string, id int32) (configmode
 		Bits: 256,
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(apiclient.AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
@@ -155,9 +77,9 @@ func (c *CreateDes3SSM) CreateNewKeySSM(keyLabel string, id int32) (configmodels
 		Id: id,
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateDES3Key(AuthContext).GenDES3KeyRequest(genDES3KeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateDES3Key(apiclient.AuthContext).GenDES3KeyRequest(genDES3KeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateDES3Key`: %v", err)
@@ -182,9 +104,9 @@ func (c *CreateDesSSM) CreateNewKeySSM(keyLabel string, id int32) (configmodels.
 		Id: id,
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateDESKey(AuthContext).GenDESKeyRequest(genDESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateDESKey(apiclient.AuthContext).GenDESKeyRequest(genDESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateDESKey`: %v", err)
