@@ -652,7 +652,7 @@ func PutSubscriberByID(c *gin.Context) {
 	}
 	if subsOverrideData.K4Sno != nil {
 		authSubsData.K4_SNO = *subsOverrideData.K4Sno
-	} else if *subsOverrideData.K4Sno == 0 {
+	} else {
 		authSubsData.K4_SNO = 0
 	}
 
