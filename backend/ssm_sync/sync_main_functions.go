@@ -1,6 +1,7 @@
 package ssmsync
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -227,10 +228,13 @@ func encryptDataAESCBC(subsData *configmodels.SubsData, user configmodels.SubsLi
 }
 
 func encryptDataAESGCM(subsData *configmodels.SubsData, user configmodels.SubsListIE) {
+	aad := fmt.Sprintf("%s-%d-%d", subsData.UeId, subsData.AuthenticationSubscription.K4_SNO, subsData.AuthenticationSubscription.PermanentKey.EncryptionAlgorithm)
+	aadBytes := []byte(aad) // Convertir a bytes
+
 	var encryptRequest ssm.EncryptAESGCMRequest = ssm.EncryptAESGCMRequest{
 		KeyLabel: ssm_constants.LABEL_ENCRYPTION_KEY_AES256,
 		Plain:    subsData.AuthenticationSubscription.PermanentKey.PermanentKeyValue,
-		Aad:      fmt.Sprintf("%s-%d-%d", subsData.UeId, subsData.AuthenticationSubscription.K4_SNO, subsData.AuthenticationSubscription.PermanentKey.EncryptionAlgorithm),
+		Aad:      hex.EncodeToString(aadBytes), // Codificar a hex
 	}
 
 	apiClient := apiclient.GetSSMAPIClient()

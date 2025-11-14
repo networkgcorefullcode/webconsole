@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
+	"github.com/omec-project/webconsole/backend/logger"
 )
 
 var ssmSyncMessage chan *SsmSyncMessage
@@ -16,6 +17,8 @@ func setSyncChanHandle(ch chan *SsmSyncMessage) {
 
 func handleSyncKey(c *gin.Context) {
 	// Try to get the priority
+	logger.AppLog.Debug("Init handle sync key")
+
 	externalLocked := SyncExternalKeysMutex.TryLock()
 	ourKeysLocked := SyncOurKeysMutex.TryLock()
 	userLocked := SyncUserMutex.TryLock()
@@ -76,6 +79,7 @@ func handleSyncKey(c *gin.Context) {
 
 func handleCheckK4Life(c *gin.Context) {
 	// Try to acquire all locks individually
+	logger.AppLog.Debug("Init handle check k4 life")
 	checkLocked := CheckMutex.TryLock()
 	rotationLocked := RotationMutex.TryLock()
 
@@ -97,12 +101,17 @@ func handleCheckK4Life(c *gin.Context) {
 	defer RotationMutex.Unlock()
 
 	// Logic for the handle
-	checkKeyHealth(ssmSyncMessage)
+	err := checkKeyHealth(ssmSyncMessage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error: " + err.Error()})
+	}
 	c.JSON(http.StatusOK, gin.H{"succes": "sync function run succesfully"})
 }
 
 func handleRotationKey(c *gin.Context) {
 	// Try to acquire all locks individually
+	logger.AppLog.Debug("Init handle rotation key")
+
 	checkLocked := CheckMutex.TryLock()
 	rotationLocked := RotationMutex.TryLock()
 
@@ -123,5 +132,9 @@ func handleRotationKey(c *gin.Context) {
 	defer CheckMutex.Unlock()
 	defer RotationMutex.Unlock()
 
-	rotateExpiredKeys(ssmSyncMessage)
+	err := rotateExpiredKeys(ssmSyncMessage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error: " + err.Error()})
+	}
+	c.JSON(http.StatusOK, gin.H{"succes": "rotation function run succesfully"})
 }

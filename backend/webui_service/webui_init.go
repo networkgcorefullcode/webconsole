@@ -95,6 +95,7 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 			logger.WebUILog.Errorf("Error logging into SSM: %v", err)
 			return
 		}
+		logger.WebUILog.Infoln("SSM login successful")
 		// ssmsync.SetCfgChannel(configMsgChan)
 		go ssmsync.HealthCheckSSM()
 		time.Sleep(time.Second * 5) // stop work to send the health check function

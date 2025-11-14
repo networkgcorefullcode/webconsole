@@ -533,6 +533,9 @@ func PostSubscriberByID(c *gin.Context) {
 	if subsOverrideData.EncryptionAlgorithm != nil {
 		authSubsData.PermanentKey.EncryptionAlgorithm = *subsOverrideData.EncryptionAlgorithm
 	}
+	if subsOverrideData.K4Sno != nil {
+		authSubsData.K4_SNO = *subsOverrideData.K4Sno
+	}
 
 	if err := assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -646,6 +649,11 @@ func PutSubscriberByID(c *gin.Context) {
 
 	if subsOverrideData.EncryptionAlgorithm != nil {
 		authSubsData.PermanentKey.EncryptionAlgorithm = *subsOverrideData.EncryptionAlgorithm
+	}
+	if subsOverrideData.K4Sno != nil {
+		authSubsData.K4_SNO = *subsOverrideData.K4Sno
+	} else if *subsOverrideData.K4Sno == 0 {
+		authSubsData.K4_SNO = 0
 	}
 
 	if err := assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {

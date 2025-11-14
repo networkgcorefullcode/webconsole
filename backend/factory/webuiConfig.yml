@@ -65,7 +65,8 @@ configuration:
       crt: client-webconsole.crt
       key: client-webconsole.key
       ca: ca.crt
-    is-encrypt-aes-gcm: true # read in cascade if gcm is false then cbc is used if gcm is true cbc is ignored, both is false no encryption is used (disabled SSM jjjj)
+    # read in cascade if gcm is false then cbc is used if gcm is true cbc is ignored, both is false no encryption is used (disabled SSM jjjj)
+    is-encrypt-aes-gcm: true
     is-encrypt-aes-cbc: false
 
 logger:

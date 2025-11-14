@@ -462,18 +462,14 @@ export class SubscriberListManager extends BaseManager {
                                 <div class="col-md-6">
                                     <h6 class="border-bottom pb-2"><i class="fas fa-key me-2"></i>Permanent Key</h6>
                                     <div class="mb-2">
-                                        <strong>ID:</strong>
-                                        <code>${permanentKey.id && permanentKey.id.trim() !== '' ? permanentKey.id : 'N/A'}</code>
-                                    </div>
-                                    <div class="mb-2">
-                                        <strong>Tag:</strong>
-                                        <code>${permanentKey.tag && permanentKey.tag.trim() !== '' ? permanentKey.tag : 'N/A'}</code>
-                                    </div>
-                                    <div class="mb-2">
                                         <strong>Key Value:</strong>
                                         <div class="mt-1">
                                             <code class="text-break">${permanentKey.permanentKeyValue || 'N/A'}</code>
                                         </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Tag:</strong>
+                                        <code>${permanentKey.tag && permanentKey.tag.trim() !== '' ? permanentKey.tag : 'N/A'}</code>
                                     </div>
                                     <div class="mb-2">
                                         <strong>Encryption Key:</strong>
