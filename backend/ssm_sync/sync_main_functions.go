@@ -258,6 +258,7 @@ func encryptDataAESGCM(subsData *configmodels.SubsData, user configmodels.SubsLi
 	if resp.Tag != "" {
 		newSubAuthData.PermanentKey.Tag = resp.Tag
 	}
+	newSubAuthData.PermanentKey.Aad = encryptRequest.Aad
 
 	// now we store the new data do a update in mongoDB store
 	err = configapi.HandleSubscriberPut(user.UeId, &newSubAuthData)
