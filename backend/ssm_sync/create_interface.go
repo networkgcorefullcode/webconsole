@@ -1,26 +1,15 @@
 package ssmsync
 
 import (
-	"context"
-
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	ssm "github.com/networkgcorefullcode/ssm/models"
-	"github.com/omec-project/webconsole/backend/factory"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/logger"
-	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
 )
 
 type CreateKeySSM interface {
 	CreateNewKeySSM(keyLabel string, id int32) (configmodels.K4, error)
-}
-
-// getSSMAPIClient creates and returns a configured SSM API client
-func getSSMAPIClient() *ssm.APIClient {
-	configuration := ssm.NewConfiguration()
-	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
-	configuration.HTTPClient = configapi.GetHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
-	return ssm.NewAPIClient(configuration)
 }
 
 type CreateAES128SSM struct{}
@@ -33,9 +22,9 @@ func (c *CreateAES128SSM) CreateNewKeySSM(keyLabel string, id int32) (configmode
 		Bits: 128,
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(context.Background()).GenAESKeyRequest(genAESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(apiclient.AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
@@ -61,9 +50,9 @@ func (c *CreateAES256SSM) CreateNewKeySSM(keyLabel string, id int32) (configmode
 		Bits: 256,
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(context.Background()).GenAESKeyRequest(genAESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(apiclient.AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
@@ -88,9 +77,9 @@ func (c *CreateDes3SSM) CreateNewKeySSM(keyLabel string, id int32) (configmodels
 		Id: id,
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateDES3Key(context.Background()).GenDES3KeyRequest(genDES3KeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateDES3Key(apiclient.AuthContext).GenDES3KeyRequest(genDES3KeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateDES3Key`: %v", err)
@@ -115,9 +104,9 @@ func (c *CreateDesSSM) CreateNewKeySSM(keyLabel string, id int32) (configmodels.
 		Id: id,
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	_, r, err := apiClient.KeyManagementAPI.GenerateDESKey(context.Background()).GenDESKeyRequest(genDESKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.GenerateDESKey(apiclient.AuthContext).GenDESKeyRequest(genDESKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateDESKey`: %v", err)

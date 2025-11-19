@@ -21,10 +21,6 @@ var StopSSMsyncFunction bool = false
 var ErrorSyncChan chan error = make(chan error, 10)
 var ErrorRotationChan chan error = make(chan error, 10)
 
-// func SetCfgChannel(ch chan *configmodels.ConfigMessage) {
-// 	cfgChannel = ch
-// }
-
 // Implementation of SSM synchronization logic
 func SyncSsm(ssmSyncMsg chan *SsmSyncMessage) {
 	// A select statement to listen for messages or timers
@@ -34,8 +30,6 @@ func SyncSsm(ssmSyncMsg chan *SsmSyncMessage) {
 
 	// Listen for rotation operations
 	go keyRotationListen(ssmSyncMsg)
-
-	// TODO: implement health check action
 
 	for {
 		select {

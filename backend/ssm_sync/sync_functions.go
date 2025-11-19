@@ -1,7 +1,6 @@
 package ssmsync
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -9,6 +8,7 @@ import (
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	ssm "github.com/networkgcorefullcode/ssm/models"
 	"github.com/omec-project/openapi/models"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
@@ -87,9 +87,9 @@ func getSSMLabelFilter(keyLabel string, dataKeyInfoListChan chan []ssm.DataKeyIn
 	}
 	logger.AppLog.Debugf("Fetching keys from SSM with label: %s", getDataKeysRequest.KeyLabel)
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	resp, r, err := apiClient.KeyManagementAPI.GetDataKeys(context.Background()).GetDataKeysRequest(getDataKeysRequest).Execute()
+	resp, r, err := apiClient.KeyManagementAPI.GetDataKeys(apiclient.AuthContext).GetDataKeysRequest(getDataKeysRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GetDataKeys`: %v", err)
@@ -105,13 +105,13 @@ func getSSMLabelFilter(keyLabel string, dataKeyInfoListChan chan []ssm.DataKeyIn
 func deleteKeyToSSM(k4 configmodels.K4) error {
 	logger.AppLog.Infof("Deleting key SNO %d with label %s from SSM", k4.K4_SNO, k4.K4_Label)
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 	var deleteDataKeyRequest ssm.DeleteKeyRequest = ssm.DeleteKeyRequest{
 		Id:       int32(k4.K4_SNO),
 		KeyLabel: k4.K4_Label,
 	}
 
-	_, r, err := apiClient.KeyManagementAPI.DeleteKey(context.Background()).DeleteKeyRequest(deleteDataKeyRequest).Execute()
+	_, r, err := apiClient.KeyManagementAPI.DeleteKey(apiclient.AuthContext).DeleteKeyRequest(deleteDataKeyRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.DeleteKey`: %v", err)

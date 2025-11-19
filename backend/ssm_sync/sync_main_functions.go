@@ -1,12 +1,14 @@
 package ssmsync
 
 import (
-	"context"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"strconv"
 
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	ssm "github.com/networkgcorefullcode/ssm/models"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configapi"
@@ -178,49 +180,91 @@ func coreUserSync() {
 				subsData.AuthenticationSubscription.K4_SNO == 0 {
 				logger.AppLog.Warnf("User %s has no encryption key assigned we create a new one", user.UeId)
 				// now we encrypt the key and store it back
-				var encryptRequest ssm.EncryptRequest = ssm.EncryptRequest{
-					KeyLabel:            ssm_constants.LABEL_ENCRYPTION_KEY_AES256,
-					Plain:               subsData.AuthenticationSubscription.PermanentKey.PermanentKeyValue,
-					EncryptionAlgorithm: ssm_constants.ALGORITHM_AES256_OurUsers,
+				if factory.WebUIConfig.Configuration.SSM.IsEncryptAESGCM {
+					encryptDataAESGCM(subsData, user)
+				} else if factory.WebUIConfig.Configuration.SSM.IsEncryptAESCBC {
+					encryptDataAESCBC(subsData, user)
 				}
-
-				apiClient := getSSMAPIClient()
-
-				resp, r, err := apiClient.EncryptionAPI.EncryptData(context.Background()).EncryptRequest(encryptRequest).Execute()
-
-				if err != nil {
-					logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
-					logger.DbLog.Errorf("Full HTTP response: %v", r)
-					return
-				}
-				newSubAuthData := subsData.AuthenticationSubscription
-
-				if resp.Cipher != "" {
-					newSubAuthData.PermanentKey.PermanentKeyValue = resp.Cipher
-					newSubAuthData.PermanentKey.EncryptionAlgorithm = ssm_constants.ALGORITHM_AES256_OurUsers
-					newSubAuthData.K4_SNO = byte(resp.Id)
-				}
-				if resp.Iv != "" {
-					newSubAuthData.PermanentKey.IV = resp.Iv
-				}
-
-				// now we store the new data do a update in mongoDB store
-				err = configapi.HandleSubscriberPut(user.UeId, &newSubAuthData)
-				if err != nil {
-					logger.WebUILog.Errorf("Failed to update subscriber %s: %v", user.UeId, err)
-					return
-				}
-				logger.WebUILog.Infof("Subscriber %s updated successfully", user.UeId)
-
-				// msg := configmodels.ConfigMessage{
-				// 	MsgType:     configmodels.Sub_data,
-				// 	MsgMethod:   configmodels.Put_op,
-				// 	AuthSubData: &newSubAuthData,
-				// 	Imsi:        user.UeId,
-				// }
-				// cfgChannel <- &msg
 			}
 
 		}()
 	}
+}
+
+func encryptDataAESCBC(subsData *configmodels.SubsData, user configmodels.SubsListIE) {
+
+	var encryptRequest ssm.EncryptRequest = ssm.EncryptRequest{
+		KeyLabel:            ssm_constants.LABEL_ENCRYPTION_KEY_AES256,
+		Plain:               subsData.AuthenticationSubscription.PermanentKey.PermanentKeyValue,
+		EncryptionAlgorithm: ssm_constants.ALGORITHM_AES256_OurUsers,
+	}
+
+	apiClient := apiclient.GetSSMAPIClient()
+	resp, r, err := apiClient.EncryptionAPI.EncryptData(apiclient.AuthContext).EncryptRequest(encryptRequest).Execute()
+
+	if err != nil {
+		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
+		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		return
+	}
+	newSubAuthData := subsData.AuthenticationSubscription
+
+	if resp.Cipher != "" {
+		newSubAuthData.PermanentKey.PermanentKeyValue = resp.Cipher
+		newSubAuthData.PermanentKey.EncryptionAlgorithm = ssm_constants.ALGORITHM_AES256_OurUsers
+		newSubAuthData.K4_SNO = byte(resp.Id)
+	}
+	if resp.Iv != "" {
+		newSubAuthData.PermanentKey.IV = resp.Iv
+	}
+
+	// now we store the new data do a update in mongoDB store
+	err = configapi.HandleSubscriberPut(user.UeId, &newSubAuthData)
+	if err != nil {
+		logger.WebUILog.Errorf("Failed to update subscriber %s: %v", user.UeId, err)
+		return
+	}
+	logger.WebUILog.Infof("Subscriber %s updated successfully", user.UeId)
+}
+
+func encryptDataAESGCM(subsData *configmodels.SubsData, user configmodels.SubsListIE) {
+	aad := fmt.Sprintf("%s-%d-%d", subsData.UeId, subsData.AuthenticationSubscription.K4_SNO, subsData.AuthenticationSubscription.PermanentKey.EncryptionAlgorithm)
+	aadBytes := []byte(aad) // Convertir a bytes
+
+	var encryptRequest ssm.EncryptAESGCMRequest = ssm.EncryptAESGCMRequest{
+		KeyLabel: ssm_constants.LABEL_ENCRYPTION_KEY_AES256,
+		Plain:    subsData.AuthenticationSubscription.PermanentKey.PermanentKeyValue,
+		Aad:      hex.EncodeToString(aadBytes), // Codificar a hex
+	}
+
+	apiClient := apiclient.GetSSMAPIClient()
+	resp, r, err := apiClient.EncryptionAPI.EncryptDataAESGCM(apiclient.AuthContext).EncryptAESGCMRequest(encryptRequest).Execute()
+
+	if err != nil {
+		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
+		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		return
+	}
+	newSubAuthData := subsData.AuthenticationSubscription
+
+	if resp.Cipher != "" {
+		newSubAuthData.PermanentKey.PermanentKeyValue = resp.Cipher
+		newSubAuthData.PermanentKey.EncryptionAlgorithm = ssm_constants.ALGORITHM_AES256_OurUsers
+		newSubAuthData.K4_SNO = byte(resp.Id)
+	}
+	if resp.Iv != "" {
+		newSubAuthData.PermanentKey.IV = resp.Iv
+	}
+	if resp.Tag != "" {
+		newSubAuthData.PermanentKey.Tag = resp.Tag
+	}
+	newSubAuthData.PermanentKey.Aad = encryptRequest.Aad
+
+	// now we store the new data do a update in mongoDB store
+	err = configapi.HandleSubscriberPut(user.UeId, &newSubAuthData)
+	if err != nil {
+		logger.WebUILog.Errorf("Failed to update subscriber %s: %v", user.UeId, err)
+		return
+	}
+	logger.WebUILog.Infof("Subscriber %s updated successfully", user.UeId)
 }

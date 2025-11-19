@@ -1,7 +1,6 @@
 package ssmsync
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	ssm "github.com/networkgcorefullcode/ssm/models"
 	"github.com/omec-project/openapi/models"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
@@ -43,16 +43,11 @@ func keyRotationListen(ssmSyncMsg chan *SsmSyncMessage) {
 	}
 }
 
-func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) {
-	CheckMutex.Lock()
-	RotationMutex.Lock()
-
-	defer CheckMutex.Unlock()
-	defer RotationMutex.Unlock()
+func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) error {
 	// check the key life periodicly
 	if readStopCondition() {
 		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
-		return
+		return errors.New("SSM is down")
 	}
 	// first sync the keys
 	SsmSyncInitDefault(ssmSyncMsg)
@@ -68,7 +63,7 @@ func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) {
 
 	if k4List == nil {
 		ErrorSyncChan <- errors.New("invalid operation in ssm sync check the logs to read more information")
-		return
+		return errors.New("invalid operation in ssm sync check the logs to read more information")
 	}
 
 	// Group keys by remaining days until 90-day expiration
@@ -113,18 +108,15 @@ func checkKeyHealth(ssmSyncMsg chan *SsmSyncMessage) {
 			logger.AppLog.Warnf("  - K4_SNO: %d, Label: %s, Days remaining: %d", k4.K4_SNO, k4.K4_Label, daysRemaining)
 		}
 	}
+
+	return nil
 }
 
-func rotateExpiredKeys(ssmSyncMsg chan *SsmSyncMessage) {
-	CheckMutex.Lock()
-	RotationMutex.Lock()
-
-	defer CheckMutex.Unlock()
-	defer RotationMutex.Unlock()
+func rotateExpiredKeys(ssmSyncMsg chan *SsmSyncMessage) error {
 	// rotate the keys that are older than 90 days
 	if readStopCondition() {
 		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
-		return
+		return errors.New("SSM DOWN")
 	}
 	// 1st syncronize the keys
 	SsmSyncInitDefault(ssmSyncMsg)
@@ -136,7 +128,7 @@ func rotateExpiredKeys(ssmSyncMsg chan *SsmSyncMessage) {
 
 	if k4List == nil {
 		ErrorSyncChan <- errors.New("invalid operation in ssm sync check the logs to read more information")
-		return
+		return errors.New("invalid operation in ssm sync check the logs to read more information")
 	}
 
 	// Filter keys older than 90 days
@@ -154,7 +146,7 @@ func rotateExpiredKeys(ssmSyncMsg chan *SsmSyncMessage) {
 
 	if len(expiredKeys) == 0 {
 		logger.AppLog.Info("No expired keys found. Rotation complete.")
-		return
+		return nil
 	}
 
 	// the next steps are integrated in rotateKey function
@@ -169,6 +161,8 @@ func rotateExpiredKeys(ssmSyncMsg chan *SsmSyncMessage) {
 	}
 
 	logger.AppLog.Infof("Key rotation process initiated for %d keys", len(expiredKeys))
+
+	return nil
 }
 
 func rotateKey(k4 configmodels.K4) {
@@ -224,7 +218,7 @@ func rotateKey(k4 configmodels.K4) {
 
 func decryptUserKI(user *models.AuthenticationSubscription, k4 configmodels.K4) {
 	// 1. Configure the SSM client
-	ssmClient := getSSMAPIClient()
+	ssmClient := apiclient.GetSSMAPIClient()
 
 	// 2. Prepare the decryption request
 	encryptionAlgorithm := int(user.PermanentKey.EncryptionAlgorithm)
@@ -241,7 +235,7 @@ func decryptUserKI(user *models.AuthenticationSubscription, k4 configmodels.K4) 
 	}
 
 	// 3. Execute the SSM API call
-	decryptedResp, _, decryptErr := ssmClient.EncryptionAPI.DecryptData(context.Background()).DecryptRequest(decryptReq).Execute()
+	decryptedResp, _, decryptErr := ssmClient.EncryptionAPI.DecryptData(apiclient.AuthContext).DecryptRequest(decryptReq).Execute()
 	if decryptErr != nil {
 		logger.AppLog.Errorf("SSM decryption failed: %+v", decryptErr)
 		return
@@ -260,9 +254,9 @@ func encryptUserKey(user *models.AuthenticationSubscription, k4 configmodels.K4,
 		EncryptionAlgorithm: int32(ssm_constants.LabelAlgorithmMap[k4.K4_Label]),
 	}
 
-	apiClient := getSSMAPIClient()
+	apiClient := apiclient.GetSSMAPIClient()
 
-	resp, r, err := apiClient.EncryptionAPI.EncryptData(context.Background()).EncryptRequest(encryptRequest).Execute()
+	resp, r, err := apiClient.EncryptionAPI.EncryptData(apiclient.AuthContext).EncryptRequest(encryptRequest).Execute()
 
 	if err != nil {
 		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)

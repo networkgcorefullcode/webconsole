@@ -13,11 +13,11 @@ configuration:
   # MongoDB configuration
   mongodb:
     name: aether
-    url: "mongodb://localhost:27017/?connectTimeoutMS=10000"
+    url: "mongodb://172.28.31.5:27017/?replicaSet=rs0&connectTimeoutMS=10000"
     authKeysDbName: authentication
-    authUrl: "mongodb://localhost:27017/?connectTimeoutMS=10000"
+    authUrl: "mongodb://172.28.31.5:27017/?replicaSet=rs0&connectTimeoutMS=10000"
     webuiDbName: aether
-    webuiDbUrl: "mongodb://localhost:27017/?connectTimeoutMS=10000"
+    webuiDbUrl: "mongodb://172.28.31.5:27017/?replicaSet=rs0&connectTimeoutMS=10000"
     checkReplica: false
 
   # WebUI TLS configuration
@@ -58,6 +58,16 @@ configuration:
       max-sync-keys: 5
       max-sync-users: 5
       max-sync-rotations: 5
+    login: # SSM login credentials not to be used in production, in production use environment variables or secret management systems
+      service-id: webconsole
+      password: 3334464250706421444c234e43256321
+    m-tls:
+      crt: client-webconsole.crt
+      key: client-webconsole.key
+      ca: ca.crt
+    # read in cascade if gcm is false then cbc is used if gcm is true cbc is ignored, both is false no encryption is used (disabled SSM jjjj)
+    is-encrypt-aes-gcm: true
+    is-encrypt-aes-cbc: false
 
 logger:
   WEBUI:

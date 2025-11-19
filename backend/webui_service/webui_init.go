@@ -19,11 +19,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/util/http2_util"
 	utilLogger "github.com/omec-project/util/logger"
+	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/auth"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/metrics"
 	ssmsync "github.com/omec-project/webconsole/backend/ssm_sync"
+	"github.com/omec-project/webconsole/backend/utils"
 	"github.com/omec-project/webconsole/backend/webui_context"
 	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
@@ -84,6 +86,16 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 	// Init a gorutine to sincronize SSM functionality
 	ssmSyncMsg := make(chan *ssmsync.SsmSyncMessage, 10)
 	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
+		serviceId, password, err := utils.GetUserLogin()
+		if err != nil {
+			logger.WebUILog.Errorf("Error getting SSM login credentials: %v", err)
+			return
+		}
+		if _, err = apiclient.LoginSSM(serviceId, password); err != nil {
+			logger.WebUILog.Errorf("Error logging into SSM: %v", err)
+			return
+		}
+		logger.WebUILog.Infoln("SSM login successful")
 		// ssmsync.SetCfgChannel(configMsgChan)
 		go ssmsync.HealthCheckSSM()
 		time.Sleep(time.Second * 5) // stop work to send the health check function

@@ -9,7 +9,8 @@ import { UpfManager } from './modules/upfInventory.js';
 import { UIManager } from './modules/uiManager.js';
 import { NotificationManager } from './modules/notifications.js';
 import { ModalManager } from './modules/modalManager.js';
-import { K4Manager, SubscriberListManager } from './modules/subscribers.js';
+import { SubscriberListManager } from './modules/subscribers.js';
+import { K4Manager } from './modules/k4.js';
 
 // API Base URL
 export const API_BASE = '/config/v1';
@@ -210,6 +211,97 @@ window.confirmDeleteSubscriber = () => {
     
     window.currentDeleteAction = () => app.managers.subscriberListManager.deleteFromDetails();
     modal.show();
+};
+
+// Admin Options - SSM Sync functions
+window.syncK4Keys = async () => {
+    const resultsDiv = document.getElementById('admin-results');
+    resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Executing sync...</p></div>';
+    
+    try {
+        const response = await fetch('/sync-ssm/sync-key');
+        const data = await response.text();
+        
+        if (response.ok) {
+            resultsDiv.innerHTML = `
+                <div class="alert alert-success mb-0">
+                    <h6><i class="fas fa-check-circle me-2"></i>Sync K4 Keys - Success</h6>
+                    <p class="mb-0">${data}</p>
+                </div>
+            `;
+            app.notificationManager.showNotification('K4 keys synchronized successfully!', 'success');
+        } else {
+            throw new Error(data || 'Sync failed');
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                <h6><i class="fas fa-exclamation-circle me-2"></i>Sync K4 Keys - Error</h6>
+                <p class="mb-0">${error.message}</p>
+            </div>
+        `;
+        app.notificationManager.showNotification(`Sync failed: ${error.message}`, 'error');
+    }
+};
+
+window.checkK4Life = async () => {
+    const resultsDiv = document.getElementById('admin-results');
+    resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"></div><p class="mt-2">Checking K4 life...</p></div>';
+    
+    try {
+        const response = await fetch('/sync-ssm/check-k4-life');
+        const data = await response.text();
+        
+        if (response.ok) {
+            resultsDiv.innerHTML = `
+                <div class="alert alert-success mb-0">
+                    <h6><i class="fas fa-check-circle me-2"></i>Check K4 Life - Success</h6>
+                    <p class="mb-0">${data}</p>
+                </div>
+            `;
+            app.notificationManager.showNotification('K4 life check completed successfully!', 'success');
+        } else {
+            throw new Error(data || 'Health check failed');
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                <h6><i class="fas fa-exclamation-circle me-2"></i>Check K4 Life - Error</h6>
+                <p class="mb-0">${error.message}</p>
+            </div>
+        `;
+        app.notificationManager.showNotification(`Health check failed: ${error.message}`, 'error');
+    }
+};
+
+window.rotateK4Keys = async () => {
+    const resultsDiv = document.getElementById('admin-results');
+    resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-warning" role="status"></div><p class="mt-2">Executing rotation...</p></div>';
+    
+    try {
+        const response = await fetch('/sync-ssm/k4-rotation');
+        const data = await response.text();
+        
+        if (response.ok) {
+            resultsDiv.innerHTML = `
+                <div class="alert alert-success mb-0">
+                    <h6><i class="fas fa-check-circle me-2"></i>K4 Rotation - Success</h6>
+                    <p class="mb-0">${data}</p>
+                </div>
+            `;
+            app.notificationManager.showNotification('K4 rotation executed successfully!', 'success');
+        } else {
+            throw new Error(data || 'Rotation failed');
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                <h6><i class="fas fa-exclamation-circle me-2"></i>K4 Rotation - Error</h6>
+                <p class="mb-0">${error.message}</p>
+            </div>
+        `;
+        app.notificationManager.showNotification(`Rotation failed: ${error.message}`, 'error');
+    }
 };
 
 // Export app instance for modules
