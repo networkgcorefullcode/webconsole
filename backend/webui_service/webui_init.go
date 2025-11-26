@@ -28,8 +28,6 @@ import (
 	"github.com/omec-project/webconsole/backend/utils"
 	"github.com/omec-project/webconsole/backend/webui_context"
 	"github.com/omec-project/webconsole/configapi"
-	"github.com/omec-project/webconsole/configmodels"
-	gServ "github.com/omec-project/webconsole/proto/server"
 )
 
 type WEBUI struct{}
@@ -68,9 +66,6 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 
 	go metrics.InitMetrics()
 
-	configMsgChan := make(chan *configmodels.ConfigMessage, 10)
-	configapi.SetChannel(configMsgChan)
-
 	subconfig_router.Use(cors.New(cors.Config{
 		AllowMethods: []string{"GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"},
 		AllowHeaders: []string{
@@ -96,7 +91,6 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 			return
 		}
 		logger.WebUILog.Infoln("SSM login successful")
-		// ssmsync.SetCfgChannel(configMsgChan)
 		go ssmsync.HealthCheckSSM()
 		time.Sleep(time.Second * 5) // stop work to send the health check function
 		go ssmsync.SyncSsm(ssmSyncMsg)
@@ -142,37 +136,24 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 		}
 	}()
 
-	if factory.WebUIConfig.Configuration.Mode5G {
-		self := webui_context.WEBUI_Self()
-		self.UpdateNfProfiles()
-	}
-
-	// Start grpc Server. This has embedded functionality of sending
-	// 4G config over REST Api as well.
-	host := "0.0.0.0:9876"
-	confServ := &gServ.ConfigServer{}
-	go gServ.StartServer(host, confServ, configMsgChan)
+	self := webui_context.WEBUI_Self()
+	self.UpdateNfProfiles()
 
 	// fetch one time configuration from the simapp/roc on startup
 	// this is to fetch existing config
-	go fetchConfigAdapater()
-
-	// http.ListenAndServe("0.0.0.0:5001", nil)
+	if factory.WebUIConfig.Configuration.RocEnd != nil {
+		if factory.WebUIConfig.Configuration.RocEnd.Enabled && factory.WebUIConfig.Configuration.RocEnd.SyncUrl != "" {
+			go fetchConfigAdapater()
+		}
+	} else {
+		logger.AppLog.Infoln("simapp/roc configuration not fetched")
+	}
 
 	<-ctx.Done()
-	logger.AppLog.Infoln("WebUI shutting down due to context cancel")
 }
 
 func fetchConfigAdapater() {
 	for {
-		if (factory.WebUIConfig.Configuration == nil) ||
-			(factory.WebUIConfig.Configuration.RocEnd == nil) ||
-			(!factory.WebUIConfig.Configuration.RocEnd.Enabled) ||
-			(factory.WebUIConfig.Configuration.RocEnd.SyncUrl == "") {
-			time.Sleep(1 * time.Second)
-			continue
-		}
-
 		client := &http.Client{}
 		httpend := factory.WebUIConfig.Configuration.RocEnd.SyncUrl
 		req, err := http.NewRequest(http.MethodPost, httpend, nil)

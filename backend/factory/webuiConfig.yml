@@ -20,35 +20,15 @@ configuration:
     webuiDbUrl: "mongodb://172.28.31.5:27017/?replicaSet=rs0&connectTimeoutMS=10000"
     checkReplica: false
 
-  # WebUI TLS configuration
-  # webui-tls:
-  #   pem: config/TLS/webuicert.pem
-  #   key: config/TLS/webuikey.pem
-
-  # NF Config TLS configuration
-  # nfconfig-tls:
-  #   pem: config/TLS/nfconfigcert.pem
-  #   key: config/TLS/nfconfigkey.pem
-
   # ROC endpoint configuration
   managedByConfigPod:
     syncUrl: http://roc-service:8080/sync
     enabled: false
 
-  # LTE endpoints configuration
-  # endpoints:
-  #   - type: mme
-  #     configPushUrl: http://mme-service:8080/config
-  #     configCheckUrl: http://mme-service:8080/check
-  #   - type: spgwc
-  #     configPushUrl: http://spgwc-service:8080/config
-  #     configCheckUrl: http://spgwc-service:8080/check
-
-
   # SSM (Secure Storage Module) configuration
   ssm:
     ssm-uri: https://localhost:9000
-    allow-ssm: false
+    allow-ssm: true
     tls-insecure: true
     ssm-synchronize:
       enable: true
