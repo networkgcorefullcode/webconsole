@@ -219,7 +219,7 @@ func encryptDataAESCBC(subsData *configmodels.SubsData, user configmodels.SubsLi
 	}
 
 	// now we store the new data do a update in mongoDB store
-	err = configapi.HandleSubscriberPut(user.UeId, &newSubAuthData)
+	err = configapi.SubscriberAuthenticationDataUpdate(user.UeId, &newSubAuthData)
 	if err != nil {
 		logger.WebUILog.Errorf("Failed to update subscriber %s: %v", user.UeId, err)
 		return
@@ -261,7 +261,7 @@ func encryptDataAESGCM(subsData *configmodels.SubsData, user configmodels.SubsLi
 	newSubAuthData.PermanentKey.Aad = encryptRequest.Aad
 
 	// now we store the new data do a update in mongoDB store
-	err = configapi.HandleSubscriberPut(user.UeId, &newSubAuthData)
+	err = configapi.SubscriberAuthenticationDataUpdate(user.UeId, &newSubAuthData)
 	if err != nil {
 		logger.WebUILog.Errorf("Failed to update subscriber %s: %v", user.UeId, err)
 		return

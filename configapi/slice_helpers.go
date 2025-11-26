@@ -29,16 +29,10 @@ func networkSliceDeleteHelper(sliceName string) error {
 		logger.ConfigLog.Errorf("Error deleting slice %s: %+v", sliceName, err)
 		return err
 	}
-	var msg configmodels.ConfigMessage
-	msg.MsgMethod = configmodels.Delete_op
-	msg.MsgType = configmodels.Network_slice
-	msg.SliceName = sliceName
-	configChannel <- &msg
-	logger.ConfigLog.Infof("successfully Added Network Slice [%s] with delete_op to config channel", sliceName)
 	return nil
 }
 
-func networkSlicePostHelper(c *gin.Context, msgOp int, sliceName string) (int, error) {
+func networkSlicePostHelper(c *gin.Context, sliceName string) (int, error) {
 	logger.ConfigLog.Infof("received slice: %s", sliceName)
 	requestSlice, err := parseAndValidateSliceRequest(c, sliceName)
 	if err != nil {
@@ -62,14 +56,6 @@ func networkSlicePostHelper(c *gin.Context, msgOp int, sliceName string) (int, e
 			return statusCode, err
 		}
 	}
-	var msg configmodels.ConfigMessage
-	msg.MsgMethod = msgOp
-	requestSlice.SliceName = sliceName
-	msg.MsgType = configmodels.Network_slice
-	msg.Slice = &requestSlice
-	msg.SliceName = sliceName
-	configChannel <- &msg
-	logger.ConfigLog.Infof("successfully Added Slice [%s] to config channel", sliceName)
 	return http.StatusOK, nil
 }
 
@@ -310,8 +296,7 @@ var syncSubscribersOnSliceCreateOrUpdate = func(slice configmodels.Slice, prevSl
 		}
 
 		for _, imsi := range devGroupConfig.Imsis {
-			subscriberAuthData := DatabaseSubscriberAuthenticationData{}
-			if subscriberAuthData.SubscriberAuthenticationDataGet("imsi-"+imsi) != nil {
+			if subscriberAuthenticationDataGet("imsi-"+imsi) != nil {
 				err := updatePolicyAndProvisionedData(
 					imsi,
 					slice.SiteInfo.Plmn.Mcc,
@@ -428,8 +413,8 @@ func updateAmProvisionedData(snssai *models.Snssai, qos *configmodels.DeviceGrou
 			SingleNssais:        []models.Snssai{*snssai},
 		},
 		SubscribedUeAmbr: &models.AmbrRm{
-			Downlink: convertToString(uint64(qos.DnnMbrDownlink)),
-			Uplink:   convertToString(uint64(qos.DnnMbrUplink)),
+			Downlink: ConvertToString(uint64(qos.DnnMbrDownlink)),
+			Uplink:   ConvertToString(uint64(qos.DnnMbrUplink)),
 		},
 	}
 	amDataBsonA := configmodels.ToBsonM(amData)
@@ -468,8 +453,8 @@ func updateSmProvisionedData(snssai *models.Snssai, qos *configmodels.DeviceGrou
 					},
 				},
 				SessionAmbr: &models.Ambr{
-					Downlink: convertToString(uint64(qos.DnnMbrDownlink)),
-					Uplink:   convertToString(uint64(qos.DnnMbrUplink)),
+					Downlink: ConvertToString(uint64(qos.DnnMbrDownlink)),
+					Uplink:   ConvertToString(uint64(qos.DnnMbrUplink)),
 				},
 				Var5gQosProfile: &models.SubscribedDefaultQos{
 					Var5qi: 9,
@@ -522,25 +507,6 @@ func updateSmfSelectionProvisionedData(snssai *models.Snssai, mcc, mnc, dnn, ims
 func SnssaiModelsToHex(snssai models.Snssai) string {
 	sst := fmt.Sprintf("%02x", snssai.Sst)
 	return sst + snssai.Sd
-}
-
-func convertToString(val uint64) string {
-	var mbVal, gbVal, kbVal uint64
-	kbVal = val / 1000
-	mbVal = val / 1000000
-	gbVal = val / 1000000000
-	var retStr string
-	if gbVal != 0 {
-		retStr = strconv.FormatUint(gbVal, 10) + " Gbps"
-	} else if mbVal != 0 {
-		retStr = strconv.FormatUint(mbVal, 10) + " Mbps"
-	} else if kbVal != 0 {
-		retStr = strconv.FormatUint(kbVal, 10) + " Kbps"
-	} else {
-		retStr = strconv.FormatUint(val, 10) + " bps"
-	}
-
-	return retStr
 }
 
 func ConvertToString(val uint64) string {

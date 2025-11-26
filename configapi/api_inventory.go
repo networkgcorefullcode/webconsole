@@ -20,13 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var configChannel chan *configmodels.ConfigMessage
-
-func SetChannel(cfgChannel chan *configmodels.ConfigMessage) {
-	logger.ConfigLog.Infoln("setting configChannel")
-	configChannel = cfgChannel
-}
-
 func setInventoryCorsHeader(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -583,7 +576,7 @@ func putUpfOperationWithOutContext(upf configmodels.Upf) error {
 func updateUpfInNetworkSlices(upf configmodels.Upf) error {
 	filterByUpf := bson.M{"site-info.upf.upf-name": upf.Hostname}
 	statusCode, err := updateInventoryInNetworkSlices(filterByUpf, func(networkSlice *configmodels.Slice) {
-		networkSlice.SiteInfo.Upf = map[string]interface{}{
+		networkSlice.SiteInfo.Upf = map[string]any{
 			"upf-name": upf.Hostname,
 			"upf-port": upf.Port,
 		}
@@ -703,7 +696,6 @@ func updateInventoryInNetworkSlices(filter bson.M, updateFunc func(*configmodels
 		return http.StatusInternalServerError, fmt.Errorf("failed to fetch network slices: %w", err)
 	}
 
-	var messages []*configmodels.ConfigMessage
 	for _, rawNetworkSlice := range rawNetworkSlices {
 		var networkSlice configmodels.Slice
 		if err = json.Unmarshal(configmodels.MapToByte(rawNetworkSlice), &networkSlice); err != nil {
@@ -712,20 +704,9 @@ func updateInventoryInNetworkSlices(filter bson.M, updateFunc func(*configmodels
 		prevSlice := getSliceByName(networkSlice.SliceName)
 		updateFunc(&networkSlice)
 		if statusCode, err := updateNS(networkSlice, *prevSlice); err != nil {
-			logger.ConfigLog.Errorf("Error updating slice %s: %+v", networkSlice.SliceName, err)
+			logger.ConfigLog.Errorf("error updating slice %s: %+v", networkSlice.SliceName, err)
 			return statusCode, err
 		}
-		msg := &configmodels.ConfigMessage{
-			MsgMethod: configmodels.Post_op,
-			MsgType:   configmodels.Network_slice,
-			Slice:     &networkSlice,
-			SliceName: networkSlice.SliceName,
-		}
-		messages = append(messages, msg)
-	}
-	for _, msg := range messages {
-		configChannel <- msg
-		logger.ConfigLog.Infof("network slice [%s] update sent to config channel", msg.SliceName)
 	}
 	return http.StatusOK, nil
 }

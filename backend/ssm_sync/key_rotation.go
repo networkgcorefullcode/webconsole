@@ -273,7 +273,7 @@ func encryptUserKey(user *models.AuthenticationSubscription, k4 configmodels.K4,
 	}
 
 	// now we store the new data do a update in mongoDB store
-	err = configapi.HandleSubscriberPut(ueId, user)
+	err = configapi.SubscriberAuthenticationDataUpdate(ueId, user)
 	if err != nil {
 		logger.WebUILog.Errorf("Failed to update subscriber %s: %v", ueId, err)
 		return

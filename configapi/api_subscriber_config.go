@@ -36,7 +36,7 @@ func init() {
 	}
 }
 
-func SliceToByte(data []map[string]interface{}) ([]byte, error) {
+func SliceToByte(data []map[string]any) ([]byte, error) {
 	ret, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal data: %w", err)
@@ -52,7 +52,7 @@ func setCorsHeader(c *gin.Context) {
 }
 
 func sendResponseToClient(c *gin.Context, response *http.Response) {
-	var jsonData interface{}
+	var jsonData any
 	if err := json.NewDecoder(response.Body).Decode(&jsonData); err != nil {
 		logger.DbLog.Errorf("failed to decode response: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to decode response"})
@@ -549,7 +549,7 @@ func PostSubscriberByID(c *gin.Context) {
 	logger.WebUILog.Infof("%+v", authSubsData)
 	logger.WebUILog.Infof("Using OPc: %s, Key: %s, SeqNo: %s", subsOverrideData.OPc, subsOverrideData.Key, subsOverrideData.SequenceNumber)
 
-	err = handleSubscriberPost(ueId, &authSubsData)
+	err = SubscriberAuthenticationDataCreate(ueId, &authSubsData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":      fmt.Sprintf("Failed to create subscriber %s", ueId),
@@ -558,15 +558,7 @@ func PostSubscriberByID(c *gin.Context) {
 		})
 		return
 	}
-	logger.WebUILog.Infoln("Subscriber %s created successfully", ueId)
-
-	msg := configmodels.ConfigMessage{
-		MsgType:     configmodels.Sub_data,
-		MsgMethod:   configmodels.Post_op,
-		AuthSubData: &authSubsData,
-		Imsi:        ueId,
-	}
-	configChannel <- &msg
+	logger.WebUILog.Infof("Subscriber %s created successfully", ueId)
 
 	c.JSON(http.StatusCreated, gin.H{})
 }
@@ -665,7 +657,7 @@ func PutSubscriberByID(c *gin.Context) {
 		return
 	}
 
-	err = HandleSubscriberPut(ueId, &authSubsData)
+	err = SubscriberAuthenticationDataUpdate(ueId, &authSubsData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":      fmt.Sprintf("Failed to update subscriber %s", ueId),
@@ -675,15 +667,6 @@ func PutSubscriberByID(c *gin.Context) {
 		return
 	}
 	logger.WebUILog.Infof("Subscriber %s updated successfully", ueId)
-
-	msg := configmodels.ConfigMessage{
-		MsgType:     configmodels.Sub_data,
-		MsgMethod:   configmodels.Put_op,
-		AuthSubData: &authSubsData,
-		Imsi:        ueId,
-	}
-	configChannel <- &msg
-
 	c.JSON(http.StatusNoContent, gin.H{})
 }
 
@@ -718,7 +701,7 @@ func DeleteSubscriberByID(c *gin.Context) {
 		c.JSON(statusCode, gin.H{"error": "error deleting subscriber. Please check the log for details.", "request_id": requestID})
 		return
 	}
-	if err = handleSubscriberDelete(ueId); err != nil {
+	if err = subscriberAuthenticationDataDelete(ueId); err != nil {
 		logger.WebUILog.Errorf("Error deleting subscriber: %s", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":      fmt.Sprintf("Failed to delete subscriber %s", ueId),
@@ -728,13 +711,6 @@ func DeleteSubscriberByID(c *gin.Context) {
 		return
 	}
 	logger.WebUILog.Infof("Subscriber %s deleted successfully", ueId)
-
-	msg := configmodels.ConfigMessage{
-		MsgType:   configmodels.Sub_data,
-		MsgMethod: configmodels.Delete_op,
-		Imsi:      ueId,
-	}
-	configChannel <- &msg
 
 	c.JSON(http.StatusNoContent, gin.H{})
 }

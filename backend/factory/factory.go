@@ -98,16 +98,6 @@ func InitConfigFactory(f string) error {
 				return fmt.Errorf("[Configuration] if EnableAuthentication is set, WebuiDB must be set")
 			}
 		}
-		// we dont want Mode5G coming from the helm chart, since
-		// there is chance of misconfiguration
-		if os.Getenv("CONFIGPOD_DEPLOYMENT") == "4G" {
-			logger.ConfigLog.Infoln("configPod running in 4G deployment")
-			WebUIConfig.Configuration.Mode5G = false
-		} else {
-			// default mode
-			logger.ConfigLog.Infoln("configPod running in 5G deployment")
-			WebUIConfig.Configuration.Mode5G = true
-		}
 	}
 
 	return nil
