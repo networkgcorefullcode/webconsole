@@ -216,7 +216,7 @@ func syncDeviceGroupSubscriber(devGroup *configmodels.DeviceGroups, prevDevGroup
 			}()
 		}
 	}
-	wg.Wait()
+
 	// delete IMSI's that are removed
 	dimsis := getDeletedImsisList(devGroup, prevDevGroup)
 	for _, imsi := range dimsis {
