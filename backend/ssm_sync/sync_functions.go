@@ -179,7 +179,7 @@ func getUsers() []configmodels.SubsListIE {
 		logger.DbLog.Errorf("failed to retrieve subscribers list with error: %+v", errGetMany)
 		return subsList
 	}
-	logger.AppLog.Infof("GetSubscribers: amDataList: %+v, len: %d", amDataList, len(amDataList))
+	logger.AppLog.Infof("GetSubscribers: len: %d", len(amDataList))
 	if len(amDataList) == 0 {
 		return subsList
 	}

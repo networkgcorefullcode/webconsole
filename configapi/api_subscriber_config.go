@@ -275,7 +275,7 @@ func GetSubscribers(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve subscribers list"})
 		return
 	}
-	logger.AppLog.Infof("GetSubscribers: amDataList: %+v, len: %d", amDataList, len(amDataList))
+	logger.AppLog.Infof("GetSubscribers: len: %d", len(amDataList))
 	if len(amDataList) == 0 {
 		c.JSON(http.StatusOK, subsList)
 		return
