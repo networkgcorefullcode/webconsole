@@ -192,33 +192,45 @@ func syncDeviceGroupSubscriber(devGroup *configmodels.DeviceGroups, prevDevGroup
 		Sst: int32(sVal),
 	}
 	var errorOccured bool
+	wg := sync.WaitGroup{}
+
 	for _, imsi := range devGroup.Imsis {
 		/* update all current IMSIs */
 		if subscriberAuthenticationDataGet("imsi-"+imsi) != nil {
-			dnn := devGroup.IpDomainExpanded.Dnn
-			err = updatePolicyAndProvisionedData(
-				imsi,
-				slice.SiteInfo.Plmn.Mcc,
-				slice.SiteInfo.Plmn.Mnc,
-				snssai,
-				dnn,
-				devGroup.IpDomainExpanded.UeDnnQos,
-			)
-			if err != nil {
-				logger.DbLog.Errorf("updatePolicyAndProvisionedData failed for IMSI %s: %+v", imsi, err)
-				errorOccured = true
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				dnn := devGroup.IpDomainExpanded.Dnn
+				err := updatePolicyAndProvisionedData(
+					imsi,
+					slice.SiteInfo.Plmn.Mcc,
+					slice.SiteInfo.Plmn.Mnc,
+					snssai,
+					dnn,
+					devGroup.IpDomainExpanded.UeDnnQos,
+				)
+				if err != nil {
+					logger.DbLog.Errorf("updatePolicyAndProvisionedData failed for IMSI %s: %+v", imsi, err)
+					errorOccured = true
+				}
+			}()
 		}
 	}
+	wg.Wait()
 	// delete IMSI's that are removed
 	dimsis := getDeletedImsisList(devGroup, prevDevGroup)
 	for _, imsi := range dimsis {
-		err = removeSubscriberEntriesRelatedToDeviceGroups(slice.SiteInfo.Plmn.Mcc, slice.SiteInfo.Plmn.Mnc, imsi)
-		if err != nil {
-			logger.ConfigLog.Errorln(err)
-			errorOccured = true
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := removeSubscriberEntriesRelatedToDeviceGroups(slice.SiteInfo.Plmn.Mcc, slice.SiteInfo.Plmn.Mnc, imsi)
+			if err != nil {
+				logger.ConfigLog.Errorln(err)
+				errorOccured = true
+			}
+		}()
 	}
+	wg.Wait()
 
 	if errorOccured {
 		return http.StatusInternalServerError, fmt.Errorf("syncDeviceGroupSubscriber failed, please check logs")
