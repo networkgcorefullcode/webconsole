@@ -40,6 +40,7 @@ type Configuration struct {
 	SendPebbleNotifications bool      `yaml:"send-pebble-notifications,omitempty"`
 	CfgPort                 int       `yaml:"cfgport,omitempty"`
 	SSM                     *SSM      `yaml:"ssm,omitempty"`
+	Vault                   *Vault    `yaml:"vault,omitempty"`
 }
 
 type SSM struct {
@@ -52,6 +53,14 @@ type SSM struct {
 	IsEncryptAESCBC bool      `yaml:"is-encrypt-aes-cbc,omitempty"`
 	IsEncryptAESGCM bool      `yaml:"is-encrypt-aes-gcm,omitempty"`
 }
+
+type Vault struct {
+	Address  string   `yaml:"address,omitempty"`
+	Token    string   `yaml:"token,omitempty"`
+	MountApp string   `yaml:"mount-app,omitempty"`
+	SsmSync  *SsmSync `yaml:"ssm-synchronize,omitempty"`
+}
+
 type TLS struct {
 	PEM string `yaml:"pem,omitempty"`
 	Key string `yaml:"key,omitempty"`

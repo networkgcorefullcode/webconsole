@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"os"
 
-	ssm "github.com/networkgcorefullcode/ssm/models"
+	ssm_models "github.com/networkgcorefullcode/ssm/models"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 )
 
-var apiClient *ssm.APIClient
+var apiClient *ssm_models.APIClient
 
 // GetSSMAPIClient creates and returns a configured SSM API client
-func GetSSMAPIClient() *ssm.APIClient {
+func GetSSMAPIClient() *ssm_models.APIClient {
 	if apiClient != nil {
 		logger.AppLog.Debugf("Returning existing SSM API client")
 		return apiClient
@@ -23,7 +23,7 @@ func GetSSMAPIClient() *ssm.APIClient {
 
 	logger.AppLog.Infof("Creating new SSM API client for URI: %s", factory.WebUIConfig.Configuration.SSM.SsmUri)
 
-	configuration := ssm.NewConfiguration()
+	configuration := ssm_models.NewConfiguration()
 	configuration.Servers[0].URL = factory.WebUIConfig.Configuration.SSM.SsmUri
 	configuration.HTTPClient = GetHTTPClient(factory.WebUIConfig.Configuration.SSM.TLS_Insecure)
 
@@ -77,7 +77,7 @@ func GetSSMAPIClient() *ssm.APIClient {
 		logger.AppLog.Infof("mTLS not configured, using default HTTP client")
 	}
 
-	apiClient = ssm.NewAPIClient(configuration)
+	apiClient = ssm_models.NewAPIClient(configuration)
 	logger.AppLog.Infof("SSM API client created successfully")
 
 	return apiClient

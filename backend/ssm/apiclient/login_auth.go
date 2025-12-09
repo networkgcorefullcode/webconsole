@@ -3,7 +3,7 @@ package apiclient
 import (
 	"context"
 
-	ssm "github.com/networkgcorefullcode/ssm/models"
+	ssm_models "github.com/networkgcorefullcode/ssm/models"
 	"github.com/omec-project/webconsole/backend/logger"
 )
 
@@ -12,13 +12,13 @@ var CurrentJWT string = ""
 
 // SetAuthContext sets the authentication context with the provided JWT token
 func SetAuthContext(jwt string) {
-	AuthContext = context.WithValue(context.Background(), ssm.ContextAccessToken, jwt)
+	AuthContext = context.WithValue(context.Background(), ssm_models.ContextAccessToken, jwt)
 	CurrentJWT = jwt
 }
 
 // LoginSSM performs login to the SSM and returns the authentication token
 func LoginSSM(serviceId, password string) (string, error) {
-	var loginRequest = ssm.LoginRequest{
+	var loginRequest = ssm_models.LoginRequest{
 		ServiceId: serviceId,
 		Password:  password,
 	}

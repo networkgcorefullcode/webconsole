@@ -19,13 +19,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/util/http2_util"
 	utilLogger "github.com/omec-project/util/logger"
-	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/auth"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/metrics"
-	ssmsync "github.com/omec-project/webconsole/backend/ssm_sync"
-	"github.com/omec-project/webconsole/backend/utils"
+	"github.com/omec-project/webconsole/backend/ssm"
+	ssmsync "github.com/omec-project/webconsole/backend/ssm/ssm_sync"
+	"github.com/omec-project/webconsole/backend/ssm/ssmhsm"
+	"github.com/omec-project/webconsole/backend/ssm/vault"
 	"github.com/omec-project/webconsole/backend/webui_context"
 	"github.com/omec-project/webconsole/configapi"
 )
@@ -78,23 +79,35 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 		MaxAge:           86400,
 	}))
 
+	var ssmhsm *ssmhsm.SSMHSM = &ssmhsm.SSMHSM{}
+	var vault *vault.VaultSSM = &vault.VaultSSM{}
+
 	// Init a gorutine to sincronize SSM functionality
-	ssmSyncMsg := make(chan *ssmsync.SsmSyncMessage, 10)
+	ssmSyncMsg := make(chan *ssm.SsmSyncMessage, 10)
 	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
-		serviceId, password, err := utils.GetUserLogin()
+		_, err := ssmhsm.Login()
 		if err != nil {
-			logger.WebUILog.Errorf("Error getting SSM login credentials: %v", err)
-			return
-		}
-		if _, err = apiclient.LoginSSM(serviceId, password); err != nil {
-			logger.WebUILog.Errorf("Error logging into SSM: %v", err)
+			logger.WebUILog.Errorf("SSM login failed: %v", err)
 			return
 		}
 		logger.WebUILog.Infoln("SSM login successful")
-		go ssmsync.HealthCheckSSM()
+		go ssmhsm.HealthCheck()
 		time.Sleep(time.Second * 5) // stop work to send the health check function
-		go ssmsync.SyncSsm(ssmSyncMsg)
-		go ssmsync.SsmSyncInitDefault(ssmSyncMsg)
+		go ssmsync.SyncSsm(ssmSyncMsg, ssmhsm)
+		go ssmhsm.InitDefault()
+	}
+
+	if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable {
+		_, err := vault.Login()
+		if err != nil {
+			logger.WebUILog.Errorf("Vault SSM login failed: %v", err)
+			return
+		}
+		logger.WebUILog.Infoln("SSM login successful")
+		go vault.HealthCheck()
+		time.Sleep(time.Second * 5) // stop work to send the health check function
+		go ssmsync.SyncSsm(ssmSyncMsg, vault)
+		go vault.InitDefault()
 	}
 
 	go func() {

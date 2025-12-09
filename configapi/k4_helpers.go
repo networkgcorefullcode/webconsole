@@ -2,10 +2,7 @@ package configapi
 
 import (
 	"fmt"
-	"slices"
 
-	ssm "github.com/networkgcorefullcode/ssm/models"
-	"github.com/omec-project/webconsole/backend/apiclient"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
@@ -166,75 +163,4 @@ func (k4Database DatabaseK4Data) K4DataDelete(k4Sno int, keyLabel string) error 
 	}
 	logger.WebUILog.Debugf("successfully deleted k4 key from amData collection: %s", k4Sno)
 	return nil
-}
-
-func storeKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.StoreKeyResponse, error) {
-	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", keyLabel, keyID, keyType)
-	var storeKeyRequest ssm.StoreKeyRequest = ssm.StoreKeyRequest{
-		KeyLabel: keyLabel,
-		Id:       keyID,
-		KeyValue: keyValue,
-		KeyType:  keyType,
-	}
-	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", storeKeyRequest.KeyLabel, storeKeyRequest.Id, storeKeyRequest.KeyType)
-
-	apiClient := apiclient.GetSSMAPIClient()
-
-	resp, r, err := apiClient.KeyManagementAPI.StoreKey(apiclient.AuthContext).StoreKeyRequest(storeKeyRequest).Execute()
-	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
-		return nil, err
-	}
-	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
-	return resp, nil
-}
-
-func updateKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.UpdateKeyResponse, error) {
-	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", keyLabel, keyID, keyType)
-	var updateKeyRequest ssm.UpdateKeyRequest = ssm.UpdateKeyRequest{
-		KeyLabel: keyLabel,
-		Id:       keyID,
-		KeyValue: keyValue,
-		KeyType:  keyType,
-	}
-	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", updateKeyRequest.KeyLabel, updateKeyRequest.Id, updateKeyRequest.KeyType)
-
-	apiClient := apiclient.GetSSMAPIClient()
-
-	resp, r, err := apiClient.KeyManagementAPI.UpdateKey(apiclient.AuthContext).UpdateKeyRequest(updateKeyRequest).Execute()
-	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
-		return nil, err
-	}
-	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
-	return resp, nil
-}
-
-func deleteKeySSM(keyLabel string, keyID int32) (*ssm.DeleteKeyResponse, error) {
-	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", keyLabel, keyID)
-	var deleteKeyRequest ssm.DeleteKeyRequest = ssm.DeleteKeyRequest{
-		KeyLabel: keyLabel,
-		Id:       keyID,
-	}
-	logger.AppLog.Debugf("key label: %s key id: %s key type: %s", deleteKeyRequest.KeyLabel, deleteKeyRequest.Id)
-
-	apiClient := apiclient.GetSSMAPIClient()
-
-	resp, r, err := apiClient.KeyManagementAPI.DeleteKey(apiclient.AuthContext).DeleteKeyRequest(deleteKeyRequest).Execute()
-	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
-		return nil, err
-	}
-	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
-	return resp, nil
-}
-
-func isValidKeyIdentifier(keyLabel string, keyIdentifier []string) bool {
-	if keyLabel == "" {
-		return false
-	}
-	return slices.Contains(keyIdentifier, keyLabel)
 }

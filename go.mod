@@ -9,7 +9,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/networkgcorefullcode/ssm v1.5.0
-	github.com/omec-project/config5g v1.6.2
 	github.com/omec-project/openapi v1.5.0
 	github.com/omec-project/util v1.5.4
 	github.com/prometheus/client_golang v1.22.0
@@ -21,8 +20,6 @@ require (
 	go.mongodb.org/mongo-driver v1.17.4
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.42.0
-	google.golang.org/grpc v1.73.0
-	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -81,7 +78,7 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
