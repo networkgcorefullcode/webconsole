@@ -28,10 +28,10 @@ configuration:
   # SSM (Secure Storage Module) configuration
   ssm:
     ssm-uri: https://localhost:9000
-    allow-ssm: true
+    allow-ssm: false
     tls-insecure: true
     ssm-synchronize:
-      enable: true
+      enable: false
       interval-minute: 30
       max-keys-create: 5
       delete-missing: true
@@ -49,30 +49,28 @@ configuration:
     is-encrypt-aes-gcm: true
     is-encrypt-aes-cbc: false
   vault:
-    vault-uri: "https://vault.example.com:8200"
+    vault-uri: "http://127.0.0.1:8200"
     allow-vault: true
-    tls-insecure: false
+    tls-insecure: true
     
-    # Método 1: mTLS (recomendado para producción)
-    cert-role: "webconsole-cert-role"
-    m-tls:
-      crt: "/path/to/client.crt"
-      key: "/path/to/client.key"
-      ca: "/path/to/ca.crt"
-    
-    # Método 2: Kubernetes
-    k8s-role: "webconsole-role"
-    k8s-jwt-path: "/var/run/secrets/kubernetes.io/serviceaccount/token"
-    
-    # Método 3: AppRole
+    # AppRole authentication
     role-id: "${VAULT_ROLE_ID}"
     secret-id: "${VAULT_SECRET_ID}"
 
-    key-kv-path: "secret/data/k4keys"
-    key-kv-metadata-path: "secret/metadata/k4keys"
-    transit-keys-list-path: "transit/keys"
-    transit-key-create-fmt: "transit/keys/%s"
-    transit-key-rotate-fmt: "transit/keys/%s/rotate"
+    key-kv-path: "kv-dev/k4keys"
+    key-kv-metadata-path: "kv-dev/metadata/k4keys"
+    transit-keys-list-path: "transit-dev/keys"
+    transit-key-create-fmt: "transit-dev/keys/%s"
+    transit-key-rotate-fmt: "transit-dev/keys/%s/rotate"
+
+    ssm-synchronize:
+      enable: true
+      interval-minute: 30
+      max-keys-create: 5
+      delete-missing: true
+      max-sync-keys: 5
+      max-sync-users: 5
+      max-sync-rotations: 5
 
 logger:
   WEBUI:

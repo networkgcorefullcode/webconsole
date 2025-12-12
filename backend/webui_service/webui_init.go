@@ -81,11 +81,11 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 
 	// Init a gorutine to sincronize SSM functionality
 	ssmSyncMsg := make(chan *ssm.SsmSyncMessage, 10)
-	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
+	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable && factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		syncSSM(ssmhsm.Ssmhsm, ssmSyncMsg)
 	}
 
-	if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable {
+	if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable && factory.WebUIConfig.Configuration.Vault.AllowVault {
 		syncSSM(vault.Vault, ssmSyncMsg)
 	}
 
