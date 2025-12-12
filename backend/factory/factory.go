@@ -122,6 +122,10 @@ func InitConfigFactory(f string) error {
 				return fmt.Errorf("[Configuration] if EnableAuthentication is set, WebuiDB must be set")
 			}
 		}
+
+		if WebUIConfig.Configuration.Vault.AllowVault && WebUIConfig.Configuration.SSM.AllowSsm {
+			return fmt.Errorf("[Configuration] SSM and Vault cannot be both enabled")
+		}
 	}
 
 	return nil
