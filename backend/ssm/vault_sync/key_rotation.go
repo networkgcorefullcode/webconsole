@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/ssm"
 	"github.com/omec-project/webconsole/backend/ssm/apiclient"
@@ -44,7 +45,13 @@ func rotateInternalTransitKey(keyLabel string) error {
 		}
 	}
 
-	rotatePath := fmt.Sprintf("transit/keys/%s/rotate", keyLabel)
+	rotateFmt := "transit/keys/%s/rotate"
+	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
+		if f := factory.WebUIConfig.Configuration.Vault.TransitKeyRotateFmt; f != "" {
+			rotateFmt = f
+		}
+	}
+	rotatePath := fmt.Sprintf(rotateFmt, keyLabel)
 	if _, err := client.Logical().Write(rotatePath, nil); err != nil {
 		return fmt.Errorf("rotate transit key %s: %w", keyLabel, err)
 	}

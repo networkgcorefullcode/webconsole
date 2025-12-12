@@ -23,11 +23,31 @@ var (
 )
 
 const (
-	internalKeyLabel       = "aes256-gcm"
+	internalKeyLabel = "aes256-gcm"
+)
+
+// Config-driven paths with defaults
+var (
 	transitKeysListPath    = "transit/keys"
 	transitKeyCreateFormat = "transit/keys/%s"
 	externalKeysListPath   = "secret/metadata/k4keys"
 )
+
+func init() {
+	// Initialize path variables from configuration if available
+	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
+		v := factory.WebUIConfig.Configuration.Vault
+		if v.TransitKeysListPath != "" {
+			transitKeysListPath = v.TransitKeysListPath
+		}
+		if v.TransitKeyCreateFmt != "" {
+			transitKeyCreateFormat = v.TransitKeyCreateFmt
+		}
+		if v.KeyKVMetadataPath != "" {
+			externalKeysListPath = v.KeyKVMetadataPath
+		}
+	}
+}
 
 // SyncKeyListen listens for key synchronization messages from Vault
 func SyncKeyListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {

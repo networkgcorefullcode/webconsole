@@ -4,14 +4,20 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/ssm/apiclient"
 )
 
-const (
-	// Vault paths for key storage
-	VaultKeyPath = "secret/data/k4keys"
-)
+// getVaultKeyPath returns the base KV path for keys from config with fallback
+func getVaultKeyPath() string {
+	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
+		if p := factory.WebUIConfig.Configuration.Vault.KeyKVPath; p != "" {
+			return p
+		}
+	}
+	return "secret/data/k4keys"
+}
 
 // StoreKeyVault stores a key in Vault's KV secrets engine
 func StoreKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
@@ -24,7 +30,7 @@ func StoreKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
 	}
 
 	// Build the secret path using label and ID
-	secretPath := fmt.Sprintf("%s/%s-%d", VaultKeyPath, keyLabel, keyID)
+	secretPath := fmt.Sprintf("%s/%s-%d", getVaultKeyPath(), keyLabel, keyID)
 
 	// Prepare the data to store
 	data := map[string]interface{}{
@@ -58,7 +64,7 @@ func UpdateKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
 	}
 
 	// Build the secret path using label and ID
-	secretPath := fmt.Sprintf("%s/%s-%d", VaultKeyPath, keyLabel, keyID)
+	secretPath := fmt.Sprintf("%s/%s-%d", getVaultKeyPath(), keyLabel, keyID)
 
 	// Prepare the data to update
 	data := map[string]any{
@@ -92,7 +98,7 @@ func DeleteKeyVault(keyLabel string, keyID int32) error {
 	}
 
 	// Build the secret path using label and ID
-	secretPath := fmt.Sprintf("%s/%s-%d", VaultKeyPath, keyLabel, keyID)
+	secretPath := fmt.Sprintf("%s/%s-%d", getVaultKeyPath(), keyLabel, keyID)
 
 	// Delete the secret from Vault
 	_, err = client.Logical().DeleteWithContext(context.Background(), secretPath)
@@ -116,7 +122,7 @@ func GetKeyVault(keyLabel string, keyID int32) (map[string]interface{}, error) {
 	}
 
 	// Build the secret path using label and ID
-	secretPath := fmt.Sprintf("%s/%s-%d", VaultKeyPath, keyLabel, keyID)
+	secretPath := fmt.Sprintf("%s/%s-%d", getVaultKeyPath(), keyLabel, keyID)
 
 	// Read the secret from Vault
 	secret, err := client.Logical().ReadWithContext(context.Background(), secretPath)
@@ -152,7 +158,7 @@ func ListKeysVault() ([]string, error) {
 	}
 
 	// List secrets at the key path
-	secret, err := client.Logical().ListWithContext(context.Background(), VaultKeyPath)
+	secret, err := client.Logical().ListWithContext(context.Background(), getVaultKeyPath())
 	if err != nil {
 		logger.DbLog.Errorf("Error listing keys from Vault: %v", err)
 		return nil, fmt.Errorf("error listing keys from Vault: %w", err)

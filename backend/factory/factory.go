@@ -96,6 +96,26 @@ func InitConfigFactory(f string) error {
 			}
 		}
 
+		// Set defaults for Vault paths if missing
+		if WebUIConfig.Configuration.Vault != nil {
+			v := WebUIConfig.Configuration.Vault
+			if v.KeyKVPath == "" {
+				v.KeyKVPath = "secret/data/k4keys"
+			}
+			if v.KeyKVMetadataPath == "" {
+				v.KeyKVMetadataPath = "secret/metadata/k4keys"
+			}
+			if v.TransitKeysListPath == "" {
+				v.TransitKeysListPath = "transit/keys"
+			}
+			if v.TransitKeyCreateFmt == "" {
+				v.TransitKeyCreateFmt = "transit/keys/%s"
+			}
+			if v.TransitKeyRotateFmt == "" {
+				v.TransitKeyRotateFmt = "transit/keys/%s/rotate"
+			}
+		}
+
 		if WebUIConfig.Configuration.EnableAuthentication {
 			if WebUIConfig.Configuration.Mongodb.WebuiDBName == "" ||
 				WebUIConfig.Configuration.Mongodb.WebuiDBUrl == "" {
