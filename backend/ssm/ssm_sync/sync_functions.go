@@ -172,7 +172,7 @@ func StoreInMongoDB(k4 configmodels.K4, keyLabel string) error {
 	return nil
 }
 
-func getUsers() []configmodels.SubsListIE {
+func GetUsersMDB() []configmodels.SubsListIE {
 	logger.WebUILog.Infoln("Get All Subscribers List")
 
 	logger.WebUILog.Infoln("Get All Subscribers List")
@@ -205,7 +205,7 @@ func getUsers() []configmodels.SubsListIE {
 	return subsList
 }
 
-func getSubscriberData(ueId string) (*configmodels.SubsData, error) {
+func GetSubscriberData(ueId string) (*configmodels.SubsData, error) {
 	filterUeIdOnly := bson.M{"ueId": ueId}
 
 	var subsData configmodels.SubsData

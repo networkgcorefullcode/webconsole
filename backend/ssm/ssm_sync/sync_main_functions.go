@@ -160,14 +160,14 @@ func coreUserSync() {
 		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
 		return
 	}
-	userList := getUsers()
+	userList := GetUsersMDB()
 
 	for _, user := range userList {
 		// Logic to synchronize each user
 		logger.AppLog.Infof("Synchronizing user: %s", user.UeId)
 		// Add synchronization logic here
 		go func() {
-			subsData, err := getSubscriberData(user.UeId)
+			subsData, err := GetSubscriberData(user.UeId)
 			if err != nil {
 				logger.AppLog.Errorf("Failed to get subscriber data for user %s: %v", user.UeId, err)
 				return

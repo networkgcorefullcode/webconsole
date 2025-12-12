@@ -206,3 +206,68 @@ func convertVaultKeyToDataKeyInfo(keyData map[string]interface{}, keyID int32) *
 
 	return dataKeyInfo
 }
+
+// // GetUsersMDBVault retrieves all users from MongoDB
+// func GetUsersMDBVault() []configmodels.SubsListIE {
+// 	logger.WebUILog.Infoln("Get All Subscribers List for Vault sync")
+
+// 	subsList := make([]configmodels.SubsListIE, 0)
+// 	amDataList, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(configapi.AmDataColl, bson.M{})
+// 	if errGetMany != nil {
+// 		logger.DbLog.Errorf("failed to retrieve subscribers list with error: %+v", errGetMany)
+// 		return subsList
+// 	}
+
+// 	logger.AppLog.Infof("GetSubscribers for Vault: len: %d", len(amDataList))
+// 	if len(amDataList) == 0 {
+// 		return subsList
+// 	}
+
+// 	for _, amData := range amDataList {
+// 		var subsData configmodels.SubsListIE
+
+// 		err := json.Unmarshal(configmodels.MapToByte(amData), &subsData)
+// 		if err != nil {
+// 			logger.DbLog.Errorf("could not unmarshal subscriber %s", amData)
+// 			continue
+// 		}
+
+// 		if servingPlmnId, plmnIdExists := amData["servingPlmnId"]; plmnIdExists {
+// 			subsData.PlmnID = servingPlmnId.(string)
+// 		}
+
+// 		subsList = append(subsList, subsData)
+// 	}
+
+// 	return subsList
+// }
+
+// // GetSubscriberDataVault retrieves subscriber authentication data from MongoDB
+// func GetSubscriberDataVault(ueId string) (*configmodels.SubsData, error) {
+// 	filterUeIdOnly := bson.M{"ueId": ueId}
+
+// 	var subsData configmodels.SubsData
+
+// 	authSubsDataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(configapi.AuthSubsDataColl, filterUeIdOnly)
+// 	if err != nil {
+// 		logger.DbLog.Errorf("failed to fetch authentication subscription data from DB: %+v", err)
+// 		return &subsData, fmt.Errorf("failed to fetch authentication subscription data: %w", err)
+// 	}
+
+// 	var authSubsData models.AuthenticationSubscription
+// 	if authSubsDataInterface == nil {
+// 		logger.WebUILog.Errorf("subscriber with ID %s not found", ueId)
+// 		return &subsData, fmt.Errorf("subscriber with ID %s not found", ueId)
+// 	}
+
+// 	err = json.Unmarshal(configmodels.MapToByte(authSubsDataInterface), &authSubsData)
+// 	if err != nil {
+// 		logger.WebUILog.Errorf("error unmarshalling authentication subscription data: %+v", err)
+// 		return &subsData, fmt.Errorf("failed to unmarshal authentication subscription data: %w", err)
+// 	}
+
+// 	subsData.UeId = ueId
+// 	subsData.AuthenticationSubscription = authSubsData
+
+// 	return &subsData, nil
+// }

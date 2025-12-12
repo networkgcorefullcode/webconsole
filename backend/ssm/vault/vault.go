@@ -22,7 +22,7 @@ func (v *VaultSSM) SyncKeyListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
 // KeyRotationListen starts listening for key rotation events
 func (v *VaultSSM) KeyRotationListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
 	logger.AppLog.Infof("Starting Vault key rotation listener")
-	// vaultsync.KeyRotationListen(ssmSyncMsg)
+	vaultsync.KeyRotationListen(ssmSyncMsg)
 }
 
 // Login performs authentication to Vault based on configured method
