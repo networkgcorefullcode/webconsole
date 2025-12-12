@@ -39,7 +39,11 @@ func InitConfigFactory(f string) error {
 	if content, err := os.ReadFile(f); err != nil {
 		return fmt.Errorf("[Configuration] %+v", err)
 	} else {
-		if yamlErr := yaml.Unmarshal(content, WebUIConfig); yamlErr != nil {
+
+		// expande ${VAR} y $VAR desde el entorno
+		expanded := []byte(os.ExpandEnv(string(content)))
+
+		if yamlErr := yaml.Unmarshal(expanded, WebUIConfig); yamlErr != nil {
 			return fmt.Errorf("[Configuration] %+v", yamlErr)
 		}
 		if WebUIConfig.Configuration.WebuiTLS != nil {
