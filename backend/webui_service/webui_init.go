@@ -203,7 +203,7 @@ func syncSSM(ssmInterface ssm.SSM, ssmSyncMsg chan *ssm.SsmSyncMessage) error {
 	go ssmInterface.HealthCheck()
 	time.Sleep(time.Second * 5) // stop work to send the health check function
 	go ssmsync.SyncSsm(ssmSyncMsg, ssmInterface)
-	go ssmInterface.InitDefault()
+	go ssmInterface.InitDefault(ssmSyncMsg)
 
 	return nil
 }

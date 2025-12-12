@@ -1,4 +1,4 @@
-package ssmhsm
+package ssmapi
 
 import (
 	"slices"

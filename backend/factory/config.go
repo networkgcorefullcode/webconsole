@@ -55,10 +55,19 @@ type SSM struct {
 }
 
 type Vault struct {
-	Address  string   `yaml:"address,omitempty"`
-	Token    string   `yaml:"token,omitempty"`
-	MountApp string   `yaml:"mount-app,omitempty"`
-	SsmSync  *SsmSync `yaml:"ssm-synchronize,omitempty"`
+	Address      string   `yaml:"address,omitempty"`
+	VaultUri     string   `yaml:"vault-uri,omitempty"`
+	AllowVault   bool     `yaml:"allow-vault,omitempty"`
+	Token        string   `yaml:"token,omitempty"`
+	MountApp     string   `yaml:"mount-app,omitempty"`
+	TLS_Insecure bool     `yaml:"tls-insecure,omitempty"`
+	MTls         *TLS2    `yaml:"m-tls,omitempty"`
+	CertRole     string   `yaml:"cert-role,omitempty"`
+	K8sRole      string   `yaml:"k8s-role,omitempty"`
+	K8sJWTPath   string   `yaml:"k8s-jwt-path,omitempty"`
+	RoleID       string   `yaml:"role-id,omitempty"`
+	SecretID     string   `yaml:"secret-id,omitempty"`
+	SsmSync      *SsmSync `yaml:"ssm-synchronize,omitempty"`
 }
 
 type TLS struct {

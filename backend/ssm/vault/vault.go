@@ -1,8 +1,10 @@
 package vault
 
 import (
+	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/ssm"
-	"github.com/omec-project/webconsole/configmodels"
+	"github.com/omec-project/webconsole/backend/ssm/apiclient"
+	vaultsync "github.com/omec-project/webconsole/backend/ssm/vault_sync"
 )
 
 type VaultSSM struct{}
@@ -10,43 +12,42 @@ type VaultSSM struct{}
 var Vault *VaultSSM = &VaultSSM{}
 
 // Implement SSM interface methods for VaultSSM
+
+// SyncKeyListen starts listening for key synchronization messages
 func (v *VaultSSM) SyncKeyListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
-	// Implementation for syncing keys with HSM
+	logger.AppLog.Infof("Starting Vault key sync listener")
+	vaultsync.SyncKeyListen(ssmSyncMsg)
 }
 
+// KeyRotationListen starts listening for key rotation events
 func (v *VaultSSM) KeyRotationListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
-	// Implementation for key rotation with HSM
+	logger.AppLog.Infof("Starting Vault key rotation listener")
+	// vaultsync.KeyRotationListen(ssmSyncMsg)
 }
 
+// Login performs authentication to Vault based on configured method
+// Tries mTLS, Kubernetes, and AppRole authentication in order
 func (v *VaultSSM) Login() (string, error) {
-	var token string
-	// Implementation for HSM login
+	logger.AppLog.Infof("Attempting Vault login")
+
+	token, err := apiclient.LoginVault()
+	if err != nil {
+		logger.WebUILog.Errorf("Error logging into Vault: %v", err)
+		return "", err
+	}
+
+	logger.AppLog.Infof("Successfully logged into Vault")
 	return token, nil
 }
 
-func (v *VaultSSM) StoreKey(k4Data *configmodels.K4) error {
-	// Implementation for storing key in HSM
-	// Check the K4 label keys (AES, DES or DES3)
-	return nil
-}
-
-func (v *VaultSSM) UpdateKey(k4Data *configmodels.K4) error {
-	// Implementation for updating key in HSM
-	// Check the K4 label keys (AES, DES or DES3)
-	return nil
-}
-
-func (v *VaultSSM) DeleteKey(k4Data *configmodels.K4) error {
-	// Implementation for deleting key from HSM
-	// Check the K4 label keys (both external and internal labels are allowed for deletion)
-	return nil
-}
-
+// HealthCheck performs a health check on the Vault connection
 func (v *VaultSSM) HealthCheck() {
-	// Implementation for HSM health check
+	logger.AppLog.Infof("Performing Vault health check")
+	vaultsync.HealthCheckVault()
 }
 
-func (v *VaultSSM) InitDefault() error {
-
+// InitDefault initializes Vault with default configuration
+func (v *VaultSSM) InitDefault(ssmSyncMsg chan *ssm.SsmSyncMessage) error {
+	logger.AppLog.Infof("Initializing Vault with default configuration")
 	return nil
 }

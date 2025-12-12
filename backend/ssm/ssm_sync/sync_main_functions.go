@@ -45,7 +45,7 @@ func SyncKeys(keyLabel, action string) {
 	k4listChanSSM := make(chan []ssm_models.DataKeyInfo)
 
 	// First get the keys using a filter on keyLabel (mongodb query)
-	go getMongoDBLabelFilter(keyLabel, k4listChanMDB)
+	go GetMongoDBLabelFilter(keyLabel, k4listChanMDB)
 
 	// Then get the keys from SSM using the same keyLabel
 	go getSSMLabelFilter(keyLabel, k4listChanSSM)
@@ -93,7 +93,7 @@ func SyncKeys(keyLabel, action string) {
 						logger.AppLog.Errorf("Failed to create new K4 key with label %s: %v", keyLabel, err)
 					} else {
 						// Store in MongoDB
-						if err := storeInMongoDB(newK4, keyLabel); err != nil {
+						if err := StoreInMongoDB(newK4, keyLabel); err != nil {
 							logger.AppLog.Errorf("Failed to store new K4 key in MongoDB: %v", err)
 						}
 					}
@@ -109,7 +109,7 @@ func SyncKeys(keyLabel, action string) {
 		if _, existsInSSM := ssmKeysMap[identifier]; !existsInSSM {
 			go func() {
 				logger.AppLog.Infof("Key identifier %d exists in MDB but not in SSM - deleting to MongoDB", identifier)
-				if err := deleteKeyMongoDB(mdbKey); err != nil {
+				if err := DeleteKeyMongoDB(mdbKey); err != nil {
 					logger.AppLog.Errorf("Failed to delete key identifier %d from MongoDB: %v", identifier, err)
 				} else {
 					logger.AppLog.Infof("Successfully deleted key identifier %d from MongoDB", identifier)

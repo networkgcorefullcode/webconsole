@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
-	"github.com/omec-project/webconsole/backend/ssm/ssmhsm"
+	ssmapi "github.com/omec-project/webconsole/configapi/ssm_api"
 	"github.com/omec-project/webconsole/configmodels"
 	"github.com/omec-project/webconsole/dbadapter"
 	"go.mongodb.org/mongo-driver/bson"
@@ -192,7 +192,21 @@ func HandlePostK4(c *gin.Context) {
 	// SSM
 	// Store the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
-		ssmhsm.Ssmhsm.StoreKey(&k4Data)
+		if err := ssmapi.Ssmhsm_api.StoreKey(&k4Data); err != nil {
+			logger.DbLog.Errorf("failed to store k4 key in SSM: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM"})
+			return
+		}
+	}
+
+	// Vault
+	// Store the K4 in Vault if this option is enabled
+	if factory.WebUIConfig.Configuration.Vault != nil && factory.WebUIConfig.Configuration.Vault.AllowVault {
+		if err := ssmapi.Vault_api.StoreKey(&k4Data); err != nil {
+			logger.DbLog.Errorf("failed to store k4 key in Vault: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in Vault"})
+			return
+		}
 	}
 
 	k4Data.TimeCreated = time.Now()
@@ -268,7 +282,21 @@ func HandlePutK4(c *gin.Context) {
 	// SSM
 	// Update the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
-		ssmhsm.Ssmhsm.UpdateKey(&k4Data)
+		if err := ssmapi.Ssmhsm_api.UpdateKey(&k4Data); err != nil {
+			logger.DbLog.Errorf("failed to update k4 key in SSM: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in SSM"})
+			return
+		}
+	}
+
+	// Vault
+	// Update the K4 in Vault if this option is enabled
+	if factory.WebUIConfig.Configuration.Vault != nil && factory.WebUIConfig.Configuration.Vault.AllowVault {
+		if err := ssmapi.Vault_api.UpdateKey(&k4Data); err != nil {
+			logger.DbLog.Errorf("failed to update k4 key in Vault: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in Vault"})
+			return
+		}
 	}
 
 	k4Data.TimeCreated = time.Now()
@@ -315,9 +343,23 @@ func HandleDeleteK4(c *gin.Context) {
 	}
 
 	// SSM
-	// Update the K4 in the SSM if this option is allow
+	// Delete the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
-		ssmhsm.Ssmhsm.DeleteKey(&k4Data)
+		if err := ssmapi.Ssmhsm_api.DeleteKey(&k4Data); err != nil {
+			logger.DbLog.Errorf("failed to delete k4 key in SSM: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key in SSM"})
+			return
+		}
+	}
+
+	// Vault
+	// Delete the K4 in Vault if this option is enabled
+	if factory.WebUIConfig.Configuration.Vault != nil && factory.WebUIConfig.Configuration.Vault.AllowVault {
+		if err := ssmapi.Vault_api.DeleteKey(&k4Data); err != nil {
+			logger.DbLog.Errorf("failed to delete k4 key in Vault: %+v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key in Vault"})
+			return
+		}
 	}
 
 	if err := K4HelperDelete(snoIdint, keylabel); err != nil {

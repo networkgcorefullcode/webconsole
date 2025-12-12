@@ -94,7 +94,7 @@ func createNewKeySSM(keyLabel string, id int32) (configmodels.K4, error) {
 
 // Functions for MongoDB operations
 
-func getMongoDBLabelFilter(keyLabel string, k4listChan chan []configmodels.K4) {
+func GetMongoDBLabelFilter(keyLabel string, k4listChan chan []configmodels.K4) {
 	k4List := make([]configmodels.K4, 0)
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.K4KeysColl, bson.M{"key_label": keyLabel})
 	if errGetMany != nil {
@@ -150,7 +150,7 @@ func getMongoDBAllK4(k4listChan chan []configmodels.K4) {
 	k4listChan <- k4List
 }
 
-func storeInMongoDB(k4 configmodels.K4, keyLabel string) error {
+func StoreInMongoDB(k4 configmodels.K4, keyLabel string) error {
 	logger.AppLog.Infof("Storing new key SNO %d in MongoDB with label %s", k4.K4_SNO, keyLabel)
 
 	k4Data := bson.M{
@@ -236,7 +236,7 @@ func getSubscriberData(ueId string) (*configmodels.SubsData, error) {
 	return &subsData, nil
 }
 
-func deleteKeyMongoDB(k4 configmodels.K4) error {
+func DeleteKeyMongoDB(k4 configmodels.K4) error {
 	logger.AppLog.Infof("Deleting key SNO %d with label %s from MongoDB", k4.K4_SNO, k4.K4_Label)
 
 	err := dbadapter.AuthDBClient.RestfulAPIDeleteOne(configapi.K4KeysColl, bson.M{"k4_sno": k4.K4_SNO, "key_label": k4.K4_Label})

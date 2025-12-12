@@ -48,6 +48,25 @@ configuration:
     # read in cascade if gcm is false then cbc is used if gcm is true cbc is ignored, both is false no encryption is used (disabled SSM jjjj)
     is-encrypt-aes-gcm: true
     is-encrypt-aes-cbc: false
+  vault:
+    vault-uri: "https://vault.example.com:8200"
+    allow-vault: true
+    tls-insecure: false
+    
+    # Método 1: mTLS (recomendado para producción)
+    cert-role: "webconsole-cert-role"
+    m-tls:
+      crt: "/path/to/client.crt"
+      key: "/path/to/client.key"
+      ca: "/path/to/ca.crt"
+    
+    # Método 2: Kubernetes
+    k8s-role: "webconsole-role"
+    k8s-jwt-path: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    
+    # Método 3: AppRole
+    role-id: "${VAULT_ROLE_ID}"
+    secret-id: "${VAULT_SECRET_ID}"
 
 logger:
   WEBUI:
