@@ -68,6 +68,12 @@ configuration:
     role-id: "${VAULT_ROLE_ID}"
     secret-id: "${VAULT_SECRET_ID}"
 
+    key-kv-path: "secret/data/k4keys"
+    key-kv-metadata-path: "secret/metadata/k4keys"
+    transit-keys-list-path: "transit/keys"
+    transit-key-create-fmt: "transit/keys/%s"
+    transit-key-rotate-fmt: "transit/keys/%s/rotate"
+
 logger:
   WEBUI:
     debugLevel: debug
