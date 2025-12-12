@@ -7,6 +7,8 @@ import (
 
 type VaultSSM struct{}
 
+var Vault *VaultSSM = &VaultSSM{}
+
 // Implement SSM interface methods for VaultSSM
 func (v *VaultSSM) SyncKeyListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
 	// Implementation for syncing keys with HSM

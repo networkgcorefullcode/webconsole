@@ -9,11 +9,12 @@ import (
 	"github.com/omec-project/webconsole/backend/ssm/apiclient"
 	ssmsync "github.com/omec-project/webconsole/backend/ssm/ssm_sync"
 	"github.com/omec-project/webconsole/backend/utils"
-	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
 )
 
 type SSMHSM struct{}
+
+var Ssmhsm *SSMHSM = &SSMHSM{}
 
 // Implement SSM interface methods for SSMHSM
 func (hsm *SSMHSM) SyncKeyListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
@@ -45,17 +46,17 @@ func (hsm *SSMHSM) Login() (string, error) {
 func (hsm *SSMHSM) StoreKey(k4Data *configmodels.K4) error {
 	// Implementation for storing key in HSM
 	// Check the K4 label keys (AES, DES or DES3)
-	if !configapi.IsValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsExternalAllow[:]) {
+	if !IsValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsExternalAllow[:]) {
 		logger.DbLog.Error("failed to store k4 key in SSM the label key is not valid")
 		return errors.New("failed to store k4 key in SSM must key label is incorrect")
 	}
 	// Check the K4 type to specified the key type that will be store
-	if !configapi.IsValidKeyIdentifier(k4Data.K4_Type, ssm_constants.KeyTypeAllow[:]) {
+	if !IsValidKeyIdentifier(k4Data.K4_Type, ssm_constants.KeyTypeAllow[:]) {
 		logger.DbLog.Error("failed to store k4 key in SSM the type key is not valid")
 		return errors.New("failed to store k4 key in SSM must key type is incorrect")
 	}
 	// Send the request to the SSM
-	resp, err := configapi.StoreKeySSM(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO))
+	resp, err := StoreKeySSM(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO))
 	if err != nil {
 		logger.DbLog.Errorf("failed to store k4 key in SSM: %+v", err)
 		return errors.New("failed to store k4 key in SSM")
@@ -73,17 +74,17 @@ func (hsm *SSMHSM) StoreKey(k4Data *configmodels.K4) error {
 func (hsm *SSMHSM) UpdateKey(k4Data *configmodels.K4) error {
 	// Implementation for updating key in HSM
 	// Check the K4 label keys (AES, DES or DES3)
-	if !configapi.IsValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsExternalAllow[:]) {
+	if !IsValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsExternalAllow[:]) {
 		logger.DbLog.Error("failed to update k4 key in SSM the label key is not valid")
 		return errors.New("failed to update k4 key in SSM must key label is incorrect")
 	}
 	// Check the K4 type to specified the key type that will be update
-	if !configapi.IsValidKeyIdentifier(k4Data.K4_Type, ssm_constants.KeyTypeAllow[:]) {
+	if !IsValidKeyIdentifier(k4Data.K4_Type, ssm_constants.KeyTypeAllow[:]) {
 		logger.DbLog.Error("failed to update k4 key in SSM the type key is not valid")
 		return errors.New("failed to update k4 key in SSM must key type is incorrect")
 	}
 	// Send the request to the SSM
-	resp, err := configapi.UpdateKeySSM(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO))
+	resp, err := UpdateKeySSM(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO))
 	if err != nil {
 		logger.DbLog.Errorf("failed to update k4 key in SSM: %+v", err)
 		return errors.New("failed to update k4 key in SSM")
@@ -101,12 +102,12 @@ func (hsm *SSMHSM) UpdateKey(k4Data *configmodels.K4) error {
 func (hsm *SSMHSM) DeleteKey(k4Data *configmodels.K4) error {
 	// Implementation for deleting key from HSM
 	// Check the K4 label keys (both external and internal labels are allowed for deletion)
-	if !configapi.IsValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsExternalAllow[:]) && !configapi.IsValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsInternalAllow[:]) {
+	if !IsValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsExternalAllow[:]) && !IsValidKeyIdentifier(k4Data.K4_Label, ssm_constants.KeyLabelsInternalAllow[:]) {
 		logger.DbLog.Error("failed to delete k4 key in SSM the label key is not valid")
 		return errors.New("failed to delete k4 key in SSM must key label is incorrect")
 	}
 	// Send the request to the SSM
-	_, err := configapi.DeleteKeySSM(k4Data.K4_Label, int32(k4Data.K4_SNO))
+	_, err := DeleteKeySSM(k4Data.K4_Label, int32(k4Data.K4_SNO))
 	if err != nil {
 		logger.DbLog.Errorf("failed to delete k4 key in SSM: %+v", err)
 		return errors.New("failed to delete k4 key in SSM")

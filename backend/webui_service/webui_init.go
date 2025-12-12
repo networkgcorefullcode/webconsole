@@ -79,35 +79,14 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 		MaxAge:           86400,
 	}))
 
-	var ssmhsm *ssmhsm.SSMHSM = &ssmhsm.SSMHSM{}
-	var vault *vault.VaultSSM = &vault.VaultSSM{}
-
 	// Init a gorutine to sincronize SSM functionality
 	ssmSyncMsg := make(chan *ssm.SsmSyncMessage, 10)
 	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
-		_, err := ssmhsm.Login()
-		if err != nil {
-			logger.WebUILog.Errorf("SSM login failed: %v", err)
-			return
-		}
-		logger.WebUILog.Infoln("SSM login successful")
-		go ssmhsm.HealthCheck()
-		time.Sleep(time.Second * 5) // stop work to send the health check function
-		go ssmsync.SyncSsm(ssmSyncMsg, ssmhsm)
-		go ssmhsm.InitDefault()
+		syncSSM(ssmhsm.Ssmhsm, ssmSyncMsg)
 	}
 
 	if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable {
-		_, err := vault.Login()
-		if err != nil {
-			logger.WebUILog.Errorf("Vault SSM login failed: %v", err)
-			return
-		}
-		logger.WebUILog.Infoln("SSM login successful")
-		go vault.HealthCheck()
-		time.Sleep(time.Second * 5) // stop work to send the health check function
-		go ssmsync.SyncSsm(ssmSyncMsg, vault)
-		go vault.InitDefault()
+		syncSSM(vault.Vault, ssmSyncMsg)
 	}
 
 	go func() {
@@ -212,4 +191,19 @@ func isWritingMethod(method string) bool {
 
 func isStatusSuccess(status int) bool {
 	return status/100 == 2
+}
+
+func syncSSM(ssmInterface ssm.SSM, ssmSyncMsg chan *ssm.SsmSyncMessage) error {
+	_, err := ssmInterface.Login()
+	if err != nil {
+		logger.WebUILog.Errorf("SSM login failed: %v", err)
+		return err
+	}
+	logger.WebUILog.Infoln("SSM login successful")
+	go ssmInterface.HealthCheck()
+	time.Sleep(time.Second * 5) // stop work to send the health check function
+	go ssmsync.SyncSsm(ssmSyncMsg, ssmInterface)
+	go ssmInterface.InitDefault()
+
+	return nil
 }

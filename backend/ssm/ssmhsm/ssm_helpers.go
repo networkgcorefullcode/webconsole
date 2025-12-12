@@ -1,4 +1,4 @@
-package configapi
+package ssmhsm
 
 import (
 	"slices"
