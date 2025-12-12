@@ -24,10 +24,20 @@ func LoginVaultAppRole(roleID, secretID string) (string, error) {
 		return "", fmt.Errorf("error getting Vault client: %w", err)
 	}
 
+	// Set login options for AppRole authentication
+	opts := []auth.LoginOption{}
+
+	// Add custom mount path if configured
+	config := factory.WebUIConfig.Configuration.Vault
+	if config.AppRoleMountPath != "" {
+		opts = append(opts, auth.WithMountPath(config.AppRoleMountPath))
+		logger.AppLog.Infof("Using custom AppRole mount path: %s", config.AppRoleMountPath)
+	}
+
 	// Create AppRole auth method
 	appRoleAuth, err := auth.NewAppRoleAuth(roleID, &auth.SecretID{
 		FromString: secretID,
-	})
+	}, opts...)
 	if err != nil {
 		logger.AppLog.Errorf("Error creating AppRole auth: %v", err)
 		return "", fmt.Errorf("error creating AppRole auth: %w", err)
@@ -80,8 +90,15 @@ func LoginVaultKubernetes(role, jwtPath string) (string, error) {
 		return "", fmt.Errorf("error reading Kubernetes JWT token: %w", err)
 	}
 
-	// Create Kubernetes auth method
-	k8sAuth, err := k8sauth.NewKubernetesAuth(role, k8sauth.WithServiceAccountToken(string(jwt)))
+	// Create Kubernetes auth method with optional custom mount path
+	k8sOpts := []k8sauth.LoginOption{k8sauth.WithServiceAccountToken(string(jwt))}
+	config := factory.WebUIConfig.Configuration.Vault
+	if config.K8sMountPath != "" {
+		k8sOpts = append(k8sOpts, k8sauth.WithMountPath(config.K8sMountPath))
+		logger.AppLog.Infof("Using custom Kubernetes mount path: %s", config.K8sMountPath)
+	}
+
+	k8sAuth, err := k8sauth.NewKubernetesAuth(role, k8sOpts...)
 	if err != nil {
 		logger.AppLog.Errorf("Error creating Kubernetes auth: %v", err)
 		return "", fmt.Errorf("error creating Kubernetes auth: %w", err)
@@ -129,8 +146,16 @@ func LoginVaultMTLS(certPath, certRole string) (string, error) {
 		data["name"] = certRole
 	}
 
+	// Use custom mount path if configured
+	config := factory.WebUIConfig.Configuration.Vault
+	certMountPath := "auth/cert/login"
+	if config.CertMountPath != "" {
+		certMountPath = fmt.Sprintf("auth/%s/login", config.CertMountPath)
+		logger.AppLog.Infof("Using custom Cert mount path: %s", config.CertMountPath)
+	}
+
 	// Authenticate using cert auth method
-	secret, err := client.Logical().Write("auth/cert/login", data)
+	secret, err := client.Logical().Write(certMountPath, data)
 	if err != nil {
 		logger.AppLog.Errorf("Error logging in with mTLS: %v", err)
 		return "", fmt.Errorf("error logging in with mTLS: %w", err)

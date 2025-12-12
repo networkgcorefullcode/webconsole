@@ -69,6 +69,11 @@ type Vault struct {
 	SecretID     string   `yaml:"secret-id,omitempty"`
 	SsmSync      *SsmSync `yaml:"ssm-synchronize,omitempty"`
 
+	// Auth mount paths for custom Vault configurations
+	AppRoleMountPath string `yaml:"approle-mount-path,omitempty"` // e.g., "approle" (default) or custom mount
+	K8sMountPath     string `yaml:"k8s-mount-path,omitempty"`     // e.g., "kubernetes" (default) or custom mount
+	CertMountPath    string `yaml:"cert-mount-path,omitempty"`    // e.g., "cert" (default) or custom mount
+
 	// Paths and formats for Vault KV and Transit
 	KeyKVPath           string `yaml:"key-kv-path,omitempty"`            // e.g., "secret/data/k4keys"
 	KeyKVMetadataPath   string `yaml:"key-kv-metadata-path,omitempty"`   // e.g., "secret/metadata/k4keys"

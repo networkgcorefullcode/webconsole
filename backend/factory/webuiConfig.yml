@@ -56,6 +56,11 @@ configuration:
     # AppRole authentication
     role-id: "${VAULT_ROLE_ID}"
     secret-id: "${VAULT_SECRET_ID}"
+    
+    # Custom mount paths for auth methods (optional, uses defaults if not specified)
+    approle-mount-path: "auth-dev-approle"  # Default: "approle"
+    # k8s-mount-path: "kubernetes"   # Default: "kubernetes"
+    cert-mount-path: "auth-dev-cert"        # Default: "cert"
 
     key-kv-path: "kv-dev/k4keys"
     key-kv-metadata-path: "kv-dev/metadata/k4keys"

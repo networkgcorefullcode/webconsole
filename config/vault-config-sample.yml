@@ -30,6 +30,12 @@ vault:
     key: "/path/to/client-key.key"
     ca: "/path/to/ca-cert.crt"
   
+  # Custom mount paths for authentication methods (optional)
+  # These are useful when Vault has custom mount points configured
+  approle-mount-path: "approle"    # Default: "approle", change if using custom mount
+  k8s-mount-path: "kubernetes"     # Default: "kubernetes", change if using custom mount
+  cert-mount-path: "cert"          # Default: "cert", change if using custom mount
+  
   # Mount point for application secrets
   mount-app: "secret"
   
