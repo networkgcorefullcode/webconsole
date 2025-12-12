@@ -10,7 +10,7 @@ The Vault integration provides secure storage and management of K4 encryption ke
 
 The Vault integration follows the same pattern as the SSM integration:
 
-```
+```bash
 configapi/handlers_k4.go  (API endpoints)
     ↓
 configapi/ssm_api/vault_api.go  (API layer - StoreKey, UpdateKey, DeleteKey)
@@ -53,6 +53,7 @@ vault:
 ```
 
 **Setup in Vault:**
+
 ```bash
 # Enable cert auth method
 vault auth enable cert
@@ -77,6 +78,7 @@ vault:
 ```
 
 **Setup in Vault:**
+
 ```bash
 # Enable Kubernetes auth
 vault auth enable kubernetes
@@ -107,6 +109,7 @@ vault:
 ```
 
 **Setup in Vault:**
+
 ```bash
 # Enable AppRole auth
 vault auth enable approle
@@ -145,6 +148,7 @@ path "sys/health" {
 ```
 
 Apply the policy:
+
 ```bash
 vault policy write webconsole-policy webconsole-policy.hcl
 ```
@@ -183,6 +187,7 @@ configuration:
 ### Store Key
 
 When storing a K4 key, if Vault is enabled, the key is stored in:
+
 - **Path:** `secret/data/k4keys/{key_label}-{key_id}`
 - **Data:**
   - `key_label`: The label of the key (e.g., K4_AES256)
@@ -224,22 +229,26 @@ The integration includes comprehensive error handling:
 ### Local Development with Vault
 
 1. Start Vault in dev mode:
+
 ```bash
 vault server -dev -dev-root-token-id="root"
 ```
 
 2. Configure environment:
+
 ```bash
 export VAULT_ADDR='http://127.0.0.1:8200'
 export VAULT_TOKEN='root'
 ```
 
 3. Enable KV v2 secrets engine:
+
 ```bash
 vault secrets enable -path=secret kv-v2
 ```
 
 4. Update configuration:
+
 ```yaml
 vault:
   vault-uri: "http://127.0.0.1:8200"
@@ -254,11 +263,13 @@ vault:
 ### Authentication Fails
 
 Check logs for authentication errors:
+
 ```bash
 grep "Vault login" /var/log/webconsole.log
 ```
 
 Verify Vault is accessible:
+
 ```bash
 curl -k https://vault.example.com:8200/v1/sys/health
 ```
@@ -266,11 +277,13 @@ curl -k https://vault.example.com:8200/v1/sys/health
 ### Key Storage Fails
 
 Verify policy permissions:
+
 ```bash
 vault token capabilities secret/data/k4keys/test
 ```
 
 Check Vault audit logs:
+
 ```bash
 vault audit enable file file_path=/var/log/vault/audit.log
 ```
@@ -278,6 +291,7 @@ vault audit enable file file_path=/var/log/vault/audit.log
 ### TLS Certificate Issues
 
 Verify certificates:
+
 ```bash
 openssl verify -CAfile ca.crt client.crt
 openssl x509 -in client.crt -text -noout
