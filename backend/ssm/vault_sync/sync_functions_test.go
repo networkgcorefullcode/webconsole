@@ -51,7 +51,7 @@ func TestGetVaultLabelFilterWithStopCondition(t *testing.T) {
 		setStopCondition(false)
 	}()
 
-	ch := make(chan []interface{}, 1)
+	ch := make(chan []any, 1)
 
 	// This should return nil due to stop condition
 	go func() {
@@ -87,7 +87,7 @@ func TestConvertVaultKeyToDataKeyInfo(t *testing.T) {
 	}
 
 	// Test with valid data
-	keyData := map[string]interface{}{
+	keyData := map[string]any{
 		"type": "aes256-gcm96",
 		"name": "test-key",
 	}
@@ -103,7 +103,7 @@ func TestConvertVaultKeyToDataKeyInfo(t *testing.T) {
 }
 
 func TestConvertVaultKeyToDataKeyInfoEmptyMap(t *testing.T) {
-	keyData := map[string]interface{}{}
+	keyData := map[string]any{}
 
 	result := convertVaultKeyToDataKeyInfo(keyData, 10)
 	if result == nil {

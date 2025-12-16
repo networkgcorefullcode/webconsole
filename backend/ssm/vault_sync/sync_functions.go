@@ -75,7 +75,7 @@ func createNewKeyVaultTransit(keyLabel string) (configmodels.K4, error) {
 
 	logger.AppLog.Infof("Creating transit key %s", internalKeyLabel)
 	createPath := fmt.Sprintf(getTransitKeyCreateFormat(), internalKeyLabel)
-	if _, err := client.Logical().Write(createPath, map[string]interface{}{"type": "aes256-gcm96"}); err != nil {
+	if _, err := client.Logical().Write(createPath, map[string]any{"type": "aes256-gcm96"}); err != nil {
 		logger.AppLog.Errorf("Failed to create transit key %s: %v", internalKeyLabel, err)
 		return configmodels.K4{}, err
 	}
@@ -121,7 +121,7 @@ func createNewKeyVaultStore() error {
 		return nil
 	}
 
-	keys, ok := secret.Data["keys"].([]interface{})
+	keys, ok := secret.Data["keys"].([]any)
 	if !ok {
 		logger.AppLog.Warn("Unexpected format when listing external keys")
 		return errors.New("unexpected format when listing external keys")
@@ -204,7 +204,7 @@ func deleteKeyToVault(k4 configmodels.K4) error {
 }
 
 // convertVaultKeyToDataKeyInfo converts Vault key data to ssm_models.DataKeyInfo
-func convertVaultKeyToDataKeyInfo(keyData map[string]interface{}, keyID int32) *ssm_models.DataKeyInfo {
+func convertVaultKeyToDataKeyInfo(keyData map[string]any, keyID int32) *ssm_models.DataKeyInfo {
 	if keyData == nil {
 		return nil
 	}

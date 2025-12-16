@@ -68,7 +68,7 @@ func TestSSMHSMGlobalInstance(t *testing.T) {
 	}
 
 	// Verify it's the correct type
-	if _, ok := interface{}(Ssmhsm).(ssm.SSM); !ok {
+	if _, ok := any(Ssmhsm).(ssm.SSM); !ok {
 		t.Error("Global Ssmhsm should implement SSM interface")
 	}
 }

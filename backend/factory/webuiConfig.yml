@@ -67,6 +67,7 @@ configuration:
     transit-keys-list-path: "transit-dev/keys"
     transit-key-create-fmt: "transit-dev/keys/%s"
     transit-key-rotate-fmt: "transit-dev/keys/%s/rotate"
+    transit-key-rewrap-fmt: "transit-dev/rewrap/%s"
     transit-keys-encrypt-path: "transit-dev/encrypt"
 
     ssm-synchronize:

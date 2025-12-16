@@ -75,7 +75,7 @@ func (k4Database DatabaseK4Data) K4DataCreate(k4Sno int, k4Data *configmodels.K4
 	}
 	logger.WebUILog.Infof("created K4 key in k4Keys collection: %s", k4Sno)
 	// write to CommonDB
-	basicAmData := map[string]interface{}{"k4_sno": k4Sno}
+	basicAmData := map[string]any{"k4_sno": k4Sno}
 	basicDataBson := configmodels.ToBsonM(basicAmData)
 	if _, err := dbadapter.CommonDBClient.RestfulAPIPost(k4KeysCollCom, filter, basicDataBson); err != nil {
 		logger.AppLog.Errorf("failed to update K4 reference data error: %+v", err)
@@ -108,7 +108,7 @@ func (k4Database DatabaseK4Data) K4DataUpdate(k4Sno int, k4Data *configmodels.K4
 	}
 	logger.WebUILog.Debugf("updated K4 key in k4Keys collection: %s", k4Sno)
 	// write to CommonDB
-	basicAmData := map[string]interface{}{"k4_sno": k4Sno}
+	basicAmData := map[string]any{"k4_sno": k4Sno}
 	basicDataBson := configmodels.ToBsonM(basicAmData)
 	if _, err = dbadapter.CommonDBClient.RestfulAPIPutOne(k4KeysCollCom, filter, basicDataBson); err != nil {
 		logger.AppLog.Errorf("failed to update K4 reference data error: %+v", err)

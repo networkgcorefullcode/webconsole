@@ -68,7 +68,7 @@ func TestVaultSSMGlobalInstance(t *testing.T) {
 	}
 
 	// Verify it's the correct type
-	if _, ok := interface{}(Vault).(ssm.SSM); !ok {
+	if _, ok := any(Vault).(ssm.SSM); !ok {
 		t.Error("Global Vault should implement SSM interface")
 	}
 }

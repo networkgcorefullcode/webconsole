@@ -152,13 +152,13 @@ func PostGnb(c *gin.Context) {
 func postGnbOperation(sc mongo.SessionContext, gnb configmodels.Gnb) error {
 	filter := bson.M{"name": gnb.Name}
 	gnbDataBson := configmodels.ToBsonM(gnb)
-	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.GnbDataColl, filter, []interface{}{gnbDataBson})
+	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.GnbDataColl, filter, []any{gnbDataBson})
 }
 
 func postGnbOperationWithOutContext(gnb configmodels.Gnb) error {
 	filter := bson.M{"name": gnb.Name}
 	gnbDataBson := configmodels.ToBsonM(gnb)
-	return dbadapter.CommonDBClient.RestfulAPIPostMany(configmodels.GnbDataColl, filter, []interface{}{gnbDataBson})
+	return dbadapter.CommonDBClient.RestfulAPIPostMany(configmodels.GnbDataColl, filter, []any{gnbDataBson})
 }
 
 // PutGnb godoc
@@ -474,7 +474,7 @@ func postUpfOperation(sc mongo.SessionContext, upf configmodels.Upf) error {
 	if upfDataBson == nil {
 		return fmt.Errorf("failed to serialize UPF")
 	}
-	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.UpfDataColl, filter, []interface{}{upfDataBson})
+	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.UpfDataColl, filter, []any{upfDataBson})
 }
 
 func postUpfOperationWithOutContext(upf configmodels.Upf) error {
@@ -483,7 +483,7 @@ func postUpfOperationWithOutContext(upf configmodels.Upf) error {
 	if upfDataBson == nil {
 		return fmt.Errorf("failed to serialize UPF")
 	}
-	return dbadapter.CommonDBClient.RestfulAPIPostMany(configmodels.UpfDataColl, filter, []interface{}{upfDataBson})
+	return dbadapter.CommonDBClient.RestfulAPIPostMany(configmodels.UpfDataColl, filter, []any{upfDataBson})
 }
 
 // PutUpf godoc

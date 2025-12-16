@@ -141,7 +141,7 @@ func LoginVaultMTLS(certPath, certRole string) (string, error) {
 
 	// For mTLS (TLS Certificate auth), we need to login through the cert auth method
 	// The certificates are already configured in the HTTP client
-	data := map[string]interface{}{}
+	data := map[string]any{}
 	if certRole != "" {
 		data["name"] = certRole
 	}

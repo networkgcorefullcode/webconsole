@@ -10,34 +10,34 @@ import (
 
 // MockDBClient is a mock implementation of the database client for testing
 type MockDBClient struct {
-	GetManyFn              func(collName string, filter bson.M) ([]map[string]interface{}, error)
-	GetOneFn               func(collName string, filter bson.M) (map[string]interface{}, error)
-	PostFn                 func(collName string, filter bson.M, postData map[string]interface{}) (bool, error)
-	PostWithContextFn      func(ctx context.Context, collName string, filter bson.M, postData map[string]interface{}) (bool, error)
-	PostManyFn             func(collName string, filter bson.M, postDataArray []interface{}) error
-	PostManyWithContextFn  func(ctx context.Context, collName string, filter bson.M, postDataArray []interface{}) error
-	PutOneFn               func(collName string, filter bson.M, putData map[string]interface{}) (bool, error)
-	PutOneWithContextFn    func(ctx context.Context, collName string, filter bson.M, putData map[string]interface{}) (bool, error)
-	PutOneTimeoutFn        func(collName string, filter bson.M, putData map[string]interface{}, timeout int32, timeField string) bool
-	PutOneNotUpdateFn      func(collName string, filter bson.M, putData map[string]interface{}) (bool, error)
-	PutManyFn              func(collName string, filterArray []primitive.M, putDataArray []map[string]interface{}) error
+	GetManyFn              func(collName string, filter bson.M) ([]map[string]any, error)
+	GetOneFn               func(collName string, filter bson.M) (map[string]any, error)
+	PostFn                 func(collName string, filter bson.M, postData map[string]any) (bool, error)
+	PostWithContextFn      func(ctx context.Context, collName string, filter bson.M, postData map[string]any) (bool, error)
+	PostManyFn             func(collName string, filter bson.M, postDataArray []any) error
+	PostManyWithContextFn  func(ctx context.Context, collName string, filter bson.M, postDataArray []any) error
+	PutOneFn               func(collName string, filter bson.M, putData map[string]any) (bool, error)
+	PutOneWithContextFn    func(ctx context.Context, collName string, filter bson.M, putData map[string]any) (bool, error)
+	PutOneTimeoutFn        func(collName string, filter bson.M, putData map[string]any, timeout int32, timeField string) bool
+	PutOneNotUpdateFn      func(collName string, filter bson.M, putData map[string]any) (bool, error)
+	PutManyFn              func(collName string, filterArray []primitive.M, putDataArray []map[string]any) error
 	DeleteOneFn            func(collName string, filter bson.M) error
 	DeleteOneWithContextFn func(ctx context.Context, collName string, filter bson.M) error
 	DeleteManyFn           func(collName string, filter bson.M) error
-	MergePatchFn           func(collName string, filter bson.M, patchData map[string]interface{}) error
+	MergePatchFn           func(collName string, filter bson.M, patchData map[string]any) error
 	JSONPatchFn            func(collName string, filter bson.M, patchJSON []byte) error
 	JSONPatchWithContextFn func(ctx context.Context, collName string, filter bson.M, patchJSON []byte) error
 	JSONPatchExtendFn      func(collName string, filter bson.M, patchJSON []byte, dataName string) error
 	CountFn                func(collName string, filter bson.M) (int64, error)
-	PullOneFn              func(collName string, filter bson.M, putData map[string]interface{}) error
-	PullOneWithContextFn   func(ctx context.Context, collName string, filter bson.M, putData map[string]interface{}) error
+	PullOneFn              func(collName string, filter bson.M, putData map[string]any) error
+	PullOneWithContextFn   func(ctx context.Context, collName string, filter bson.M, putData map[string]any) error
 	CreateIndexFn          func(collName string, keyField string) (bool, error)
 	StartSessionFn         func() (mongo.Session, error)
 	SupportsTransactionsFn func() (bool, error)
 }
 
 // RestfulAPIGetMany implements the mock version of GetMany
-func (m *MockDBClient) RestfulAPIGetMany(collName string, filter bson.M) ([]map[string]interface{}, error) {
+func (m *MockDBClient) RestfulAPIGetMany(collName string, filter bson.M) ([]map[string]any, error) {
 	if m.GetManyFn != nil {
 		return m.GetManyFn(collName, filter)
 	}
@@ -45,7 +45,7 @@ func (m *MockDBClient) RestfulAPIGetMany(collName string, filter bson.M) ([]map[
 }
 
 // RestfulAPIGetOne implements the mock version of GetOne
-func (m *MockDBClient) RestfulAPIGetOne(collName string, filter bson.M) (map[string]interface{}, error) {
+func (m *MockDBClient) RestfulAPIGetOne(collName string, filter bson.M) (map[string]any, error) {
 	if m.GetOneFn != nil {
 		return m.GetOneFn(collName, filter)
 	}
@@ -53,7 +53,7 @@ func (m *MockDBClient) RestfulAPIGetOne(collName string, filter bson.M) (map[str
 }
 
 // RestfulAPIPost implements the mock version of Post
-func (m *MockDBClient) RestfulAPIPost(collName string, filter bson.M, postData map[string]interface{}) (bool, error) {
+func (m *MockDBClient) RestfulAPIPost(collName string, filter bson.M, postData map[string]any) (bool, error) {
 	if m.PostFn != nil {
 		return m.PostFn(collName, filter, postData)
 	}
@@ -61,7 +61,7 @@ func (m *MockDBClient) RestfulAPIPost(collName string, filter bson.M, postData m
 }
 
 // RestfulAPIPostWithContext implements the mock version of PostWithContext
-func (m *MockDBClient) RestfulAPIPostWithContext(ctx context.Context, collName string, filter bson.M, postData map[string]interface{}) (bool, error) {
+func (m *MockDBClient) RestfulAPIPostWithContext(ctx context.Context, collName string, filter bson.M, postData map[string]any) (bool, error) {
 	if m.PostWithContextFn != nil {
 		return m.PostWithContextFn(ctx, collName, filter, postData)
 	}
@@ -69,7 +69,7 @@ func (m *MockDBClient) RestfulAPIPostWithContext(ctx context.Context, collName s
 }
 
 // RestfulAPIPostMany implements the mock version of PostMany
-func (m *MockDBClient) RestfulAPIPostMany(collName string, filter bson.M, postDataArray []interface{}) error {
+func (m *MockDBClient) RestfulAPIPostMany(collName string, filter bson.M, postDataArray []any) error {
 	if m.PostManyFn != nil {
 		return m.PostManyFn(collName, filter, postDataArray)
 	}
@@ -77,7 +77,7 @@ func (m *MockDBClient) RestfulAPIPostMany(collName string, filter bson.M, postDa
 }
 
 // RestfulAPIPostManyWithContext implements the mock version of PostManyWithContext
-func (m *MockDBClient) RestfulAPIPostManyWithContext(ctx context.Context, collName string, filter bson.M, postDataArray []interface{}) error {
+func (m *MockDBClient) RestfulAPIPostManyWithContext(ctx context.Context, collName string, filter bson.M, postDataArray []any) error {
 	if m.PostManyWithContextFn != nil {
 		return m.PostManyWithContextFn(ctx, collName, filter, postDataArray)
 	}
@@ -85,7 +85,7 @@ func (m *MockDBClient) RestfulAPIPostManyWithContext(ctx context.Context, collNa
 }
 
 // RestfulAPIPutOne implements the mock version of PutOne
-func (m *MockDBClient) RestfulAPIPutOne(collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
+func (m *MockDBClient) RestfulAPIPutOne(collName string, filter bson.M, putData map[string]any) (bool, error) {
 	if m.PutOneFn != nil {
 		return m.PutOneFn(collName, filter, putData)
 	}
@@ -93,7 +93,7 @@ func (m *MockDBClient) RestfulAPIPutOne(collName string, filter bson.M, putData 
 }
 
 // RestfulAPIPutOneTimeout implements the mock version of PutOneTimeout
-func (m *MockDBClient) RestfulAPIPutOneTimeout(collName string, filter bson.M, putData map[string]interface{}, timeout int32, timeField string) bool {
+func (m *MockDBClient) RestfulAPIPutOneTimeout(collName string, filter bson.M, putData map[string]any, timeout int32, timeField string) bool {
 	if m.PutOneTimeoutFn != nil {
 		return m.PutOneTimeoutFn(collName, filter, putData, timeout, timeField)
 	}
@@ -101,7 +101,7 @@ func (m *MockDBClient) RestfulAPIPutOneTimeout(collName string, filter bson.M, p
 }
 
 // RestfulAPIPutOneWithContext implements the mock version of PutOneWithContext
-func (m *MockDBClient) RestfulAPIPutOneWithContext(ctx context.Context, collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
+func (m *MockDBClient) RestfulAPIPutOneWithContext(ctx context.Context, collName string, filter bson.M, putData map[string]any) (bool, error) {
 	if m.PutOneWithContextFn != nil {
 		return m.PutOneWithContextFn(ctx, collName, filter, putData)
 	}
@@ -109,7 +109,7 @@ func (m *MockDBClient) RestfulAPIPutOneWithContext(ctx context.Context, collName
 }
 
 // RestfulAPIPutOneNotUpdate implements the mock version of PutOneNotUpdate
-func (m *MockDBClient) RestfulAPIPutOneNotUpdate(collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
+func (m *MockDBClient) RestfulAPIPutOneNotUpdate(collName string, filter bson.M, putData map[string]any) (bool, error) {
 	if m.PutOneNotUpdateFn != nil {
 		return m.PutOneNotUpdateFn(collName, filter, putData)
 	}
@@ -117,7 +117,7 @@ func (m *MockDBClient) RestfulAPIPutOneNotUpdate(collName string, filter bson.M,
 }
 
 // RestfulAPIPutMany implements the mock version of PutMany
-func (m *MockDBClient) RestfulAPIPutMany(collName string, filterArray []primitive.M, putDataArray []map[string]interface{}) error {
+func (m *MockDBClient) RestfulAPIPutMany(collName string, filterArray []primitive.M, putDataArray []map[string]any) error {
 	if m.PutManyFn != nil {
 		return m.PutManyFn(collName, filterArray, putDataArray)
 	}
@@ -149,7 +149,7 @@ func (m *MockDBClient) RestfulAPIDeleteMany(collName string, filter bson.M) erro
 }
 
 // RestfulAPIMergePatch implements the mock version of MergePatch
-func (m *MockDBClient) RestfulAPIMergePatch(collName string, filter bson.M, patchData map[string]interface{}) error {
+func (m *MockDBClient) RestfulAPIMergePatch(collName string, filter bson.M, patchData map[string]any) error {
 	if m.MergePatchFn != nil {
 		return m.MergePatchFn(collName, filter, patchData)
 	}
@@ -189,7 +189,7 @@ func (m *MockDBClient) RestfulAPICount(collName string, filter bson.M) (int64, e
 }
 
 // RestfulAPIPullOne implements the mock version of PullOne
-func (m *MockDBClient) RestfulAPIPullOne(collName string, filter bson.M, putData map[string]interface{}) error {
+func (m *MockDBClient) RestfulAPIPullOne(collName string, filter bson.M, putData map[string]any) error {
 	if m.PullOneFn != nil {
 		return m.PullOneFn(collName, filter, putData)
 	}
@@ -197,7 +197,7 @@ func (m *MockDBClient) RestfulAPIPullOne(collName string, filter bson.M, putData
 }
 
 // RestfulAPIPullOneWithContext implements the mock version of PullOneWithContext
-func (m *MockDBClient) RestfulAPIPullOneWithContext(ctx context.Context, collName string, filter bson.M, putData map[string]interface{}) error {
+func (m *MockDBClient) RestfulAPIPullOneWithContext(ctx context.Context, collName string, filter bson.M, putData map[string]any) error {
 	if m.PullOneWithContextFn != nil {
 		return m.PullOneWithContextFn(ctx, collName, filter, putData)
 	}

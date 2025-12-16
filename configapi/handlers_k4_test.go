@@ -26,7 +26,7 @@ func TestHandleGetsK4(t *testing.T) {
 
 	// Test case 1: Successful retrieval
 	t.Run("Successful retrieval", func(t *testing.T) {
-		mockK4Data := []map[string]interface{}{
+		mockK4Data := []map[string]any{
 			{"k4": "testKey1", "k4_sno": 1},
 			{"k4": "testKey2", "k4_sno": 2},
 		}
@@ -34,7 +34,7 @@ func TestHandleGetsK4(t *testing.T) {
 		// Mock the DB call
 		oldClient := dbadapter.CommonDBClient
 		dbadapter.CommonDBClient = &dbadapter.MockDBClient{
-			GetManyFn: func(collName string, filter bson.M) ([]map[string]interface{}, error) {
+			GetManyFn: func(collName string, filter bson.M) ([]map[string]any, error) {
 				return mockK4Data, nil
 			},
 		}
@@ -57,7 +57,7 @@ func TestHandleGetsK4(t *testing.T) {
 		// Mock the DB call with error
 		oldClient := dbadapter.CommonDBClient
 		dbadapter.CommonDBClient = &dbadapter.MockDBClient{
-			GetManyFn: func(collName string, filter bson.M) ([]map[string]interface{}, error) {
+			GetManyFn: func(collName string, filter bson.M) ([]map[string]any, error) {
 				return nil, assert.AnError
 			},
 		}
@@ -77,7 +77,7 @@ func TestHandleGetK4(t *testing.T) {
 
 	// Test case 1: Successful retrieval
 	t.Run("Successful retrieval", func(t *testing.T) {
-		mockK4Data := map[string]interface{}{
+		mockK4Data := map[string]any{
 			"k4":     "testKey1",
 			"k4_sno": int32(1),
 		}
@@ -85,7 +85,7 @@ func TestHandleGetK4(t *testing.T) {
 		// Mock the DB call
 		oldClient := dbadapter.AuthDBClient
 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
+			GetOneFn: func(collName string, filter bson.M) (map[string]any, error) {
 				return mockK4Data, nil
 			},
 		}
@@ -103,7 +103,7 @@ func TestHandleGetK4(t *testing.T) {
 		// Mock the DB call with error
 		oldClient := dbadapter.AuthDBClient
 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
+			GetOneFn: func(collName string, filter bson.M) (map[string]any, error) {
 				return nil, assert.AnError
 			},
 		}
@@ -134,13 +134,13 @@ func TestHandlePostK4(t *testing.T) {
 		oldCommonClient := dbadapter.CommonDBClient
 
 		mockClient := &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
+			GetOneFn: func(collName string, filter bson.M) (map[string]any, error) {
 				return nil, assert.AnError // Simula que no existe el registro
 			},
-			PostFn: func(collName string, filter bson.M, postData map[string]interface{}) (bool, error) {
+			PostFn: func(collName string, filter bson.M, postData map[string]any) (bool, error) {
 				return true, nil
 			},
-			PutOneFn: func(collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
+			PutOneFn: func(collName string, filter bson.M, putData map[string]any) (bool, error) {
 				return true, nil
 			},
 		}
@@ -191,10 +191,10 @@ func TestHandlePutK4(t *testing.T) {
 		oldCommonClient := dbadapter.CommonDBClient
 
 		mockClient := &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
-				return map[string]interface{}{"k4": "testKey", "k4_sno": "1"}, nil
+			GetOneFn: func(collName string, filter bson.M) (map[string]any, error) {
+				return map[string]any{"k4": "testKey", "k4_sno": "1"}, nil
 			},
-			PutOneFn: func(collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
+			PutOneFn: func(collName string, filter bson.M, putData map[string]any) (bool, error) {
 				return true, nil
 			},
 		}
@@ -225,7 +225,7 @@ func TestHandlePutK4(t *testing.T) {
 		// Mock the DB calls
 		oldClient := dbadapter.AuthDBClient
 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
+			GetOneFn: func(collName string, filter bson.M) (map[string]any, error) {
 				return nil, nil
 			},
 		}
@@ -250,8 +250,8 @@ func TestHandleDeleteK4(t *testing.T) {
 		oldCommonClient := dbadapter.CommonDBClient
 
 		mockClient := &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
-				return map[string]interface{}{"k4": "testKey", "k4_sno": "1"}, nil
+			GetOneFn: func(collName string, filter bson.M) (map[string]any, error) {
+				return map[string]any{"k4": "testKey", "k4_sno": "1"}, nil
 			},
 			DeleteOneFn: func(collName string, filter bson.M) error {
 				return nil
@@ -278,7 +278,7 @@ func TestHandleDeleteK4(t *testing.T) {
 		// Mock the DB calls
 		oldClient := dbadapter.AuthDBClient
 		dbadapter.AuthDBClient = &dbadapter.MockDBClient{
-			GetOneFn: func(collName string, filter bson.M) (map[string]interface{}, error) {
+			GetOneFn: func(collName string, filter bson.M) (map[string]any, error) {
 				return nil, nil
 			},
 		}

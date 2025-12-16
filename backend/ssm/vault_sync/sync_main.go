@@ -56,6 +56,16 @@ func getExternalKeysListPath() string {
 	return "secret/metadata/k4keys"
 }
 
+// getTransitKeyRewrapFormat returns the transit key rewrap format from configuration
+func getTransitKeyRewrapFormat() string {
+	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
+		if format := factory.WebUIConfig.Configuration.Vault.TransitKeyRewrapFmt; format != "" {
+			return format
+		}
+	}
+	return "transit/rewrap/%s"
+}
+
 // SyncKeyListen listens for key synchronization messages from Vault
 func SyncKeyListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
 	logger.AppLog.Info("Vault key sync listener started")

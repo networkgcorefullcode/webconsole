@@ -80,6 +80,7 @@ type Vault struct {
 	TransitKeysListPath    string `yaml:"transit-keys-list-path,omitempty"`    // e.g., "transit/keys"
 	TransitKeyCreateFmt    string `yaml:"transit-key-create-fmt,omitempty"`    // e.g., "transit/keys/%s"
 	TransitKeyRotateFmt    string `yaml:"transit-key-rotate-fmt,omitempty"`    // e.g., "transit/keys/%s/rotate"
+	TransitKeyRewrapFmt    string `yaml:"transit-key-rewrap-fmt,omitempty"`    // e.g., "transit/rewrap/%s"
 	TransitKeysEncryptPath string `yaml:"transit-keys-encrypt-path,omitempty"` // e.g., "transit/encrypt"
 }
 

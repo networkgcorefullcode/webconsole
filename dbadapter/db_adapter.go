@@ -20,27 +20,27 @@ import (
 )
 
 type DBInterface interface {
-	RestfulAPIGetOne(collName string, filter bson.M) (map[string]interface{}, error)
-	RestfulAPIGetMany(collName string, filter bson.M) ([]map[string]interface{}, error)
-	RestfulAPIPutOneTimeout(collName string, filter bson.M, putData map[string]interface{}, timeout int32, timeField string) bool
-	RestfulAPIPutOne(collName string, filter bson.M, putData map[string]interface{}) (bool, error)
-	RestfulAPIPutOneWithContext(context context.Context, collName string, filter bson.M, putData map[string]interface{}) (bool, error)
-	RestfulAPIPutOneNotUpdate(collName string, filter bson.M, putData map[string]interface{}) (bool, error)
-	RestfulAPIPutMany(collName string, filterArray []primitive.M, putDataArray []map[string]interface{}) error
+	RestfulAPIGetOne(collName string, filter bson.M) (map[string]any, error)
+	RestfulAPIGetMany(collName string, filter bson.M) ([]map[string]any, error)
+	RestfulAPIPutOneTimeout(collName string, filter bson.M, putData map[string]any, timeout int32, timeField string) bool
+	RestfulAPIPutOne(collName string, filter bson.M, putData map[string]any) (bool, error)
+	RestfulAPIPutOneWithContext(context context.Context, collName string, filter bson.M, putData map[string]any) (bool, error)
+	RestfulAPIPutOneNotUpdate(collName string, filter bson.M, putData map[string]any) (bool, error)
+	RestfulAPIPutMany(collName string, filterArray []primitive.M, putDataArray []map[string]any) error
 	RestfulAPIDeleteOne(collName string, filter bson.M) error
 	RestfulAPIDeleteOneWithContext(context context.Context, collName string, filter bson.M) error
 	RestfulAPIDeleteMany(collName string, filter bson.M) error
-	RestfulAPIMergePatch(collName string, filter bson.M, patchData map[string]interface{}) error
+	RestfulAPIMergePatch(collName string, filter bson.M, patchData map[string]any) error
 	RestfulAPIJSONPatch(collName string, filter bson.M, patchJSON []byte) error
 	RestfulAPIJSONPatchWithContext(context context.Context, collName string, filter bson.M, patchJSON []byte) error
 	RestfulAPIJSONPatchExtend(collName string, filter bson.M, patchJSON []byte, dataName string) error
-	RestfulAPIPost(collName string, filter bson.M, postData map[string]interface{}) (bool, error)
-	RestfulAPIPostWithContext(context context.Context, collName string, filter bson.M, postData map[string]interface{}) (bool, error)
-	RestfulAPIPostMany(collName string, filter bson.M, postDataArray []interface{}) error
-	RestfulAPIPostManyWithContext(context context.Context, collName string, filter bson.M, postDataArray []interface{}) error
+	RestfulAPIPost(collName string, filter bson.M, postData map[string]any) (bool, error)
+	RestfulAPIPostWithContext(context context.Context, collName string, filter bson.M, postData map[string]any) (bool, error)
+	RestfulAPIPostMany(collName string, filter bson.M, postDataArray []any) error
+	RestfulAPIPostManyWithContext(context context.Context, collName string, filter bson.M, postDataArray []any) error
 	RestfulAPICount(collName string, filter bson.M) (int64, error)
-	RestfulAPIPullOne(collName string, filter bson.M, putData map[string]interface{}) error
-	RestfulAPIPullOneWithContext(context context.Context, collName string, filter bson.M, putData map[string]interface{}) error
+	RestfulAPIPullOne(collName string, filter bson.M, putData map[string]any) error
+	RestfulAPIPullOneWithContext(context context.Context, collName string, filter bson.M, putData map[string]any) error
 	CreateIndex(collName string, keyField string) (bool, error)
 	StartSession() (mongo.Session, error)
 	SupportsTransactions() (bool, error)
@@ -79,9 +79,9 @@ func GetSessionRunner(client DBInterface) SessionRunner {
 }
 
 type PatchOperation struct {
-	Value interface{} `json:"value,omitempty"`
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
+	Value any    `json:"value,omitempty"`
+	Op    string `json:"op"`
+	Path  string `json:"path"`
 }
 
 func setDBClient(url, dbname string) (DBInterface, error) {
@@ -193,31 +193,31 @@ func InitMongoDB() error {
 	return nil
 }
 
-func (db *MongoDBClient) RestfulAPIGetOne(collName string, filter bson.M) (map[string]interface{}, error) {
+func (db *MongoDBClient) RestfulAPIGetOne(collName string, filter bson.M) (map[string]any, error) {
 	return db.MongoClient.RestfulAPIGetOne(collName, filter)
 }
 
-func (db *MongoDBClient) RestfulAPIGetMany(collName string, filter bson.M) ([]map[string]interface{}, error) {
+func (db *MongoDBClient) RestfulAPIGetMany(collName string, filter bson.M) ([]map[string]any, error) {
 	return db.MongoClient.RestfulAPIGetMany(collName, filter)
 }
 
-func (db *MongoDBClient) RestfulAPIPutOneTimeout(collName string, filter bson.M, putData map[string]interface{}, timeout int32, timeField string) bool {
+func (db *MongoDBClient) RestfulAPIPutOneTimeout(collName string, filter bson.M, putData map[string]any, timeout int32, timeField string) bool {
 	return db.MongoClient.RestfulAPIPutOneTimeout(collName, filter, putData, timeout, timeField)
 }
 
-func (db *MongoDBClient) RestfulAPIPutOne(collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
+func (db *MongoDBClient) RestfulAPIPutOne(collName string, filter bson.M, putData map[string]any) (bool, error) {
 	return db.MongoClient.RestfulAPIPutOne(collName, filter, putData)
 }
 
-func (db *MongoDBClient) RestfulAPIPutOneWithContext(context context.Context, collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
+func (db *MongoDBClient) RestfulAPIPutOneWithContext(context context.Context, collName string, filter bson.M, putData map[string]any) (bool, error) {
 	return db.MongoClient.RestfulAPIPutOneWithContext(context, collName, filter, putData)
 }
 
-func (db *MongoDBClient) RestfulAPIPutOneNotUpdate(collName string, filter bson.M, putData map[string]interface{}) (bool, error) {
+func (db *MongoDBClient) RestfulAPIPutOneNotUpdate(collName string, filter bson.M, putData map[string]any) (bool, error) {
 	return db.MongoClient.RestfulAPIPutOneNotUpdate(collName, filter, putData)
 }
 
-func (db *MongoDBClient) RestfulAPIPutMany(collName string, filterArray []primitive.M, putDataArray []map[string]interface{}) error {
+func (db *MongoDBClient) RestfulAPIPutMany(collName string, filterArray []primitive.M, putDataArray []map[string]any) error {
 	return db.MongoClient.RestfulAPIPutMany(collName, filterArray, putDataArray)
 }
 
@@ -233,7 +233,7 @@ func (db *MongoDBClient) RestfulAPIDeleteMany(collName string, filter bson.M) er
 	return db.MongoClient.RestfulAPIDeleteMany(collName, filter)
 }
 
-func (db *MongoDBClient) RestfulAPIMergePatch(collName string, filter bson.M, patchData map[string]interface{}) error {
+func (db *MongoDBClient) RestfulAPIMergePatch(collName string, filter bson.M, patchData map[string]any) error {
 	return db.MongoClient.RestfulAPIMergePatch(collName, filter, patchData)
 }
 
@@ -249,19 +249,19 @@ func (db *MongoDBClient) RestfulAPIJSONPatchExtend(collName string, filter bson.
 	return db.MongoClient.RestfulAPIJSONPatchExtend(collName, filter, patchJSON, dataName)
 }
 
-func (db *MongoDBClient) RestfulAPIPost(collName string, filter bson.M, postData map[string]interface{}) (bool, error) {
+func (db *MongoDBClient) RestfulAPIPost(collName string, filter bson.M, postData map[string]any) (bool, error) {
 	return db.MongoClient.RestfulAPIPost(collName, filter, postData)
 }
 
-func (db *MongoDBClient) RestfulAPIPostWithContext(context context.Context, collName string, filter bson.M, postData map[string]interface{}) (bool, error) {
+func (db *MongoDBClient) RestfulAPIPostWithContext(context context.Context, collName string, filter bson.M, postData map[string]any) (bool, error) {
 	return db.MongoClient.RestfulAPIPostWithContext(context, collName, filter, postData)
 }
 
-func (db *MongoDBClient) RestfulAPIPostMany(collName string, filter bson.M, postDataArray []interface{}) error {
+func (db *MongoDBClient) RestfulAPIPostMany(collName string, filter bson.M, postDataArray []any) error {
 	return db.MongoClient.RestfulAPIPostMany(collName, filter, postDataArray)
 }
 
-func (db *MongoDBClient) RestfulAPIPostManyWithContext(context context.Context, collName string, filter bson.M, postDataArray []interface{}) error {
+func (db *MongoDBClient) RestfulAPIPostManyWithContext(context context.Context, collName string, filter bson.M, postDataArray []any) error {
 	return db.MongoClient.RestfulAPIPostManyWithContext(context, collName, filter, postDataArray)
 }
 
@@ -269,11 +269,11 @@ func (db *MongoDBClient) RestfulAPICount(collName string, filter bson.M) (int64,
 	return db.MongoClient.RestfulAPICount(collName, filter)
 }
 
-func (db *MongoDBClient) RestfulAPIPullOne(collName string, filter bson.M, putData map[string]interface{}) error {
+func (db *MongoDBClient) RestfulAPIPullOne(collName string, filter bson.M, putData map[string]any) error {
 	return db.MongoClient.RestfulAPIPullOne(collName, filter, putData)
 }
 
-func (db *MongoDBClient) RestfulAPIPullOneWithContext(context context.Context, collName string, filter bson.M, putData map[string]interface{}) error {
+func (db *MongoDBClient) RestfulAPIPullOneWithContext(context context.Context, collName string, filter bson.M, putData map[string]any) error {
 	return db.MongoClient.RestfulAPIPullOneWithContext(context, collName, filter, putData)
 }
 

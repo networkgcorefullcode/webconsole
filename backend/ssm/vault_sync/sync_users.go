@@ -174,8 +174,8 @@ func rewrapUserDataVaultTransit(subsData *configmodels.SubsData, user configmode
 	}
 
 	// Perform rewrap operation
-	rewrapPath := fmt.Sprintf("transit/rewrap/%s", internalKeyLabel)
-	rewrapData := map[string]interface{}{
+	rewrapPath := fmt.Sprintf(getTransitKeyRewrapFormat(), internalKeyLabel)
+	rewrapData := map[string]any{
 		"ciphertext": currentCiphertext,
 	}
 
