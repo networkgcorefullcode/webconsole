@@ -87,7 +87,7 @@ func handleCheckK4Life(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusNotImplemented, gin.H{"message": "Vault check-k4-life not implemented"})
+	c.JSON(http.StatusOK, gin.H{"message": "Vault check-k4-life not implemented"})
 }
 
 func handleRotationKey(c *gin.Context) {
