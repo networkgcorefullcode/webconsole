@@ -25,13 +25,13 @@ func getVaultKeyPath() string {
 }
 
 // getTransitKeyCreateFormat returns the transit key create format from configuration
-func getTransitKeyCreateFormat() string {
+func getTransitPath() string {
 	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
-		if format := factory.WebUIConfig.Configuration.Vault.TransitKeyCreateFmt; format != "" {
+		if format := factory.WebUIConfig.Configuration.Vault.TransitKeysListPath; format != "" {
 			return format
 		}
 	}
-	return "transit/keys/%s"
+	return "transit/keys"
 }
 
 // StoreKeyVault stores a key in Vault's KV secrets engine
@@ -117,7 +117,7 @@ func DeleteKeyVault(keyLabel string, keyID int32) error {
 
 	if keyLabel == ssm_constants.LABEL_ENCRYPTION_KEY_AES256 {
 		logger.AppLog.Info("delete protected internal encryption key")
-		secretPath = fmt.Sprintf("%s/%s", getTransitKeyCreateFormat(), internalKeyLabel)
+		secretPath = fmt.Sprintf("%s/%s", getTransitPath(), internalKeyLabel)
 	}
 
 	// Delete the secret from Vault
