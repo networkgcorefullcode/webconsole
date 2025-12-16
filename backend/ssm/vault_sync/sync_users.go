@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -289,6 +290,13 @@ func getLatestTransitKeyVersion(client *api.Client, keyName string) (int, error)
 	// Convert to int (Vault returns it as json.Number or int)
 	var latestVersion int
 	switch v := latestVersionRaw.(type) {
+	case json.Number:
+		// Handle json.Number type
+		vInt, err := v.Int64()
+		if err != nil {
+			return 0, fmt.Errorf("failed to convert json.Number to int: %w", err)
+		}
+		latestVersion = int(vInt)
 	case int:
 		latestVersion = v
 	case float64:
