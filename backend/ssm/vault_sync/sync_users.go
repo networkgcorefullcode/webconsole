@@ -5,8 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/hashicorp/vault/api"
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
@@ -162,6 +165,30 @@ func rewrapUserDataVaultTransit(subsData *configmodels.SubsData, user configmode
 	// Get current ciphertext from user data
 	currentCiphertext := subsData.AuthenticationSubscription.PermanentKey.PermanentKeyValue
 
+	// Extract version from ciphertext (format: vault:v1:...)
+	ciphertextVersion, err := extractVersionFromCiphertext(currentCiphertext)
+	if err != nil {
+		logger.AppLog.Warnf("Failed to extract version from ciphertext for user %s: %v", user.UeId, err)
+		return
+	}
+
+	// Get latest key version from Vault
+	latestVersion, err := getLatestTransitKeyVersion(client, internalKeyLabel)
+	if err != nil {
+		logger.AppLog.Errorf("Failed to get latest key version for user %s: %v", user.UeId, err)
+		return
+	}
+
+	// Only rewrap if ciphertext version is older than latest version
+	if ciphertextVersion >= latestVersion {
+		logger.AppLog.Debugf("User %s ciphertext is already at version %d (latest: %d), no rewrap needed",
+			user.UeId, ciphertextVersion, latestVersion)
+		return
+	}
+
+	logger.AppLog.Infof("User %s ciphertext version %d is older than latest %d, performing rewrap",
+		user.UeId, ciphertextVersion, latestVersion)
+
 	// Rebuild AAD context
 	aad := subsData.AuthenticationSubscription.PermanentKey.Aad
 	var aadBytes []byte
@@ -186,33 +213,91 @@ func rewrapUserDataVaultTransit(subsData *configmodels.SubsData, user configmode
 
 	secret, err := client.Logical().WriteWithContext(context.Background(), rewrapPath, rewrapData)
 	if err != nil {
-		logger.AppLog.Warnf("Rewrap not needed or failed for user %s: %v", user.UeId, err)
+		logger.AppLog.Errorf("Rewrap failed for user %s: %v", user.UeId, err)
 		return
 	}
 
 	if secret == nil || secret.Data["ciphertext"] == nil {
-		logger.AppLog.Debugf("No rewrap performed for user %s (key version is current)", user.UeId)
+		logger.AppLog.Errorf("No ciphertext returned from rewrap for user %s", user.UeId)
 		return
 	}
 
 	newCiphertext := secret.Data["ciphertext"].(string)
 
-	// Check if ciphertext changed (indicating rewrap occurred)
-	if newCiphertext != currentCiphertext {
-		logger.AppLog.Infof("Rewrapping user %s data with new key version", user.UeId)
+	// Update subscriber authentication data with rewrapped ciphertext
+	newSubAuthData := subsData.AuthenticationSubscription
+	newSubAuthData.PermanentKey.PermanentKeyValue = newCiphertext
 
-		// Update subscriber authentication data with rewrapped ciphertext
-		newSubAuthData := subsData.AuthenticationSubscription
-		newSubAuthData.PermanentKey.PermanentKeyValue = newCiphertext
-
-		// Store updated data in MongoDB
-		err = configapi.SubscriberAuthenticationDataUpdate(user.UeId, &newSubAuthData)
-		if err != nil {
-			logger.WebUILog.Errorf("Failed to update subscriber %s after rewrap: %v", user.UeId, err)
-			return
-		}
-		logger.WebUILog.Infof("Subscriber %s rewrapped successfully", user.UeId)
-	} else {
-		logger.AppLog.Debugf("User %s ciphertext is already current, no rewrap needed", user.UeId)
+	// Store updated data in MongoDB
+	err = configapi.SubscriberAuthenticationDataUpdate(user.UeId, &newSubAuthData)
+	if err != nil {
+		logger.WebUILog.Errorf("Failed to update subscriber %s after rewrap: %v", user.UeId, err)
+		return
 	}
+	logger.WebUILog.Infof("Subscriber %s rewrapped successfully from version %d to %d",
+		user.UeId, ciphertextVersion, latestVersion)
+}
+
+// extractVersionFromCiphertext extracts the version number from a Vault ciphertext
+// Ciphertext format: vault:v1:base64data or vault:v2:base64data
+func extractVersionFromCiphertext(ciphertext string) (int, error) {
+	// Check if it starts with "vault:"
+	if !strings.HasPrefix(ciphertext, "vault:") {
+		return 0, fmt.Errorf("invalid ciphertext format: does not start with 'vault:'")
+	}
+
+	// Split by colon to get parts: ["vault", "v1", "base64data"]
+	parts := strings.SplitN(ciphertext, ":", 3)
+	if len(parts) < 3 {
+		return 0, fmt.Errorf("invalid ciphertext format: expected at least 3 parts")
+	}
+
+	// Extract version from second part (e.g., "v1" -> 1)
+	versionStr := parts[1]
+	if !strings.HasPrefix(versionStr, "v") {
+		return 0, fmt.Errorf("invalid version format: does not start with 'v'")
+	}
+
+	// Parse the numeric part
+	version, err := strconv.Atoi(versionStr[1:])
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse version number: %w", err)
+	}
+
+	return version, nil
+}
+
+// getLatestTransitKeyVersion retrieves the latest version number of a transit key from Vault
+func getLatestTransitKeyVersion(client *api.Client, keyName string) (int, error) {
+	// Read key information from Vault
+	keyPath := fmt.Sprintf(getTransitKeyCreateFormat(), keyName)
+	secret, err := client.Logical().Read(keyPath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read key info: %w", err)
+	}
+
+	if secret == nil || secret.Data == nil {
+		return 0, fmt.Errorf("no data returned for key %s", keyName)
+	}
+
+	// Get latest_version field
+	latestVersionRaw, ok := secret.Data["latest_version"]
+	if !ok {
+		return 0, fmt.Errorf("latest_version field not found in key data")
+	}
+
+	// Convert to int (Vault returns it as json.Number or int)
+	var latestVersion int
+	switch v := latestVersionRaw.(type) {
+	case int:
+		latestVersion = v
+	case float64:
+		latestVersion = int(v)
+	case int64:
+		latestVersion = int(v)
+	default:
+		return 0, fmt.Errorf("unexpected type for latest_version: %T", latestVersionRaw)
+	}
+
+	return latestVersion, nil
 }
