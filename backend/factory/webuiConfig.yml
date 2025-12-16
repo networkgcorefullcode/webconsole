@@ -67,6 +67,7 @@ configuration:
     transit-keys-list-path: "transit-dev/keys"
     transit-key-create-fmt: "transit-dev/keys/%s"
     transit-key-rotate-fmt: "transit-dev/keys/%s/rotate"
+    transit-keys-encrypt-path: "transit-dev/encrypt"
 
     ssm-synchronize:
       enable: true
@@ -80,3 +81,4 @@ configuration:
 logger:
   WEBUI:
     debugLevel: debug
+  

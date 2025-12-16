@@ -102,7 +102,7 @@ func handleCheckK4Life(c *gin.Context) {
 	defer RotationMutex.Unlock()
 
 	// Logic for the handle
-	err := checkKeyHealth(ssmSyncMessage)
+	err := CheckKeyHealth(ssmSyncMessage)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error: " + err.Error()})
 	}

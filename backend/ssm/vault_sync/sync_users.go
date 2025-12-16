@@ -5,7 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"sync"
 
+	ssm_constants "github.com/networkgcorefullcode/ssm/const"
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/ssm/apiclient"
 	ssmsync "github.com/omec-project/webconsole/backend/ssm/ssm_sync"
@@ -28,10 +31,12 @@ func coreVaultUserSync() {
 	}
 
 	userList := ssmsync.GetUsersMDB()
-
+	wg := sync.WaitGroup{}
 	for _, user := range userList {
 		logger.AppLog.Infof("Synchronizing user: %s", user.UeId)
+		wg.Add(1)
 		go func(u configmodels.SubsListIE) {
+			defer wg.Done()
 			subsData, err := ssmsync.GetSubscriberData(u.UeId)
 			if err != nil {
 				logger.AppLog.Errorf("Failed to get subscriber data for user %s: %v", u.UeId, err)
@@ -54,6 +59,17 @@ func coreVaultUserSync() {
 			}
 		}(user)
 	}
+	wg.Wait()
+}
+
+// getTransitKeysEncryptPath returns the transit keys encrypt path from configuration
+func getTransitKeysEncryptPath() string {
+	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
+		if path := factory.WebUIConfig.Configuration.Vault.TransitKeysEncryptPath; path != "" {
+			return path
+		}
+	}
+	return "transit/encrypt"
 }
 
 // encryptUserDataVaultTransit encrypts user permanent key using Vault transit engine
@@ -86,7 +102,7 @@ func encryptUserDataVaultTransit(subsData *configmodels.SubsData, user configmod
 	plaintextB64 := base64.StdEncoding.EncodeToString([]byte(plaintext))
 
 	// Prepare encrypt request for Vault transit
-	encryptPath := fmt.Sprintf("transit/encrypt/%s", internalKeyLabel)
+	encryptPath := fmt.Sprintf("%s/%s", getTransitKeysEncryptPath(), internalKeyLabel)
 	encryptData := map[string]any{
 		"plaintext": plaintextB64,
 		"context":   base64.StdEncoding.EncodeToString(aadBytes), // AAD as context
@@ -108,9 +124,10 @@ func encryptUserDataVaultTransit(subsData *configmodels.SubsData, user configmod
 	// Update subscriber authentication data
 	newSubAuthData := subsData.AuthenticationSubscription
 	newSubAuthData.PermanentKey.PermanentKeyValue = ciphertext
-	newSubAuthData.PermanentKey.EncryptionAlgorithm = 1 // Mark as encrypted with Vault transit
-	newSubAuthData.K4_SNO = 1                           // Internal key ID (transit key)
+	newSubAuthData.PermanentKey.EncryptionAlgorithm = ssm_constants.ALGORITHM_AES256_OurUsers // Mark as encrypted with Vault transit
+	newSubAuthData.K4_SNO = 1                                                                 // Internal key ID (transit key)
 	newSubAuthData.PermanentKey.Aad = hex.EncodeToString(aadBytes)
+	newSubAuthData.PermanentKey.EncryptionKey = fmt.Sprintf("%s-%d", ssm_constants.LABEL_ENCRYPTION_KEY_AES256, 1)
 
 	// Store updated data in MongoDB
 	err = configapi.SubscriberAuthenticationDataUpdate(user.UeId, &newSubAuthData)

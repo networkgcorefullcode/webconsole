@@ -34,7 +34,7 @@ func KeyRotationListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
 		case <-ticker24h.C:
 			logger.AppLog.Info("Performing daily key health check")
 			// TODO: implement the check function that return a report about the key life
-			checkKeyHealth(ssmSyncMsg)
+			CheckKeyHealth(ssmSyncMsg)
 
 		case <-ticker90d.C:
 			logger.AppLog.Info("Performing 90-day key rotation")
@@ -44,7 +44,7 @@ func KeyRotationListen(ssmSyncMsg chan *ssm.SsmSyncMessage) {
 	}
 }
 
-func checkKeyHealth(ssmSyncMsg chan *ssm.SsmSyncMessage) error {
+func CheckKeyHealth(ssmSyncMsg chan *ssm.SsmSyncMessage) error {
 	// check the key life periodicly
 	if readStopCondition() {
 		logger.AppLog.Warn("The ssm is down or have a problem check if that component is running")
@@ -58,7 +58,7 @@ func checkKeyHealth(ssmSyncMsg chan *ssm.SsmSyncMessage) error {
 	k4listChanMDB := make(chan []configmodels.K4)
 
 	// First get the keys using a filter on keyLabel (mongodb query)
-	go getMongoDBAllK4(k4listChanMDB)
+	go GetMongoDBAllK4(k4listChanMDB)
 
 	k4List := <-k4listChanMDB
 
@@ -124,7 +124,7 @@ func rotateExpiredKeys(ssmSyncMsg chan *ssm.SsmSyncMessage) error {
 
 	// 2nd get all keys filter by label and date
 	k4listChanMDB := make(chan []configmodels.K4)
-	go getMongoDBAllK4(k4listChanMDB)
+	go GetMongoDBAllK4(k4listChanMDB)
 	k4List := <-k4listChanMDB
 
 	if k4List == nil {
@@ -260,8 +260,8 @@ func encryptUserKey(user *models.AuthenticationSubscription, k4 configmodels.K4,
 	resp, r, err := apiClient.EncryptionAPI.EncryptData(apiclient.AuthContext).EncryptRequest(encryptRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 	}
 
 	if resp.Cipher != "" {
@@ -298,7 +298,7 @@ func getUsersForRotation(k4 configmodels.K4) (map[string]models.AuthenticationSu
 			"permanentKey.encryptionAlgorithm": ssm_constants.LabelAlgorithmMap[k4.K4_Label],
 		})
 	if errGetMany != nil {
-		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+		logger.AppLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
 	}
 
 	for _, authSub := range authDataList {

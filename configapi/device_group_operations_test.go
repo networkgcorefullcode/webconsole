@@ -38,7 +38,7 @@ func (db *DeviceGroupMockDBClient) RestfulAPIGetOne(coll string, filter bson.M) 
 	}
 	dg := configmodels.ToBsonM(db.configuredDeviceGroups[0])
 	if dg == nil {
-		logger.DbLog.Fatalln("failed to convert device group to BsonM")
+		logger.AppLog.Fatalln("failed to convert device group to BsonM")
 	}
 	return dg, nil
 }
@@ -51,7 +51,7 @@ func (db *DeviceGroupMockDBClient) RestfulAPIGetMany(coll string, filter bson.M)
 	for _, deviceGroup := range db.configuredDeviceGroups {
 		dg := configmodels.ToBsonM(deviceGroup)
 		if dg == nil {
-			logger.DbLog.Fatalln("failed to convert device groups to BsonM")
+			logger.AppLog.Fatalln("failed to convert device groups to BsonM")
 		}
 		results = append(results, dg)
 	}

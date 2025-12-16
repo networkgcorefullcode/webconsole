@@ -13,7 +13,7 @@ import (
 
 var (
 	// ErrorSyncChan channel for synchronization errors
-	ErrorSyncChan chan error = make(chan error, 10)
+	// ErrorSyncChan chan error = make(chan error, 10)
 
 	// StopVaultSyncFunction flag to stop synchronization
 	StopVaultSyncFunction bool = false

@@ -89,6 +89,7 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 	}
 
 	if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable && factory.WebUIConfig.Configuration.Vault.AllowVault {
+		vaultsync.SetSyncChanHandle(ssmSyncMsg)
 		syncSSM(vault.Vault, ssmSyncMsg)
 	}
 
@@ -206,6 +207,7 @@ func syncSSM(ssmInterface ssm.SSM, ssmSyncMsg chan *ssm.SsmSyncMessage) error {
 	go ssmInterface.HealthCheck()
 	time.Sleep(time.Second * 5) // stop work to send the health check function
 	go ssmsync.SyncSsm(ssmSyncMsg, ssmInterface)
+	time.Sleep(time.Second * 5) // stop work to send the sync function
 	go ssmInterface.InitDefault(ssmSyncMsg)
 
 	return nil

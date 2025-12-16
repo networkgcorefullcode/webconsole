@@ -50,7 +50,8 @@ func createNewKeyVaultTransit(keyLabel string) (configmodels.K4, error) {
 	if secret != nil && secret.Data != nil {
 		if keys, ok := secret.Data["keys"].([]any); ok {
 			for _, k := range keys {
-				if keyName, ok := k.(string); ok && keyName == internalKeyLabel+"/" {
+				logger.AppLog.Debugf("Checking existing transit key: %v", k)
+				if keyName, ok := k.(string); ok && keyName == internalKeyLabel {
 					found = true
 					break
 				}
@@ -63,7 +64,7 @@ func createNewKeyVaultTransit(keyLabel string) (configmodels.K4, error) {
 		newK4 := configmodels.K4{
 			K4:       "",
 			K4_Type:  ssm_constants.TYPE_AES,
-			K4_SNO:   0,
+			K4_SNO:   1,
 			K4_Label: keyLabel,
 		}
 		if err := ssmsync.StoreInMongoDB(newK4, keyLabel); err != nil {
@@ -83,7 +84,7 @@ func createNewKeyVaultTransit(keyLabel string) (configmodels.K4, error) {
 	return configmodels.K4{
 		K4:       "",
 		K4_Type:  ssm_constants.TYPE_AES,
-		K4_SNO:   0,
+		K4_SNO:   1,
 		K4_Label: keyLabel,
 	}, nil
 }
@@ -145,9 +146,9 @@ func getVaultLabelFilter(keyLabel string, dataKeyInfoListChan chan []ssm_models.
 	// List all keys from Vault
 	keys, err := ssmapi.ListKeysVault()
 	if err != nil {
-		logger.DbLog.Errorf("Error listing keys from Vault: %v", err)
+		logger.AppLog.Errorf("Error listing keys from Vault: %v", err)
 		dataKeyInfoListChan <- nil
-		ErrorSyncChan <- err
+		ssmsync.ErrorSyncChan <- err
 		return
 	}
 
@@ -224,7 +225,7 @@ func convertVaultKeyToDataKeyInfo(keyData map[string]interface{}, keyID int32) *
 // 	subsList := make([]configmodels.SubsListIE, 0)
 // 	amDataList, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(configapi.AmDataColl, bson.M{})
 // 	if errGetMany != nil {
-// 		logger.DbLog.Errorf("failed to retrieve subscribers list with error: %+v", errGetMany)
+// 		logger.AppLog.Errorf("failed to retrieve subscribers list with error: %+v", errGetMany)
 // 		return subsList
 // 	}
 
@@ -238,7 +239,7 @@ func convertVaultKeyToDataKeyInfo(keyData map[string]interface{}, keyID int32) *
 
 // 		err := json.Unmarshal(configmodels.MapToByte(amData), &subsData)
 // 		if err != nil {
-// 			logger.DbLog.Errorf("could not unmarshal subscriber %s", amData)
+// 			logger.AppLog.Errorf("could not unmarshal subscriber %s", amData)
 // 			continue
 // 		}
 
@@ -260,7 +261,7 @@ func convertVaultKeyToDataKeyInfo(keyData map[string]interface{}, keyID int32) *
 
 // 	authSubsDataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(configapi.AuthSubsDataColl, filterUeIdOnly)
 // 	if err != nil {
-// 		logger.DbLog.Errorf("failed to fetch authentication subscription data from DB: %+v", err)
+// 		logger.AppLog.Errorf("failed to fetch authentication subscription data from DB: %+v", err)
 // 		return &subsData, fmt.Errorf("failed to fetch authentication subscription data: %w", err)
 // 	}
 

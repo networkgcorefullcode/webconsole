@@ -22,8 +22,8 @@ func StoreKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.StoreKey
 
 	resp, r, err := apiClient.KeyManagementAPI.StoreKey(apiclient.AuthContext).StoreKeyRequest(storeKeyRequest).Execute()
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return nil, err
 	}
 	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
@@ -44,8 +44,8 @@ func UpdateKeySSM(keyLabel, keyValue, keyType string, keyID int32) (*ssm.UpdateK
 
 	resp, r, err := apiClient.KeyManagementAPI.UpdateKey(apiclient.AuthContext).UpdateKeyRequest(updateKeyRequest).Execute()
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return nil, err
 	}
 	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)
@@ -64,8 +64,8 @@ func DeleteKeySSM(keyLabel string, keyID int32) (*ssm.DeleteKeyResponse, error) 
 
 	resp, r, err := apiClient.KeyManagementAPI.DeleteKey(apiclient.AuthContext).DeleteKeyRequest(deleteKeyRequest).Execute()
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.StoreKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return nil, err
 	}
 	logger.WebUILog.Infof("Response from `KeyManagementAPI.StoreKey`: %+v", resp)

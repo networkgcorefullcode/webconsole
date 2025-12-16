@@ -2,73 +2,119 @@ package vaultsync
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	"github.com/omec-project/webconsole/backend/logger"
+	"github.com/omec-project/webconsole/backend/ssm"
 )
 
+var ssmSyncMessage chan *ssm.SsmSyncMessage
+
+func SetSyncChanHandle(ch chan *ssm.SsmSyncMessage) {
+	ssmSyncMessage = ch
+}
+
 func handleSyncKey(c *gin.Context) {
-	// Try to get the priority
 	logger.AppLog.Debug("Init handle sync key")
 
-	externalLocked := SyncExternalKeysMutex.TryLock()
-	ourKeysLocked := SyncOurKeysMutex.TryLock()
-	userLocked := SyncUserMutex.TryLock()
-
-	// If any lock failed, cleanup and return error
-	if !externalLocked || !ourKeysLocked || !userLocked {
-		// Unlock only the ones we successfully locked
-		if externalLocked {
-			SyncExternalKeysMutex.Unlock()
-		}
-		if ourKeysLocked {
-			SyncOurKeysMutex.Unlock()
-		}
-		if userLocked {
-			SyncUserMutex.Unlock()
-		}
-
-		c.JSON(http.StatusTooManyRequests, gin.H{"error": "sync function is running"})
+	// Try to acquire locks without blocking - if any is already held, return busy
+	if !SyncOurKeysMutex.TryLock() {
+		logger.AppLog.Warn("SyncOurKeysMutex is already held, sync in progress")
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "sync for internal keys already in progress"})
 		return
 	}
-
-	defer SyncExternalKeysMutex.Unlock()
 	defer SyncOurKeysMutex.Unlock()
+
+	if !SyncExternalKeysMutex.TryLock() {
+		logger.AppLog.Warn("SyncExternalKeysMutex is already held, sync in progress")
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "sync for external keys already in progress"})
+		return
+	}
+	defer SyncExternalKeysMutex.Unlock()
+
+	if !SyncUserMutex.TryLock() {
+		logger.AppLog.Warn("SyncUserMutex is already held, sync in progress")
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "sync for users already in progress"})
+		return
+	}
 	defer SyncUserMutex.Unlock()
 
-	// wait group
-	var wg sync.WaitGroup
+	logger.AppLog.Debug("All locks acquired, starting sync operations")
 
-	// Logic to synchronize our keys with SSM this process check if we have keys like as AES, DES or DES3
-
-	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, "SYNC_OUR_KEYS")
+	// Logic to synchronize our keys with Vault - this process checks if we have keys like AES
+	logger.AppLog.Debugf("Starting sync for internal keys with label: %s", ssm_constants.LABEL_ENCRYPTION_KEY_AES256)
 	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY_AES256, "SYNC_OUR_KEYS")
+	logger.AppLog.Debug("Internal keys sync completed")
 
-	// Logic to synchronize keys with SSM
-	for _, keyLabel := range ssm_constants.KeyLabelsExternalAllow {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			SyncKeys(keyLabel, "SYNC_EXTERNAL_KEYS")
-		}()
-	}
+	// Logic to synchronize external keys with Vault
+	logger.AppLog.Debugf("Starting sync for %d external key labels", len(ssm_constants.KeyLabelsExternalAllow))
+	syncExternalKeysInternal("SYNC_EXTERNAL_KEYS")
+	logger.AppLog.Debug("All external keys synced")
 
-	wg.Wait()
-
+	// Synchronize users
+	logger.AppLog.Debug("Starting core vault user sync")
 	coreVaultUserSync()
+	logger.AppLog.Debug("Core vault user sync completed")
 
-	c.JSON(http.StatusOK, gin.H{"succes": "sync function run succesfully"})
+	c.JSON(http.StatusOK, gin.H{"success": "sync function ran successfully"})
+	logger.AppLog.Debug("Sync key handler finished successfully")
 }
 
 func handleCheckK4Life(c *gin.Context) {
-	// TODO: Implement Vault health check logic
+	// Try to acquire all locks individually
+	logger.AppLog.Debug("Init handle check k4 life")
+	checkLocked := CheckMutex.TryLock()
+	rotationLocked := RotationMutex.TryLock()
+
+	// If any lock failed, cleanup and return error
+	if !checkLocked || !rotationLocked {
+		// Unlock only the ones we successfully locked
+		if checkLocked {
+			CheckMutex.Unlock()
+		}
+		if rotationLocked {
+			RotationMutex.Unlock()
+		}
+
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "the operation check life k4 or rotation k4 is running"})
+		return
+	}
+
+	defer CheckMutex.Unlock()
+	defer RotationMutex.Unlock()
+	if err := checkKeyHealth(ssmSyncMessage); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusNotImplemented, gin.H{"message": "Vault check-k4-life not implemented"})
 }
 
 func handleRotationKey(c *gin.Context) {
-	if err := rotateInternalTransitKey(internalKeyLabel); err != nil {
+	// Try to acquire all locks individually
+	logger.AppLog.Debug("Init handle rotation key")
+
+	checkLocked := CheckMutex.TryLock()
+	rotationLocked := RotationMutex.TryLock()
+
+	// If any lock failed, cleanup and return error
+	if !checkLocked || !rotationLocked {
+		// Unlock only the ones we successfully locked
+		if checkLocked {
+			CheckMutex.Unlock()
+		}
+		if rotationLocked {
+			RotationMutex.Unlock()
+		}
+
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "the operation check life k4 or rotation k4 is running"})
+		return
+	}
+
+	defer CheckMutex.Unlock()
+	defer RotationMutex.Unlock()
+
+	if err := rotateInternalTransitKey(internalKeyLabel, ssmSyncMessage); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -36,33 +36,33 @@ func TestSetStopCondition(t *testing.T) {
 	}
 }
 
-func TestErrorSyncChanInitialized(t *testing.T) {
-	if ErrorSyncChan == nil {
-		t.Error("ErrorSyncChan should be initialized")
-	}
+// func TestErrorSyncChanInitialized(t *testing.T) {
+// 	if ErrorSyncChan == nil {
+// 		t.Error("ErrorSyncChan should be initialized")
+// 	}
 
-	// Test that we can send to the channel without blocking
-	select {
-	case ErrorSyncChan <- nil:
-		// Successfully sent
-	default:
-		t.Error("ErrorSyncChan should accept messages")
-	}
+// 	// Test that we can send to the channel without blocking
+// 	select {
+// 	case ErrorSyncChan <- nil:
+// 		// Successfully sent
+// 	default:
+// 		t.Error("ErrorSyncChan should accept messages")
+// 	}
 
-	// Drain the channel
-	select {
-	case <-ErrorSyncChan:
-		// Successfully received
-	default:
-		t.Error("Should have been able to receive from ErrorSyncChan")
-	}
-}
+// 	// Drain the channel
+// 	select {
+// 	case <-ErrorSyncChan:
+// 		// Successfully received
+// 	default:
+// 		t.Error("Should have been able to receive from ErrorSyncChan")
+// 	}
+// }
 
-func TestErrorSyncChanCapacity(t *testing.T) {
-	if cap(ErrorSyncChan) != 10 {
-		t.Errorf("Expected ErrorSyncChan capacity of 10, got %d", cap(ErrorSyncChan))
-	}
-}
+// func TestErrorSyncChanCapacity(t *testing.T) {
+// 	if cap(ErrorSyncChan) != 10 {
+// 		t.Errorf("Expected ErrorSyncChan capacity of 10, got %d", cap(ErrorSyncChan))
+// 	}
+// }
 
 func TestStopVaultSyncFunctionInitialValue(t *testing.T) {
 	// Reset to known state

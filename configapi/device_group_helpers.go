@@ -44,14 +44,14 @@ func updateDeviceGroupInNetworkSlices(groupName string) error {
 	filterByDeviceGroup := bson.M{"site-device-group": groupName}
 	rawNetworkSlices, err := dbadapter.CommonDBClient.RestfulAPIGetMany(sliceDataColl, filterByDeviceGroup)
 	if err != nil {
-		logger.DbLog.Errorf("failed to retrieve network slices error: %+v", err)
+		logger.AppLog.Errorf("failed to retrieve network slices error: %+v", err)
 		return err
 	}
 	var errorOccurred bool
 	for _, rawNetworkSlice := range rawNetworkSlices {
 		var networkSlice configmodels.Slice
 		if err = json.Unmarshal(configmodels.MapToByte(rawNetworkSlice), &networkSlice); err != nil {
-			logger.DbLog.Errorf("could not unmarshal network slice %s", rawNetworkSlice)
+			logger.AppLog.Errorf("could not unmarshal network slice %s", rawNetworkSlice)
 			errorOccurred = true
 			continue
 		}
@@ -153,10 +153,10 @@ func handleDeviceGroupPost(devGroup *configmodels.DeviceGroups, prevDevGroup *co
 	devGroupDataBsonA := configmodels.ToBsonM(devGroup)
 	result, err := dbadapter.CommonDBClient.RestfulAPIPost(devGroupDataColl, filter, devGroupDataBsonA)
 	if err != nil {
-		logger.DbLog.Errorf("failed to post device group data for %s: %+v", devGroup.DeviceGroupName, err)
+		logger.AppLog.Errorf("failed to post device group data for %s: %+v", devGroup.DeviceGroupName, err)
 		return http.StatusInternalServerError, err
 	}
-	logger.DbLog.Infof("DB operation result for device group %s: %v",
+	logger.AppLog.Infof("DB operation result for device group %s: %v",
 		devGroup.DeviceGroupName, result)
 
 	statusCode, err := syncDeviceGroupSubscriber(devGroup, prevDevGroup)
@@ -164,7 +164,7 @@ func handleDeviceGroupPost(devGroup *configmodels.DeviceGroups, prevDevGroup *co
 		logger.WebUILog.Errorln(err.Error())
 		return statusCode, err
 	}
-	logger.DbLog.Debugf("succeeded to post device group data for %s", devGroup.DeviceGroupName)
+	logger.AppLog.Debugf("succeeded to post device group data for %s", devGroup.DeviceGroupName)
 	return http.StatusOK, nil
 }
 
@@ -179,12 +179,12 @@ func syncDeviceGroupSubscriber(devGroup *configmodels.DeviceGroups, prevDevGroup
 	logger.WebUILog.Infof("Device group %s is part of slice %s", devGroup.DeviceGroupName, slice.SliceName)
 	if slice.SliceId.Sst == "" {
 		err := fmt.Errorf("missing SST in slice %s", slice.SliceName)
-		logger.DbLog.Errorln(err)
+		logger.AppLog.Errorln(err)
 		return http.StatusBadRequest, err
 	}
 	sVal, err := strconv.ParseUint(slice.SliceId.Sst, 10, 32)
 	if err != nil {
-		logger.DbLog.Errorf("could not parse SST %s", slice.SliceId.Sst)
+		logger.AppLog.Errorf("could not parse SST %s", slice.SliceId.Sst)
 		return http.StatusBadRequest, err
 	}
 	snssai := &models.Snssai{
@@ -210,7 +210,7 @@ func syncDeviceGroupSubscriber(devGroup *configmodels.DeviceGroups, prevDevGroup
 					devGroup.IpDomainExpanded.UeDnnQos,
 				)
 				if err != nil {
-					logger.DbLog.Errorf("updatePolicyAndProvisionedData failed for IMSI %s: %+v", imsi, err)
+					logger.AppLog.Errorf("updatePolicyAndProvisionedData failed for IMSI %s: %+v", imsi, err)
 					errorOccured = true
 				}
 			}()
@@ -245,10 +245,10 @@ func handleDeviceGroupDelete(groupName string) error {
 	filter := bson.M{"group-name": groupName}
 	err := dbadapter.CommonDBClient.RestfulAPIDeleteOne(devGroupDataColl, filter)
 	if err != nil {
-		logger.DbLog.Errorf("failed to delete device group data for %s: %+v", groupName, err)
+		logger.AppLog.Errorf("failed to delete device group data for %s: %+v", groupName, err)
 		return err
 	}
-	logger.DbLog.Debugf("succeeded to device group data for %s", groupName)
+	logger.AppLog.Debugf("succeeded to device group data for %s", groupName)
 	return nil
 }
 
@@ -256,13 +256,13 @@ func getDeviceGroupByName(name string) *configmodels.DeviceGroups {
 	filter := bson.M{"group-name": name}
 	devGroupDataInterface, err := dbadapter.CommonDBClient.RestfulAPIGetOne(devGroupDataColl, filter)
 	if err != nil {
-		logger.DbLog.Warnln(err)
+		logger.AppLog.Warnln(err)
 		return nil
 	}
 	var devGroupData configmodels.DeviceGroups
 	err = json.Unmarshal(configmodels.MapToByte(devGroupDataInterface), &devGroupData)
 	if err != nil {
-		logger.DbLog.Errorf("could not unmarshall device group %s", devGroupDataInterface)
+		logger.AppLog.Errorf("could not unmarshall device group %s", devGroupDataInterface)
 		return nil
 	}
 	return &devGroupData

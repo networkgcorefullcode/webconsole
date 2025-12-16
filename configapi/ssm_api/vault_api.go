@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
@@ -20,26 +21,26 @@ func (v *VAULT_API) StoreKey(k4Data *configmodels.K4) error {
 
 	// Validate key label
 	if k4Data.K4_Label == "" {
-		logger.DbLog.Error("failed to store k4 key in Vault: label key is empty")
+		logger.AppLog.Error("failed to store k4 key in Vault: label key is empty")
 		return errors.New("failed to store k4 key in Vault: key label must be provided")
 	}
 
 	// Validate key type
 	if k4Data.K4_Type == "" {
-		logger.DbLog.Error("failed to store k4 key in Vault: key type is empty")
+		logger.AppLog.Error("failed to store k4 key in Vault: key type is empty")
 		return errors.New("failed to store k4 key in Vault: key type must be provided")
 	}
 
 	// Validate key value is hex
 	if _, err := hex.DecodeString(k4Data.K4); err != nil {
-		logger.DbLog.Errorf("failed to store k4 key in Vault: invalid hex string: %v", err)
+		logger.AppLog.Errorf("failed to store k4 key in Vault: invalid hex string: %v", err)
 		return errors.New("failed to store k4 key in Vault: key must be a valid hex string")
 	}
 
 	// Store the key in Vault
 	err := StoreKeyVault(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO))
 	if err != nil {
-		logger.DbLog.Errorf("failed to store k4 key in Vault: %+v", err)
+		logger.AppLog.Errorf("failed to store k4 key in Vault: %+v", err)
 		return fmt.Errorf("failed to store k4 key in Vault: %w", err)
 	}
 
@@ -56,26 +57,26 @@ func (v *VAULT_API) UpdateKey(k4Data *configmodels.K4) error {
 
 	// Validate key label
 	if k4Data.K4_Label == "" {
-		logger.DbLog.Error("failed to update k4 key in Vault: label key is empty")
+		logger.AppLog.Error("failed to update k4 key in Vault: label key is empty")
 		return errors.New("failed to update k4 key in Vault: key label must be provided")
 	}
 
 	// Validate key type
 	if k4Data.K4_Type == "" {
-		logger.DbLog.Error("failed to update k4 key in Vault: key type is empty")
+		logger.AppLog.Error("failed to update k4 key in Vault: key type is empty")
 		return errors.New("failed to update k4 key in Vault: key type must be provided")
 	}
 
 	// Validate key value is hex
 	if _, err := hex.DecodeString(k4Data.K4); err != nil {
-		logger.DbLog.Errorf("failed to update k4 key in Vault: invalid hex string: %v", err)
+		logger.AppLog.Errorf("failed to update k4 key in Vault: invalid hex string: %v", err)
 		return errors.New("failed to update k4 key in Vault: key must be a valid hex string")
 	}
 
 	// Update the key in Vault
 	err := UpdateKeyVault(k4Data.K4_Label, k4Data.K4, k4Data.K4_Type, int32(k4Data.K4_SNO))
 	if err != nil {
-		logger.DbLog.Errorf("failed to update k4 key in Vault: %+v", err)
+		logger.AppLog.Errorf("failed to update k4 key in Vault: %+v", err)
 		return fmt.Errorf("failed to update k4 key in Vault: %w", err)
 	}
 
@@ -90,14 +91,14 @@ func (v *VAULT_API) DeleteKey(k4Data *configmodels.K4) error {
 
 	// Validate key label
 	if k4Data.K4_Label == "" {
-		logger.DbLog.Error("failed to delete k4 key in Vault: label key is empty")
+		logger.AppLog.Error("failed to delete k4 key in Vault: label key is empty")
 		return errors.New("failed to delete k4 key in Vault: key label must be provided")
 	}
 
 	// Delete the key from Vault
 	err := DeleteKeyVault(k4Data.K4_Label, int32(k4Data.K4_SNO))
 	if err != nil {
-		logger.DbLog.Errorf("failed to delete k4 key in Vault: %+v", err)
+		logger.AppLog.Errorf("failed to delete k4 key in Vault: %+v", err)
 		return fmt.Errorf("failed to delete k4 key in Vault: %w", err)
 	}
 
@@ -111,12 +112,7 @@ func IsValidKeyIdentifierVault(keyLabel string, allowedIdentifiers []string) boo
 	if keyLabel == "" {
 		return false
 	}
-	for _, allowed := range allowedIdentifiers {
-		if keyLabel == allowed {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(allowedIdentifiers, keyLabel)
 }
 
 // EncodeKeyToBase64 encodes a hex string key to base64 for Vault storage

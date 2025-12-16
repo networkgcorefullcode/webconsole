@@ -50,7 +50,7 @@ func HandleGetsK4(c *gin.Context) {
 	k4List := make([]configmodels.K4, 0)
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(K4KeysColl, bson.M{})
 	if errGetMany != nil {
-		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+		logger.AppLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve k4 keys list"})
 		return
 	}
@@ -104,7 +104,7 @@ func HandleGetK4(c *gin.Context) {
 	k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(K4KeysColl, filterSnoID)
 
 	if err != nil {
-		logger.DbLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
+		logger.AppLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch the requested k4 key record from DB"})
 		return
 	}
@@ -195,7 +195,7 @@ func HandlePostK4(c *gin.Context) {
 	// Store the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		if err := ssmapi.Ssmhsm_api.StoreKey(&k4Data); err != nil {
-			logger.DbLog.Errorf("failed to store k4 key in SSM: %+v", err)
+			logger.AppLog.Errorf("failed to store k4 key in SSM: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in SSM"})
 			return
 		}
@@ -205,7 +205,7 @@ func HandlePostK4(c *gin.Context) {
 	// Store the K4 in Vault if this option is enabled
 	if factory.WebUIConfig.Configuration.Vault != nil && factory.WebUIConfig.Configuration.Vault.AllowVault {
 		if err := ssmapi.Vault_api.StoreKey(&k4Data); err != nil {
-			logger.DbLog.Errorf("failed to store k4 key in Vault: %+v", err)
+			logger.AppLog.Errorf("failed to store k4 key in Vault: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store k4 key in Vault"})
 			return
 		}
@@ -217,7 +217,7 @@ func HandlePostK4(c *gin.Context) {
 	// MongoDB
 	// Save the K4 data in MongoDB
 	if err := K4HelperPost(int(k4Data.K4_SNO), &k4Data); err != nil {
-		logger.DbLog.Errorf("failed to post k4 key in DB: %+v", err)
+		logger.AppLog.Errorf("failed to post k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to post k4 key"})
 		return
 	}
@@ -285,7 +285,7 @@ func HandlePutK4(c *gin.Context) {
 	// Update the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		if err := ssmapi.Ssmhsm_api.UpdateKey(&k4Data); err != nil {
-			logger.DbLog.Errorf("failed to update k4 key in SSM: %+v", err)
+			logger.AppLog.Errorf("failed to update k4 key in SSM: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in SSM"})
 			return
 		}
@@ -295,7 +295,7 @@ func HandlePutK4(c *gin.Context) {
 	// Update the K4 in Vault if this option is enabled
 	if factory.WebUIConfig.Configuration.Vault != nil && factory.WebUIConfig.Configuration.Vault.AllowVault {
 		if err := ssmapi.Vault_api.UpdateKey(&k4Data); err != nil {
-			logger.DbLog.Errorf("failed to update k4 key in Vault: %+v", err)
+			logger.AppLog.Errorf("failed to update k4 key in Vault: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key in Vault"})
 			return
 		}
@@ -305,7 +305,7 @@ func HandlePutK4(c *gin.Context) {
 	k4Data.TimeUpdated = k4Data.TimeCreated
 
 	if err := K4HelperPut(snoIdint, &k4Data); err != nil {
-		logger.DbLog.Errorf("failed to update k4 key in DB: %+v", err)
+		logger.AppLog.Errorf("failed to update k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update k4 key"})
 		return
 	}
@@ -349,7 +349,7 @@ func HandleDeleteK4(c *gin.Context) {
 	// Delete the K4 in the SSM if this option is allow
 	if factory.WebUIConfig.Configuration.SSM.AllowSsm {
 		if err := ssmapi.Ssmhsm_api.DeleteKey(&k4Data); err != nil {
-			logger.DbLog.Errorf("failed to delete k4 key in SSM: %+v", err)
+			logger.AppLog.Errorf("failed to delete k4 key in SSM: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key in SSM"})
 			return
 		}
@@ -359,14 +359,14 @@ func HandleDeleteK4(c *gin.Context) {
 	// Delete the K4 in Vault if this option is enabled
 	if factory.WebUIConfig.Configuration.Vault != nil && factory.WebUIConfig.Configuration.Vault.AllowVault {
 		if err := ssmapi.Vault_api.DeleteKey(&k4Data); err != nil {
-			logger.DbLog.Errorf("failed to delete k4 key in Vault: %+v", err)
+			logger.AppLog.Errorf("failed to delete k4 key in Vault: %+v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key in Vault"})
 			return
 		}
 	}
 
 	if err := K4HelperDelete(snoIdint, keylabel); err != nil {
-		logger.DbLog.Errorf("failed to delete k4 key in DB: %+v", err)
+		logger.AppLog.Errorf("failed to delete k4 key in DB: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete k4 key"})
 		return
 	}

@@ -21,12 +21,12 @@ func subscriberAuthenticationDataGet(imsi string) (authSubData *models.Authentic
 	filter := bson.M{"ueId": imsi}
 	authSubDataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(AuthSubsDataColl, filter)
 	if err != nil {
-		logger.DbLog.Errorln(err)
+		logger.AppLog.Errorln(err)
 		return
 	}
 	err = json.Unmarshal(configmodels.MapToByte(authSubDataInterface), &authSubData)
 	if err != nil {
-		logger.DbLog.Errorf("could not unmarshall subscriber %+v", authSubDataInterface)
+		logger.AppLog.Errorf("could not unmarshall subscriber %+v", authSubDataInterface)
 		return
 	}
 	return authSubData
@@ -41,7 +41,7 @@ func SubscriberAuthenticationDataCreate(imsi string, authSubData *models.Authent
 	authDataBsonA["ueId"] = imsi
 	// write to AuthDB
 	if _, err := dbadapter.AuthDBClient.RestfulAPIPost(AuthSubsDataColl, filter, authDataBsonA); err != nil {
-		logger.DbLog.Errorf("failed to update authentication subscription error: %+v", err)
+		logger.AppLog.Errorf("failed to update authentication subscription error: %+v", err)
 		return err
 	}
 	logger.WebUILog.Infof("updated authentication subscription in authenticationSubscription collection: %s", imsi)
@@ -49,10 +49,10 @@ func SubscriberAuthenticationDataCreate(imsi string, authSubData *models.Authent
 	basicAmData := map[string]any{"ueId": imsi}
 	basicDataBson := configmodels.ToBsonM(basicAmData)
 	if _, err := dbadapter.CommonDBClient.RestfulAPIPost(AmDataColl, filter, basicDataBson); err != nil {
-		logger.DbLog.Errorf("failed to update amData error: %+v", err)
+		logger.AppLog.Errorf("failed to update amData error: %+v", err)
 		// rollback AuthDB operation
 		if cleanupErr := dbadapter.AuthDBClient.RestfulAPIDeleteOne(AuthSubsDataColl, filter); cleanupErr != nil {
-			logger.DbLog.Errorf("rollback failed after authData op error: %+v", cleanupErr)
+			logger.AppLog.Errorf("rollback failed after authData op error: %+v", cleanupErr)
 			return fmt.Errorf("authData update failed: %w, rollback failed: %+v", err, cleanupErr)
 		}
 		return fmt.Errorf("authData update failed, rolled back AuthDB change: %w", err)
@@ -70,11 +70,11 @@ func SubscriberAuthenticationDataUpdate(imsi string, authSubData *models.Authent
 	// get backup
 	backup, err := dbadapter.AuthDBClient.RestfulAPIGetOne(AuthSubsDataColl, filter)
 	if err != nil {
-		logger.DbLog.Errorf("failed to get backup data for authentication subscription: %+v", err)
+		logger.AppLog.Errorf("failed to get backup data for authentication subscription: %+v", err)
 	}
 	// write to AuthDB
 	if _, err = dbadapter.AuthDBClient.RestfulAPIPutOne(AuthSubsDataColl, filter, authDataBsonA); err != nil {
-		logger.DbLog.Errorf("failed to update authentication subscription error: %+v", err)
+		logger.AppLog.Errorf("failed to update authentication subscription error: %+v", err)
 		return err
 	}
 	logger.WebUILog.Debugf("updated authentication subscription in authenticationSubscription collection: %s", imsi)
@@ -82,12 +82,12 @@ func SubscriberAuthenticationDataUpdate(imsi string, authSubData *models.Authent
 	basicAmData := map[string]any{"ueId": imsi}
 	basicDataBson := configmodels.ToBsonM(basicAmData)
 	if _, err = dbadapter.CommonDBClient.RestfulAPIPutOne(AmDataColl, filter, basicDataBson); err != nil {
-		logger.DbLog.Errorf("failed to update amData error: %+v", err)
+		logger.AppLog.Errorf("failed to update amData error: %+v", err)
 		// restore old auth data if any
 		if backup != nil {
 			_, err = dbadapter.AuthDBClient.RestfulAPIPutOne(AuthSubsDataColl, filter, backup)
 			if err != nil {
-				logger.DbLog.Errorf("failed to restore backup data for authentication subscription error: %+v", err)
+				logger.AppLog.Errorf("failed to restore backup data for authentication subscription error: %+v", err)
 			}
 		}
 		return fmt.Errorf("authData update failed, rolled back AuthDB change: %w", err)
@@ -104,26 +104,26 @@ func subscriberAuthenticationDataDelete(imsi string) error {
 
 	origAuthData, getErr := dbadapter.AuthDBClient.RestfulAPIGetOne(AuthSubsDataColl, filter)
 	if getErr != nil {
-		logger.DbLog.Errorln("failed to fetch original AuthDB record before delete:", getErr)
+		logger.AppLog.Errorln("failed to fetch original AuthDB record before delete:", getErr)
 		return getErr
 	}
 
 	// delete in AuthDB
 	err := dbadapter.AuthDBClient.RestfulAPIDeleteOne(AuthSubsDataColl, filter)
 	if err != nil {
-		logger.DbLog.Errorln(err)
+		logger.AppLog.Errorln(err)
 		return err
 	}
 	logger.WebUILog.Debugf("successfully deleted authentication subscription from authenticationSubscription collection: %v", imsi)
 
 	err = dbadapter.CommonDBClient.RestfulAPIDeleteOne(AmDataColl, filter)
 	if err != nil {
-		logger.DbLog.Errorln(err)
+		logger.AppLog.Errorln(err)
 		// rollback AuthDB operation
 		if origAuthData != nil {
 			_, restoreErr := dbadapter.AuthDBClient.RestfulAPIPost(AuthSubsDataColl, filter, origAuthData)
 			if restoreErr != nil {
-				logger.DbLog.Errorf("rollback failed after amData delete error error: %+v", restoreErr)
+				logger.AppLog.Errorf("rollback failed after amData delete error error: %+v", restoreErr)
 				return fmt.Errorf("amData delete failed: %w, rollback failed: %w", err, restoreErr)
 			}
 			return fmt.Errorf("amData delete failed, rolled back AuthDB change: %w", err)
@@ -166,40 +166,40 @@ func removeSubscriberEntriesRelatedToDeviceGroups(mcc, mnc, imsi string) error {
 		// AM policy
 		err := dbadapter.CommonDBClient.RestfulAPIDeleteOneWithContext(sc, AmPolicyDataColl, filterImsiOnly)
 		if err != nil {
-			logger.DbLog.Errorf("failed to delete AM policy data for IMSI %s: %+v", imsi, err)
+			logger.AppLog.Errorf("failed to delete AM policy data for IMSI %s: %+v", imsi, err)
 			return err
 		}
 		// SM policy
 		err = dbadapter.CommonDBClient.RestfulAPIDeleteOneWithContext(sc, SmPolicyDataColl, filterImsiOnly)
 		if err != nil {
-			logger.DbLog.Errorf("failed to delete SM policy data for IMSI %s: %+v", imsi, err)
+			logger.AppLog.Errorf("failed to delete SM policy data for IMSI %s: %+v", imsi, err)
 			return err
 		}
 		// AM data
 		err = dbadapter.CommonDBClient.RestfulAPIDeleteOneWithContext(sc, AmDataColl, filter)
 		if err != nil {
-			logger.DbLog.Errorf("failed to delete AM data for IMSI %s: %+v", imsi, err)
+			logger.AppLog.Errorf("failed to delete AM data for IMSI %s: %+v", imsi, err)
 			return err
 		}
 		// SM data
 		err = dbadapter.CommonDBClient.RestfulAPIDeleteOneWithContext(sc, SmDataColl, filter)
 		if err != nil {
-			logger.DbLog.Errorf("failed to delete SM data for IMSI %s: %+v", imsi, err)
+			logger.AppLog.Errorf("failed to delete SM data for IMSI %s: %+v", imsi, err)
 			return err
 		}
 		// SMF selection
 		err = dbadapter.CommonDBClient.RestfulAPIDeleteOneWithContext(sc, SmfSelDataColl, filter)
 		if err != nil {
-			logger.DbLog.Errorf("failed to delete SMF selection data for IMSI %s: %+v", imsi, err)
+			logger.AppLog.Errorf("failed to delete SMF selection data for IMSI %s: %+v", imsi, err)
 			return err
 		}
 		return nil
 	})
 	if err != nil {
-		logger.DbLog.Errorf("failed to delete subscriber entries related to device groups for IMSI %s: %+v", imsi, err)
+		logger.AppLog.Errorf("failed to delete subscriber entries related to device groups for IMSI %s: %+v", imsi, err)
 		return err
 	}
-	logger.DbLog.Debugf("succeeded to delete subscriber entries related to device groups for IMSI %s", imsi)
+	logger.AppLog.Debugf("succeeded to delete subscriber entries related to device groups for IMSI %s", imsi)
 	return nil
 }
 
@@ -209,13 +209,13 @@ func updateSubscriberInDeviceGroups(imsi string) (int, error) {
 	}
 	rawDeviceGroups, err := dbadapter.CommonDBClient.RestfulAPIGetMany(devGroupDataColl, filterByImsi)
 	if err != nil {
-		logger.DbLog.Errorf("failed to fetch device groups: %+v", err)
+		logger.AppLog.Errorf("failed to fetch device groups: %+v", err)
 		return http.StatusInternalServerError, err
 	}
 	for _, rawDeviceGroup := range rawDeviceGroups {
 		var deviceGroup configmodels.DeviceGroups
 		if err = json.Unmarshal(configmodels.MapToByte(rawDeviceGroup), &deviceGroup); err != nil {
-			logger.DbLog.Errorf("error unmarshaling device group: %+v", err)
+			logger.AppLog.Errorf("error unmarshaling device group: %+v", err)
 			return http.StatusInternalServerError, err
 		}
 		filteredImsis := []string{}

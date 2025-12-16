@@ -45,7 +45,7 @@ func GetGnbs(c *gin.Context) {
 	gnbs = make([]*configmodels.Gnb, 0)
 	rawGnbs, err := dbadapter.CommonDBClient.RestfulAPIGetMany(configmodels.GnbDataColl, bson.M{})
 	if err != nil {
-		logger.DbLog.Errorf("failed to retrieve gNBs with error: %+v", err)
+		logger.AppLog.Errorf("failed to retrieve gNBs with error: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve gNBs"})
 		return
 	}
@@ -54,7 +54,7 @@ func GetGnbs(c *gin.Context) {
 		var gnbData configmodels.Gnb
 		err = json.Unmarshal(configmodels.MapToByte(rawGnb), &gnbData)
 		if err != nil {
-			logger.DbLog.Errorf("could not unmarshal gNB %s", rawGnb)
+			logger.AppLog.Errorf("could not unmarshal gNB %s", rawGnb)
 		}
 		gnbs = append(gnbs, &gnbData)
 	}
@@ -68,13 +68,13 @@ func GetGnb(c *gin.Context) {
 	var gnb *configmodels.Gnb
 	rawGnb, err := dbadapter.CommonDBClient.RestfulAPIGetOne(configmodels.GnbDataColl, bson.M{"name": c.Param("gnbName")})
 	if err != nil {
-		logger.DbLog.Errorf("failed to retrieve gNB with error: %+v", err)
+		logger.AppLog.Errorf("failed to retrieve gNB with error: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve gNB"})
 		return
 	}
 	err = json.Unmarshal(configmodels.MapToByte(rawGnb), &gnb)
 	if err != nil {
-		logger.DbLog.Errorf("could not unmarshal gNB %s", rawGnb)
+		logger.AppLog.Errorf("could not unmarshal gNB %s", rawGnb)
 	}
 	logger.WebUILog.Infoln("successfully executed GET gNB request")
 	c.JSON(http.StatusOK, gnb)
@@ -350,14 +350,14 @@ func executeGnbTransaction(ctx context.Context, gnb configmodels.Gnb, nsOperatio
 		}
 		if err = gnbOperation(sc, gnb); err != nil {
 			if abortErr := session.AbortTransaction(sc); abortErr != nil {
-				logger.DbLog.Errorf("failed to abort transaction with error: %+v", abortErr)
+				logger.AppLog.Errorf("failed to abort transaction with error: %+v", abortErr)
 			}
 			return err
 		}
 		err = nsOperation(gnb)
 		if err != nil {
 			if abortErr := session.AbortTransaction(sc); abortErr != nil {
-				logger.DbLog.Errorf("failed to abort transaction with error: %+v", abortErr)
+				logger.AppLog.Errorf("failed to abort transaction with error: %+v", abortErr)
 			}
 			return fmt.Errorf("failed to update network slices: %w", err)
 		}
@@ -383,7 +383,7 @@ func GetUpfs(c *gin.Context) {
 	upfs = make([]*configmodels.Upf, 0)
 	rawUpfs, err := dbadapter.CommonDBClient.RestfulAPIGetMany(configmodels.UpfDataColl, bson.M{})
 	if err != nil {
-		logger.DbLog.Errorf("failed to retrieve UPFs with error: %+v", err)
+		logger.AppLog.Errorf("failed to retrieve UPFs with error: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve UPFs"})
 		return
 	}
@@ -392,7 +392,7 @@ func GetUpfs(c *gin.Context) {
 		var upfData configmodels.Upf
 		err := json.Unmarshal(configmodels.MapToByte(rawUpf), &upfData)
 		if err != nil {
-			logger.DbLog.Errorf("could not unmarshal UPF %s", rawUpf)
+			logger.AppLog.Errorf("could not unmarshal UPF %s", rawUpf)
 		}
 		upfs = append(upfs, &upfData)
 	}
@@ -675,14 +675,14 @@ func executeUpfTransaction(ctx context.Context, upf configmodels.Upf, nsOperatio
 		}
 		if err = upfOperation(sc, upf); err != nil {
 			if abortErr := session.AbortTransaction(sc); abortErr != nil {
-				logger.DbLog.Errorf("failed to abort transaction with error: %+v", abortErr)
+				logger.AppLog.Errorf("failed to abort transaction with error: %+v", abortErr)
 			}
 			return err
 		}
 		err = nsOperation(upf)
 		if err != nil {
 			if abortErr := session.AbortTransaction(sc); abortErr != nil {
-				logger.DbLog.Errorf("failed to abort transaction with error: %+v", abortErr)
+				logger.AppLog.Errorf("failed to abort transaction with error: %+v", abortErr)
 			}
 			return fmt.Errorf("failed to update network slices: %+v", err)
 		}

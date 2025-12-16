@@ -22,24 +22,24 @@ func HealthCheckSSM() {
 		// This conditional block handles the case where the SSM returns a 401 Unauthorized response.
 		// Try to login again and retry the health check.
 		if r != nil && r.StatusCode == 401 {
-			logger.DbLog.Errorf("SSM returned 401 Unauthorized. Loggin in the service, and retrying healthcheck.")
+			logger.AppLog.Errorf("SSM returned 401 Unauthorized. Loggin in the service, and retrying healthcheck.")
 			serviceId, pass, err := utils.GetUserLogin()
 			if err != nil {
-				logger.DbLog.Errorf("Error getting SSM login credentials: %v", err)
+				logger.AppLog.Errorf("Error getting SSM login credentials: %v", err)
 				StopSSMsyncFunction = true
 				healthMutex.Unlock()
 			}
 			_, err = apiclient.LoginSSM(serviceId, pass)
 			if err != nil {
-				logger.DbLog.Errorf("Error logging in to SSM: %v", err)
+				logger.AppLog.Errorf("Error logging in to SSM: %v", err)
 				StopSSMsyncFunction = true
 				healthMutex.Unlock()
 			}
 		}
 
 		if err != nil {
-			logger.DbLog.Errorf("Error when calling `HealthCheck`: %v", err)
-			logger.DbLog.Errorf("Full HTTP response: %v", r)
+			logger.AppLog.Errorf("Error when calling `HealthCheck`: %v", err)
+			logger.AppLog.Errorf("Full HTTP response: %v", r)
 			StopSSMsyncFunction = true
 			healthMutex.Unlock()
 			time.Sleep(time.Second * 5)

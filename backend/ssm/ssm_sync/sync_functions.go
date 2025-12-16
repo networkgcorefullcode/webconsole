@@ -38,8 +38,8 @@ func getSSMLabelFilter(keyLabel string, dataKeyInfoListChan chan []ssm_models.Da
 	resp, r, err := apiClient.KeyManagementAPI.GetDataKeys(apiclient.AuthContext).GetDataKeysRequest(getDataKeysRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GetDataKeys`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.GetDataKeys`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		dataKeyInfoListChan <- nil
 		ErrorSyncChan <- err
 		return
@@ -60,8 +60,8 @@ func deleteKeyToSSM(k4 configmodels.K4) error {
 	_, r, err := apiClient.KeyManagementAPI.DeleteKey(apiclient.AuthContext).DeleteKeyRequest(deleteDataKeyRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.DeleteKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.DeleteKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return err
 	}
 
@@ -98,7 +98,7 @@ func GetMongoDBLabelFilter(keyLabel string, k4listChan chan []configmodels.K4) {
 	k4List := make([]configmodels.K4, 0)
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.K4KeysColl, bson.M{"key_label": keyLabel})
 	if errGetMany != nil {
-		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+		logger.AppLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
 		k4listChan <- nil
 		ErrorSyncChan <- errGetMany
 		return
@@ -122,11 +122,11 @@ func GetMongoDBLabelFilter(keyLabel string, k4listChan chan []configmodels.K4) {
 	k4listChan <- k4List
 }
 
-func getMongoDBAllK4(k4listChan chan []configmodels.K4) {
+func GetMongoDBAllK4(k4listChan chan []configmodels.K4) {
 	k4List := make([]configmodels.K4, 0)
 	k4DataList, errGetMany := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.K4KeysColl, bson.M{})
 	if errGetMany != nil {
-		logger.DbLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
+		logger.AppLog.Errorf("failed to retrieve k4 keys list with error: %+v", errGetMany)
 		k4listChan <- nil
 		ErrorSyncChan <- errGetMany
 		return
@@ -156,11 +156,11 @@ func StoreInMongoDB(k4 configmodels.K4, keyLabel string) error {
 	r, err := dbadapter.AuthDBClient.RestfulAPIGetOne(configapi.K4KeysColl, bson.M{"k4_sno": k4.K4_SNO, "key_label": keyLabel})
 
 	if err != nil {
-		logger.DbLog.Errorf("error: store K4 key in MongoDB %s", err)
+		logger.AppLog.Errorf("error: store K4 key in MongoDB %s", err)
 		return err
 	}
 	if len(r) > 0 {
-		logger.DbLog.Warn("K4 key in MongoDB exist")
+		logger.AppLog.Warn("K4 key in MongoDB exist")
 		return err
 	}
 
@@ -175,7 +175,7 @@ func StoreInMongoDB(k4 configmodels.K4, keyLabel string) error {
 
 	_, err = dbadapter.AuthDBClient.RestfulAPIPutOne(configapi.K4KeysColl, bson.M{"k4_sno": k4.K4_SNO, "key_label": keyLabel}, k4Data)
 	if err != nil {
-		logger.DbLog.Errorf("Failed to store K4 key in MongoDB: %v", err)
+		logger.AppLog.Errorf("Failed to store K4 key in MongoDB: %v", err)
 		return err
 	}
 
@@ -191,7 +191,7 @@ func GetUsersMDB() []configmodels.SubsListIE {
 	subsList := make([]configmodels.SubsListIE, 0)
 	amDataList, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(configapi.AmDataColl, bson.M{})
 	if errGetMany != nil {
-		logger.DbLog.Errorf("failed to retrieve subscribers list with error: %+v", errGetMany)
+		logger.AppLog.Errorf("failed to retrieve subscribers list with error: %+v", errGetMany)
 		return subsList
 	}
 	logger.AppLog.Infof("GetSubscribers: len: %d", len(amDataList))
@@ -203,7 +203,7 @@ func GetUsersMDB() []configmodels.SubsListIE {
 
 		err := json.Unmarshal(configmodels.MapToByte(amData), &subsData)
 		if err != nil {
-			logger.DbLog.Errorf("could not unmarshal subscriber %s", amData)
+			logger.AppLog.Errorf("could not unmarshal subscriber %s", amData)
 		}
 
 		if servingPlmnId, plmnIdExists := amData["servingPlmnId"]; plmnIdExists {
@@ -223,7 +223,7 @@ func GetSubscriberData(ueId string) (*configmodels.SubsData, error) {
 
 	authSubsDataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(configapi.AuthSubsDataColl, filterUeIdOnly)
 	if err != nil {
-		logger.DbLog.Errorf("failed to fetch authentication subscription data from DB: %+v", err)
+		logger.AppLog.Errorf("failed to fetch authentication subscription data from DB: %+v", err)
 		return &subsData, fmt.Errorf("failed to fetch authentication subscription data: %w", err)
 	} // If all fetched data is empty, return error
 

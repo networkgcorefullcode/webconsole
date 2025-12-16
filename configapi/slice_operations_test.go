@@ -77,7 +77,7 @@ func (db *NetworkSliceMockDBClient) RestfulAPIGetOne(coll string, filter bson.M)
 	}
 	ns := configmodels.ToBsonM(db.slices[0])
 	if ns == nil {
-		logger.DbLog.Fatalln("failed to convert network slice to BsonM")
+		logger.AppLog.Fatalln("failed to convert network slice to BsonM")
 	}
 	return ns, nil
 }
@@ -90,7 +90,7 @@ func (db *NetworkSliceMockDBClient) RestfulAPIGetMany(coll string, filter bson.M
 	for _, s := range db.slices {
 		ns := configmodels.ToBsonM(s)
 		if ns == nil {
-			logger.DbLog.Fatalln("failed to convert network slice to BsonM")
+			logger.AppLog.Fatalln("failed to convert network slice to BsonM")
 		}
 		results = append(results, ns)
 	}

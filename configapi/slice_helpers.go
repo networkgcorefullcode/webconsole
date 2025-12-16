@@ -232,10 +232,10 @@ func handleNetworkSlicePost(slice configmodels.Slice, prevSlice configmodels.Sli
 	sliceDataBsonA := configmodels.ToBsonM(slice)
 	_, err := dbadapter.CommonDBClient.RestfulAPIPost(sliceDataColl, filter, sliceDataBsonA)
 	if err != nil {
-		logger.DbLog.Errorf("failed to post slice data for %s: %+v", slice.SliceName, err)
+		logger.AppLog.Errorf("failed to post slice data for %s: %+v", slice.SliceName, err)
 		return http.StatusInternalServerError, err
 	}
-	logger.DbLog.Debugf("succeeded to post slice data for %s", slice.SliceName)
+	logger.AppLog.Debugf("succeeded to post slice data for %s", slice.SliceName)
 
 	statusCode, err := syncSubscribersOnSliceCreateOrUpdate(slice, prevSlice)
 	if err != nil {
@@ -275,12 +275,12 @@ var syncSubscribersOnSliceCreateOrUpdate = func(slice configmodels.Slice, prevSl
 	logger.WebUILog.Debugln("insert/update Slice:", slice)
 	if slice.SliceId.Sst == "" {
 		err := fmt.Errorf("missing SST in slice %s", slice.SliceName)
-		logger.DbLog.Error(err)
+		logger.AppLog.Error(err)
 		return http.StatusBadRequest, err
 	}
 	sVal, err := strconv.ParseUint(slice.SliceId.Sst, 10, 32)
 	if err != nil {
-		logger.DbLog.Errorf("could not parse SST %s", slice.SliceId.Sst)
+		logger.AppLog.Errorf("could not parse SST %s", slice.SliceId.Sst)
 		return http.StatusBadRequest, err
 	}
 	snssai := &models.Snssai{
@@ -306,7 +306,7 @@ var syncSubscribersOnSliceCreateOrUpdate = func(slice configmodels.Slice, prevSl
 					devGroupConfig.IpDomainExpanded.UeDnnQos,
 				)
 				if err != nil {
-					logger.DbLog.Errorf("updatePolicyAndProvisionedData failed for IMSI %s: %+v", imsi, err)
+					logger.AppLog.Errorf("updatePolicyAndProvisionedData failed for IMSI %s: %+v", imsi, err)
 					return http.StatusInternalServerError, err
 				}
 			}
@@ -371,10 +371,10 @@ func updateAmPolicyData(imsi string) error {
 	filter := bson.M{"ueId": "imsi-" + imsi}
 	_, err := dbadapter.CommonDBClient.RestfulAPIPost(AmPolicyDataColl, filter, amPolicyDatBsonA)
 	if err != nil {
-		logger.DbLog.Errorf("failed to update AM Policy Data for IMSI %s: %+v", imsi, err)
+		logger.AppLog.Errorf("failed to update AM Policy Data for IMSI %s: %+v", imsi, err)
 		return err
 	}
-	logger.DbLog.Debugf("succeeded to update AM Policy Data for IMSI %s", imsi)
+	logger.AppLog.Debugf("succeeded to update AM Policy Data for IMSI %s", imsi)
 	return nil
 }
 
@@ -396,10 +396,10 @@ func updateSmPolicyData(snssai *models.Snssai, dnn string, imsi string) error {
 	filter := bson.M{"ueId": "imsi-" + imsi}
 	_, err := dbadapter.CommonDBClient.RestfulAPIPost(SmPolicyDataColl, filter, smPolicyDatBsonA)
 	if err != nil {
-		logger.DbLog.Errorf("failed to update SM Policy Data for IMSI %s: %+v", imsi, err)
+		logger.AppLog.Errorf("failed to update SM Policy Data for IMSI %s: %+v", imsi, err)
 		return err
 	}
-	logger.DbLog.Debugf("succeeded to update SM Policy Data for IMSI %s", imsi)
+	logger.AppLog.Debugf("succeeded to update SM Policy Data for IMSI %s", imsi)
 	return nil
 }
 
@@ -429,10 +429,10 @@ func updateAmProvisionedData(snssai *models.Snssai, qos *configmodels.DeviceGrou
 	}
 	_, err := dbadapter.CommonDBClient.RestfulAPIPost(AmDataColl, filter, amDataBsonA)
 	if err != nil {
-		logger.DbLog.Errorf("failed to update AM provisioned Data for IMSI %s: %+v", imsi, err)
+		logger.AppLog.Errorf("failed to update AM provisioned Data for IMSI %s: %+v", imsi, err)
 		return err
 	}
-	logger.DbLog.Debugf("succeeded to update AM provisioned Data for IMSI %s", imsi)
+	logger.AppLog.Debugf("succeeded to update AM provisioned Data for IMSI %s", imsi)
 	return nil
 }
 
@@ -472,10 +472,10 @@ func updateSmProvisionedData(snssai *models.Snssai, qos *configmodels.DeviceGrou
 	filter := bson.M{"ueId": "imsi-" + imsi, "servingPlmnId": mcc + mnc}
 	_, err := dbadapter.CommonDBClient.RestfulAPIPost(SmDataColl, filter, smDataBsonA)
 	if err != nil {
-		logger.DbLog.Errorf("failed to update SM provisioned Data for IMSI %s: %+v", imsi, err)
+		logger.AppLog.Errorf("failed to update SM provisioned Data for IMSI %s: %+v", imsi, err)
 		return err
 	}
-	logger.DbLog.Debugf("updated SM provisioned Data for IMSI %s", imsi)
+	logger.AppLog.Debugf("updated SM provisioned Data for IMSI %s", imsi)
 	return nil
 }
 
@@ -497,10 +497,10 @@ func updateSmfSelectionProvisionedData(snssai *models.Snssai, mcc, mnc, dnn, ims
 	filter := bson.M{"ueId": "imsi-" + imsi, "servingPlmnId": mcc + mnc}
 	_, err := dbadapter.CommonDBClient.RestfulAPIPost(SmfSelDataColl, filter, smfSelecDataBsonA)
 	if err != nil {
-		logger.DbLog.Errorf("failed to update SMF selection provisioned data for IMSI %s: %+v", imsi, err)
+		logger.AppLog.Errorf("failed to update SMF selection provisioned data for IMSI %s: %+v", imsi, err)
 		return err
 	}
-	logger.DbLog.Debugf("updated SMF selection provisioned data for IMSI %s", imsi)
+	logger.AppLog.Debugf("updated SMF selection provisioned data for IMSI %s", imsi)
 	return nil
 }
 
@@ -531,14 +531,14 @@ func ConvertToString(val uint64) string {
 func getSlices() []*configmodels.Slice {
 	rawSlices, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(sliceDataColl, nil)
 	if errGetMany != nil {
-		logger.DbLog.Warnln(errGetMany)
+		logger.AppLog.Warnln(errGetMany)
 	}
 	var slices []*configmodels.Slice
 	for _, rawSlice := range rawSlices {
 		var sliceData configmodels.Slice
 		err := json.Unmarshal(configmodels.MapToByte(rawSlice), &sliceData)
 		if err != nil {
-			logger.DbLog.Errorf("could not unmarshall slice %+v", rawSlice)
+			logger.AppLog.Errorf("could not unmarshall slice %+v", rawSlice)
 		}
 		slices = append(slices, &sliceData)
 	}
@@ -549,13 +549,13 @@ func getSliceByName(name string) *configmodels.Slice {
 	filter := bson.M{"slice-name": name}
 	sliceDataInterface, errGetOne := dbadapter.CommonDBClient.RestfulAPIGetOne(sliceDataColl, filter)
 	if errGetOne != nil {
-		logger.DbLog.Warnln(errGetOne)
+		logger.AppLog.Warnln(errGetOne)
 		return nil
 	}
 	var sliceData configmodels.Slice
 	err := json.Unmarshal(configmodels.MapToByte(sliceDataInterface), &sliceData)
 	if err != nil {
-		logger.DbLog.Errorf("could not unmarshall slice %+v", sliceDataInterface)
+		logger.AppLog.Errorf("could not unmarshall slice %+v", sliceDataInterface)
 		return nil
 	}
 	return &sliceData
@@ -566,7 +566,7 @@ func handleNetworkSliceDelete(sliceName string) error {
 	filter := bson.M{"slice-name": sliceName}
 	err := dbadapter.CommonDBClient.RestfulAPIDeleteOne(sliceDataColl, filter)
 	if err != nil {
-		logger.DbLog.Errorf("failed to delete slice data for %+v: %+v", sliceName, err)
+		logger.AppLog.Errorf("failed to delete slice data for %+v: %+v", sliceName, err)
 		return err
 	}
 	// slice is nil as it is deleted
@@ -574,7 +574,7 @@ func handleNetworkSliceDelete(sliceName string) error {
 		logger.WebUILog.Errorf("failed to cleanup subscriber entries related to device groups %+v: %+v", sliceName, err)
 		return err
 	}
-	logger.DbLog.Debugf("succeeded to delete slice data for %s", sliceName)
+	logger.AppLog.Debugf("succeeded to delete slice data for %s", sliceName)
 	if factory.WebUIConfig.Configuration.SendPebbleNotifications {
 		err = sendPebbleNotification("aetherproject.org/webconsole/networkslice/delete")
 		if err != nil {

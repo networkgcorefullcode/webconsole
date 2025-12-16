@@ -4,9 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/ssm/apiclient"
+)
+
+const (
+	internalKeyLabel = "aes256-gcm"
 )
 
 // getVaultKeyPath returns the base KV path for keys from config with fallback
@@ -19,14 +24,14 @@ func getVaultKeyPath() string {
 	return "secret/data/k4keys"
 }
 
-// getVaultKeyPath returns the base KV path for keys from config with fallback
-func getVaultKeyMetadataPath() string {
+// getTransitKeyCreateFormat returns the transit key create format from configuration
+func getTransitKeyCreateFormat() string {
 	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
-		if p := factory.WebUIConfig.Configuration.Vault.KeyKVMetadataPath; p != "" {
-			return p
+		if format := factory.WebUIConfig.Configuration.Vault.TransitKeyCreateFmt; format != "" {
+			return format
 		}
 	}
-	return "secret/data/k4keys"
+	return "transit/keys/%s"
 }
 
 // StoreKeyVault stores a key in Vault's KV secrets engine
@@ -35,7 +40,7 @@ func StoreKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
 
 	client, err := apiclient.GetVaultClient()
 	if err != nil {
-		logger.DbLog.Errorf("Error getting Vault client: %v", err)
+		logger.AppLog.Errorf("Error getting Vault client: %v", err)
 		return fmt.Errorf("error getting Vault client: %w", err)
 	}
 
@@ -55,7 +60,7 @@ func StoreKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
 	// Write the secret to Vault
 	_, err = client.Logical().WriteWithContext(context.Background(), secretPath, data)
 	if err != nil {
-		logger.DbLog.Errorf("Error writing key to Vault: %v", err)
+		logger.AppLog.Errorf("Error writing key to Vault: %v", err)
 		return fmt.Errorf("error writing key to Vault: %w", err)
 	}
 
@@ -69,7 +74,7 @@ func UpdateKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
 
 	client, err := apiclient.GetVaultClient()
 	if err != nil {
-		logger.DbLog.Errorf("Error getting Vault client: %v", err)
+		logger.AppLog.Errorf("Error getting Vault client: %v", err)
 		return fmt.Errorf("error getting Vault client: %w", err)
 	}
 
@@ -89,7 +94,7 @@ func UpdateKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
 	// Write the secret to Vault (updates existing or creates new)
 	_, err = client.Logical().WriteWithContext(context.Background(), secretPath, data)
 	if err != nil {
-		logger.DbLog.Errorf("Error updating key in Vault: %v", err)
+		logger.AppLog.Errorf("Error updating key in Vault: %v", err)
 		return fmt.Errorf("error updating key in Vault: %w", err)
 	}
 
@@ -103,17 +108,22 @@ func DeleteKeyVault(keyLabel string, keyID int32) error {
 
 	client, err := apiclient.GetVaultClient()
 	if err != nil {
-		logger.DbLog.Errorf("Error getting Vault client: %v", err)
+		logger.AppLog.Errorf("Error getting Vault client: %v", err)
 		return fmt.Errorf("error getting Vault client: %w", err)
 	}
 
 	// Build the secret path using label and ID
 	secretPath := fmt.Sprintf("%s/%s-%d", getVaultKeyPath(), keyLabel, keyID)
 
+	if keyLabel == ssm_constants.LABEL_ENCRYPTION_KEY_AES256 {
+		logger.AppLog.Info("delete protected internal encryption key")
+		secretPath = fmt.Sprintf("%s/%s", getTransitKeyCreateFormat(), internalKeyLabel)
+	}
+
 	// Delete the secret from Vault
 	_, err = client.Logical().DeleteWithContext(context.Background(), secretPath)
 	if err != nil {
-		logger.DbLog.Errorf("Error deleting key from Vault: %v", err)
+		logger.AppLog.Errorf("Error deleting key from Vault: %v", err)
 		return fmt.Errorf("error deleting key from Vault: %w", err)
 	}
 
@@ -127,7 +137,7 @@ func GetKeyVault(keyLabel string, keyID int32) (map[string]any, error) {
 
 	client, err := apiclient.GetVaultClient()
 	if err != nil {
-		logger.DbLog.Errorf("Error getting Vault client: %v", err)
+		logger.AppLog.Errorf("Error getting Vault client: %v", err)
 		return nil, fmt.Errorf("error getting Vault client: %w", err)
 	}
 
@@ -137,19 +147,19 @@ func GetKeyVault(keyLabel string, keyID int32) (map[string]any, error) {
 	// Read the secret from Vault
 	secret, err := client.Logical().ReadWithContext(context.Background(), secretPath)
 	if err != nil {
-		logger.DbLog.Errorf("Error reading key from Vault: %v", err)
+		logger.AppLog.Errorf("Error reading key from Vault: %v", err)
 		return nil, fmt.Errorf("error reading key from Vault: %w", err)
 	}
 
 	if secret == nil {
-		logger.DbLog.Warnf("Key not found in Vault at path: %s", secretPath)
+		logger.AppLog.Warnf("Key not found in Vault at path: %s", secretPath)
 		return nil, fmt.Errorf("key not found in Vault")
 	}
 
 	// Extract the data field from the secret
 	data, ok := secret.Data["data"].(map[string]any)
 	if !ok {
-		logger.DbLog.Errorf("Invalid data format in Vault secret")
+		logger.AppLog.Errorf("Invalid data format in Vault secret")
 		return nil, fmt.Errorf("invalid data format in Vault secret")
 	}
 
@@ -163,14 +173,14 @@ func ListKeysVault() ([]string, error) {
 
 	client, err := apiclient.GetVaultClient()
 	if err != nil {
-		logger.DbLog.Errorf("Error getting Vault client: %v", err)
+		logger.AppLog.Errorf("Error getting Vault client: %v", err)
 		return nil, fmt.Errorf("error getting Vault client: %w", err)
 	}
 
 	// List secrets at the key path
 	secret, err := client.Logical().ListWithContext(context.Background(), getVaultKeyPath())
 	if err != nil {
-		logger.DbLog.Errorf("Error listing keys from Vault: %v", err)
+		logger.AppLog.Errorf("Error listing keys from Vault: %v", err)
 		return nil, fmt.Errorf("error listing keys from Vault: %w", err)
 	}
 
@@ -182,7 +192,7 @@ func ListKeysVault() ([]string, error) {
 	// Extract the list of keys
 	keys, ok := secret.Data["keys"].([]any)
 	if !ok {
-		logger.DbLog.Errorf("Invalid keys format in Vault list response")
+		logger.AppLog.Errorf("Invalid keys format in Vault list response")
 		return nil, fmt.Errorf("invalid keys format in Vault list response")
 	}
 

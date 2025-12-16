@@ -70,7 +70,7 @@ func GetSessionRunner(client DBInterface) SessionRunner {
 			}
 			if err := fn(sc); err != nil {
 				abortErr := session.AbortTransaction(sc)
-				logger.DbLog.Warnf("failed to abort transaction: %v", abortErr)
+				logger.AppLog.Warnf("failed to abort transaction: %v", abortErr)
 				return err
 			}
 			return session.CommitTransaction(sc)
@@ -107,11 +107,11 @@ ConnectMongo:
 		case <-ticker.C:
 			continue
 		case <-timer:
-			logger.DbLog.Errorln("timed out while connecting to MongoDB in 3 minutes")
+			logger.AppLog.Errorln("timed out while connecting to MongoDB in 3 minutes")
 			return
 		}
 	}
-	logger.DbLog.Infoln("connected to MongoDB")
+	logger.AppLog.Infoln("connected to MongoDB")
 }
 
 func CheckTransactionsSupport(client *DBInterface) error {
@@ -122,17 +122,17 @@ func CheckTransactionsSupport(client *DBInterface) error {
 
 	// enabled check replica set step, focus on dev
 	if !checkReplica {
-		logger.DbLog.Infoln("replicaset is not necessary, mongodb config is correct, connect is success")
+		logger.AppLog.Infoln("replicaset is not necessary, mongodb config is correct, connect is success")
 		return nil
 	}
 	ticker := time.NewTicker(60 * time.Second)
 	defer func() { ticker.Stop() }()
 	timer := time.After(180 * time.Second)
-	logger.DbLog.Infoln("checking for replica set or sharded config in MongoDB...")
+	logger.AppLog.Infoln("checking for replica set or sharded config in MongoDB...")
 	for {
 		supportsTransactions, err := (*client).SupportsTransactions()
 		if err != nil {
-			logger.DbLog.Warnw("could not verify replica set or sharded status", "error", err)
+			logger.AppLog.Warnw("could not verify replica set or sharded status", "error", err)
 		}
 		if supportsTransactions {
 			break
@@ -144,7 +144,7 @@ func CheckTransactionsSupport(client *DBInterface) error {
 			return fmt.Errorf("timed out while waiting for Replica Set or sharded config to be set in MongoDB")
 		}
 	}
-	logger.DbLog.Infoln("mongoDB support of transactions verified")
+	logger.AppLog.Infoln("mongoDB support of transactions verified")
 	return nil
 }
 
@@ -163,7 +163,7 @@ func InitMongoDB() error {
 		"dbName", mongodb.Name)
 
 	if err := CheckTransactionsSupport(&CommonDBClient); err != nil {
-		logger.DbLog.Errorw("failed to connect to MongoDB client", mongodb.Name, "error", err)
+		logger.AppLog.Errorw("failed to connect to MongoDB client", mongodb.Name, "error", err)
 		return err
 	}
 

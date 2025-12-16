@@ -58,7 +58,7 @@ func GetDeviceGroups(c *gin.Context) {
 	deviceGroups := make([]string, 0)
 	rawDeviceGroups, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(devGroupDataColl, bson.M{})
 	if errGetMany != nil {
-		logger.DbLog.Warnln(errGetMany)
+		logger.AppLog.Warnln(errGetMany)
 	}
 	for _, rawDeviceGroup := range rawDeviceGroups {
 		deviceGroups = append(deviceGroups, rawDeviceGroup["group-name"].(string))
@@ -88,7 +88,7 @@ func GetDeviceGroupByName(c *gin.Context) {
 	filter := bson.M{"group-name": c.Param("group-name")}
 	rawDeviceGroup, errGetOne := dbadapter.CommonDBClient.RestfulAPIGetOne(devGroupDataColl, filter)
 	if errGetOne != nil {
-		logger.DbLog.Warnln(errGetOne)
+		logger.AppLog.Warnln(errGetOne)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve device group"})
 		return
 	}
@@ -309,7 +309,7 @@ func GetNetworkSlices(c *gin.Context) {
 
 	rawNetworkSlices, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(sliceDataColl, bson.M{})
 	if errGetMany != nil {
-		logger.DbLog.Errorln(errGetMany)
+		logger.AppLog.Errorln(errGetMany)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch slices"})
 		return
 	}
@@ -345,7 +345,7 @@ func GetNetworkSliceByName(c *gin.Context) {
 	filter := bson.M{"slice-name": c.Param("slice-name")}
 	rawNetworkSlice, errGetOne := dbadapter.CommonDBClient.RestfulAPIGetOne(sliceDataColl, filter)
 	if errGetOne != nil {
-		logger.DbLog.Warnln(errGetOne)
+		logger.AppLog.Warnln(errGetOne)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve network slice"})
 		return
 	}

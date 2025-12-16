@@ -27,8 +27,8 @@ func (c *CreateAES128SSM) CreateNewKeySSM(keyLabel string, id int32) (configmode
 	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(apiclient.AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return configmodels.K4{}, err
 	}
 
@@ -55,8 +55,8 @@ func (c *CreateAES256SSM) CreateNewKeySSM(keyLabel string, id int32) (configmode
 	_, r, err := apiClient.KeyManagementAPI.GenerateAESKey(apiclient.AuthContext).GenAESKeyRequest(genAESKeyRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return configmodels.K4{}, err
 	}
 
@@ -81,8 +81,8 @@ func (c *CreateDes3SSM) CreateNewKeySSM(keyLabel string, id int32) (configmodels
 	_, r, err := apiClient.KeyManagementAPI.GenerateDES3Key(apiclient.AuthContext).GenDES3KeyRequest(genDES3KeyRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateDES3Key`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.GenerateDES3Key`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return configmodels.K4{}, err
 	}
 
@@ -107,8 +107,8 @@ func (c *CreateDesSSM) CreateNewKeySSM(keyLabel string, id int32) (configmodels.
 	_, r, err := apiClient.KeyManagementAPI.GenerateDESKey(apiclient.AuthContext).GenDESKeyRequest(genDESKeyRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateDESKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.GenerateDESKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return configmodels.K4{}, err
 	}
 

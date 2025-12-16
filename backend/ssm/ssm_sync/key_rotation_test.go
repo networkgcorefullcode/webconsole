@@ -29,7 +29,7 @@ func TestCheckKeyHealthWithStopCondition(t *testing.T) {
 	ssmSyncMsg := make(chan *ssm.SsmSyncMessage, 10)
 	defer close(ssmSyncMsg)
 
-	err := checkKeyHealth(ssmSyncMsg)
+	err := CheckKeyHealth(ssmSyncMsg)
 
 	if err == nil {
 		t.Error("Expected error when StopSSMsyncFunction is true")

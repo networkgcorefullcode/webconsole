@@ -18,7 +18,7 @@ type Routes []Route
 
 // AddSyncVaultService registers the Vault sync endpoints under /sync-vault
 func AddSyncVaultService(engine *gin.Engine, middlewares ...gin.HandlerFunc) *gin.RouterGroup {
-	group := engine.Group("/sync-vault")
+	group := engine.Group("/sync-ssm")
 	if len(middlewares) > 0 {
 		group.Use(middlewares...)
 	}

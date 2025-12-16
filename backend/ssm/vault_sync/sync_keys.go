@@ -30,16 +30,22 @@ func syncOurKeys(action string) {
 func syncExternalKeys(action string) {
 	SyncExternalKeysMutex.Lock()
 	defer SyncExternalKeysMutex.Unlock()
+	syncExternalKeysInternal(action)
+}
+
+// syncExternalKeysInternal performs external key sync without acquiring the mutex
+// Use this when the mutex is already held by the caller
+func syncExternalKeysInternal(action string) {
 	// wait group
 	var wg sync.WaitGroup
 
 	// Logic to synchronize keys with SSM
 	for _, keyLabel := range ssm_constants.KeyLabelsExternalAllow {
 		wg.Add(1)
-		go func() {
+		go func(label string) {
 			defer wg.Done()
-			SyncKeys(keyLabel, action)
-		}()
+			SyncKeys(label, action)
+		}(keyLabel)
 	}
 	wg.Wait()
 }
@@ -56,17 +62,15 @@ func SyncKeys(keyLabel, action string) {
 	// Case 1: Actions is SYNC_OUR_KEYS
 	if action == "SYNC_OUR_KEYS" {
 		logger.AppLog.Info("Create the key that encript our subs datas")
-		go func() {
-			newK4, err := createNewKeyVaultTransit(keyLabel)
-			if err != nil {
-				logger.AppLog.Errorf("Failed to create new K4 key with label %s: %v", keyLabel, err)
-			} else {
-				// Store in MongoDB
-				if err := ssmsync.StoreInMongoDB(newK4, keyLabel); err != nil {
-					logger.AppLog.Errorf("Failed to store new K4 key in MongoDB: %v", err)
-				}
+		newK4, err := createNewKeyVaultTransit(keyLabel)
+		if err != nil {
+			logger.AppLog.Errorf("Failed to create new K4 key with label %s: %v", keyLabel, err)
+		} else {
+			// Store in MongoDB
+			if err := ssmsync.StoreInMongoDB(newK4, keyLabel); err != nil {
+				logger.AppLog.Errorf("Failed to store new K4 key in MongoDB: %v", err)
 			}
-		}()
+		}
 		return
 	}
 
@@ -85,7 +89,7 @@ func SyncKeys(keyLabel, action string) {
 	k4ListSSM := <-k4listChanSSM
 
 	if k4ListMDB == nil || k4ListSSM == nil {
-		ErrorSyncChan <- errors.New("invalid operation in ssm sync check the logs to read more information")
+		ssmsync.ErrorSyncChan <- errors.New("invalid operation in ssm sync check the logs to read more information")
 		return
 	}
 

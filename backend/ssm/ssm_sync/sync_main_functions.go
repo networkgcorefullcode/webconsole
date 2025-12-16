@@ -204,8 +204,8 @@ func encryptDataAESCBC(subsData *configmodels.SubsData, user configmodels.SubsLi
 	resp, r, err := apiClient.EncryptionAPI.EncryptData(apiclient.AuthContext).EncryptRequest(encryptRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return
 	}
 	newSubAuthData := subsData.AuthenticationSubscription
@@ -242,8 +242,8 @@ func encryptDataAESGCM(subsData *configmodels.SubsData, user configmodels.SubsLi
 	resp, r, err := apiClient.EncryptionAPI.EncryptDataAESGCM(apiclient.AuthContext).EncryptAESGCMRequest(encryptRequest).Execute()
 
 	if err != nil {
-		logger.DbLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
-		logger.DbLog.Errorf("Full HTTP response: %v", r)
+		logger.AppLog.Errorf("Error when calling `KeyManagementAPI.GenerateAESKey`: %v", err)
+		logger.AppLog.Errorf("Full HTTP response: %v", r)
 		return
 	}
 	newSubAuthData := subsData.AuthenticationSubscription

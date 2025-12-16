@@ -57,7 +57,7 @@ func TestRotateInternalTransitKeyWithStopCondition(t *testing.T) {
 		setStopCondition(false)
 	}()
 
-	err := rotateInternalTransitKey("test-key")
+	err := rotateInternalTransitKey("test-key", nil)
 
 	if err == nil {
 		t.Error("Expected error when stop condition is true")
@@ -74,7 +74,7 @@ func TestRotateInternalTransitKeyWithValidLabel(t *testing.T) {
 	setStopCondition(false)
 
 	// This will likely fail without a real Vault connection, but we test the flow
-	err := rotateInternalTransitKey(internalKeyLabel)
+	err := rotateInternalTransitKey(internalKeyLabel, nil)
 
 	// We expect an error since Vault is not connected in test environment
 	if err == nil {
