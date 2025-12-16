@@ -11,6 +11,7 @@ import (
 
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/ssm/apiclient"
+	ssmsync "github.com/omec-project/webconsole/backend/ssm/ssm_sync"
 	ssmapi "github.com/omec-project/webconsole/configapi/ssm_api"
 	"github.com/omec-project/webconsole/configmodels"
 )
@@ -39,7 +40,7 @@ func createNewKeyVaultTransit(keyLabel string) (configmodels.K4, error) {
 
 	logger.AppLog.Infof("Syncing internal key %s using transit engine", internalKeyLabel)
 
-	secret, err := client.Logical().List(transitKeysListPath)
+	secret, err := client.Logical().List(getTransitKeysListPath())
 	if err != nil {
 		logger.AppLog.Errorf("Failed to list transit keys: %v", err)
 		return configmodels.K4{}, err
@@ -47,7 +48,7 @@ func createNewKeyVaultTransit(keyLabel string) (configmodels.K4, error) {
 
 	found := false
 	if secret != nil && secret.Data != nil {
-		if keys, ok := secret.Data["keys"].([]interface{}); ok {
+		if keys, ok := secret.Data["keys"].([]any); ok {
 			for _, k := range keys {
 				if keyName, ok := k.(string); ok && keyName == internalKeyLabel+"/" {
 					found = true
@@ -59,11 +60,20 @@ func createNewKeyVaultTransit(keyLabel string) (configmodels.K4, error) {
 
 	if found {
 		logger.AppLog.Infof("Internal key %s already exists in transit", internalKeyLabel)
+		newK4 := configmodels.K4{
+			K4:       "",
+			K4_Type:  ssm_constants.TYPE_AES,
+			K4_SNO:   0,
+			K4_Label: keyLabel,
+		}
+		if err := ssmsync.StoreInMongoDB(newK4, keyLabel); err != nil {
+			logger.AppLog.Errorf("Failed to store new K4 key in MongoDB: %v", err)
+		}
 		return configmodels.K4{}, errors.New("error: internal key already exists in transit")
 	}
 
 	logger.AppLog.Infof("Creating transit key %s", internalKeyLabel)
-	createPath := fmt.Sprintf(transitKeyCreateFormat, internalKeyLabel)
+	createPath := fmt.Sprintf(getTransitKeyCreateFormat(), internalKeyLabel)
 	if _, err := client.Logical().Write(createPath, map[string]interface{}{"type": "aes256-gcm96"}); err != nil {
 		logger.AppLog.Errorf("Failed to create transit key %s: %v", internalKeyLabel, err)
 		return configmodels.K4{}, err
@@ -98,8 +108,8 @@ func createNewKeyVaultStore() error {
 		}
 	}
 
-	logger.AppLog.Infof("Syncing external keys from KV path: %s", externalKeysListPath)
-	secret, err := client.Logical().List(externalKeysListPath)
+	logger.AppLog.Infof("Syncing external keys from KV path: %s", getExternalKeysListPath())
+	secret, err := client.Logical().List(getExternalKeysListPath())
 	if err != nil {
 		logger.AppLog.Errorf("Failed to list external keys: %v", err)
 		return err

@@ -62,7 +62,7 @@ configuration:
     # k8s-mount-path: "kubernetes"   # Default: "kubernetes"
     cert-mount-path: "auth-dev-cert"        # Default: "cert"
 
-    key-kv-path: "kv-dev/k4keys"
+    key-kv-path: "kv-dev/data/k4keys"
     key-kv-metadata-path: "kv-dev/metadata/k4keys"
     transit-keys-list-path: "transit-dev/keys"
     transit-key-create-fmt: "transit-dev/keys/%s"

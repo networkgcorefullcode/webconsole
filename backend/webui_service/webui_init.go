@@ -27,6 +27,7 @@ import (
 	ssmsync "github.com/omec-project/webconsole/backend/ssm/ssm_sync"
 	"github.com/omec-project/webconsole/backend/ssm/ssmhsm"
 	"github.com/omec-project/webconsole/backend/ssm/vault"
+	vaultsync "github.com/omec-project/webconsole/backend/ssm/vault_sync"
 	"github.com/omec-project/webconsole/backend/webui_context"
 	"github.com/omec-project/webconsole/configapi"
 )
@@ -60,6 +61,8 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 		configapi.AddConfigV1Service(subconfig_router, nFConfigSyncMiddleware)
 		if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
 			ssmsync.AddSyncSSMService(subconfig_router)
+		} else if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable {
+			vaultsync.AddSyncVaultService(subconfig_router)
 		}
 	}
 	AddSwaggerUiService(subconfig_router)

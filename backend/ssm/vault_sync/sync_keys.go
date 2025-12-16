@@ -23,7 +23,7 @@ func syncOurKeys(action string) {
 	defer SyncOurKeysMutex.Unlock()
 
 	// Logic to synchronize our keys with SSM this process check if we have keys like as AES, DES or DES3
-	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, action)
+	// SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY, action)
 	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY_AES256, action)
 }
 
@@ -55,7 +55,7 @@ func SyncKeys(keyLabel, action string) {
 
 	// Case 1: Actions is SYNC_OUR_KEYS
 	if action == "SYNC_OUR_KEYS" {
-		logger.AppLog.Infof("No keys found in both MongoDB and SSM for label %s - creating new keys", keyLabel)
+		logger.AppLog.Info("Create the key that encript our subs datas")
 		go func() {
 			newK4, err := createNewKeyVaultTransit(keyLabel)
 			if err != nil {

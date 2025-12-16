@@ -78,16 +78,16 @@ func TestConstants(t *testing.T) {
 		t.Errorf("Expected internalKeyLabel to be 'aes256-gcm', got '%s'", internalKeyLabel)
 	}
 
-	if transitKeysListPath != "transit/keys" {
-		t.Errorf("Expected transitKeysListPath to be 'transit/keys', got '%s'", transitKeysListPath)
+	if getTransitKeysListPath() != "transit/keys" {
+		t.Errorf("Expected getTransitKeysListPath() to return 'transit/keys', got '%s'", getTransitKeysListPath())
 	}
 
-	if transitKeyCreateFormat != "transit/keys/%s" {
-		t.Errorf("Expected transitKeyCreateFormat to be 'transit/keys/%%s', got '%s'", transitKeyCreateFormat)
+	if getTransitKeyCreateFormat() != "transit/keys/%s" {
+		t.Errorf("Expected getTransitKeyCreateFormat() to return 'transit/keys/%%s', got '%s'", getTransitKeyCreateFormat())
 	}
 
-	if externalKeysListPath != "secret/metadata/k4keys" {
-		t.Errorf("Expected externalKeysListPath to be 'secret/metadata/k4keys', got '%s'", externalKeysListPath)
+	if getExternalKeysListPath() != "secret/metadata/k4keys" {
+		t.Errorf("Expected getExternalKeysListPath() to return 'secret/metadata/k4keys', got '%s'", getExternalKeysListPath())
 	}
 }
 

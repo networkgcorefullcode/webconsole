@@ -147,6 +147,8 @@ func HandleGetK4(c *gin.Context) {
 func HandlePostK4(c *gin.Context) {
 	setCorsHeader(c)
 
+	// TODO: if the k4 is plain, remove the k4 value for empty string ""
+
 	logger.WebUILog.Infoln("Post One K4 key Data")
 
 	var k4Data configmodels.K4
@@ -340,6 +342,7 @@ func HandleDeleteK4(c *gin.Context) {
 
 	k4Data := configmodels.K4{
 		K4_Label: keylabel,
+		K4_SNO:   byte(snoIdint),
 	}
 
 	// SSM

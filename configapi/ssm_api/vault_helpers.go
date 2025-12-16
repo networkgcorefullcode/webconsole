@@ -19,6 +19,16 @@ func getVaultKeyPath() string {
 	return "secret/data/k4keys"
 }
 
+// getVaultKeyPath returns the base KV path for keys from config with fallback
+func getVaultKeyMetadataPath() string {
+	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
+		if p := factory.WebUIConfig.Configuration.Vault.KeyKVMetadataPath; p != "" {
+			return p
+		}
+	}
+	return "secret/data/k4keys"
+}
+
 // StoreKeyVault stores a key in Vault's KV secrets engine
 func StoreKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
 	logger.AppLog.Debugf("Storing key in Vault - label: %s, id: %d, type: %s", keyLabel, keyID, keyType)
@@ -33,8 +43,8 @@ func StoreKeyVault(keyLabel, keyValue, keyType string, keyID int32) error {
 	secretPath := fmt.Sprintf("%s/%s-%d", getVaultKeyPath(), keyLabel, keyID)
 
 	// Prepare the data to store
-	data := map[string]interface{}{
-		"data": map[string]interface{}{
+	data := map[string]any{
+		"data": map[string]any{
 			"key_label": keyLabel,
 			"key_value": keyValue,
 			"key_type":  keyType,
@@ -112,7 +122,7 @@ func DeleteKeyVault(keyLabel string, keyID int32) error {
 }
 
 // GetKeyVault retrieves a key from Vault
-func GetKeyVault(keyLabel string, keyID int32) (map[string]interface{}, error) {
+func GetKeyVault(keyLabel string, keyID int32) (map[string]any, error) {
 	logger.AppLog.Debugf("Retrieving key from Vault - label: %s, id: %d", keyLabel, keyID)
 
 	client, err := apiclient.GetVaultClient()
@@ -137,7 +147,7 @@ func GetKeyVault(keyLabel string, keyID int32) (map[string]interface{}, error) {
 	}
 
 	// Extract the data field from the secret
-	data, ok := secret.Data["data"].(map[string]interface{})
+	data, ok := secret.Data["data"].(map[string]any)
 	if !ok {
 		logger.DbLog.Errorf("Invalid data format in Vault secret")
 		return nil, fmt.Errorf("invalid data format in Vault secret")
@@ -170,7 +180,7 @@ func ListKeysVault() ([]string, error) {
 	}
 
 	// Extract the list of keys
-	keys, ok := secret.Data["keys"].([]interface{})
+	keys, ok := secret.Data["keys"].([]any)
 	if !ok {
 		logger.DbLog.Errorf("Invalid keys format in Vault list response")
 		return nil, fmt.Errorf("invalid keys format in Vault list response")

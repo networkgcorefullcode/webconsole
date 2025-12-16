@@ -26,27 +26,34 @@ const (
 	internalKeyLabel = "aes256-gcm"
 )
 
-// Config-driven paths with defaults
-var (
-	transitKeysListPath    = "transit/keys"
-	transitKeyCreateFormat = "transit/keys/%s"
-	externalKeysListPath   = "secret/metadata/k4keys"
-)
-
-func init() {
-	// Initialize path variables from configuration if available
+// getTransitKeysListPath returns the transit keys list path from configuration
+func getTransitKeysListPath() string {
 	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
-		v := factory.WebUIConfig.Configuration.Vault
-		if v.TransitKeysListPath != "" {
-			transitKeysListPath = v.TransitKeysListPath
-		}
-		if v.TransitKeyCreateFmt != "" {
-			transitKeyCreateFormat = v.TransitKeyCreateFmt
-		}
-		if v.KeyKVMetadataPath != "" {
-			externalKeysListPath = v.KeyKVMetadataPath
+		if path := factory.WebUIConfig.Configuration.Vault.TransitKeysListPath; path != "" {
+			return path
 		}
 	}
+	return "transit/keys"
+}
+
+// getTransitKeyCreateFormat returns the transit key create format from configuration
+func getTransitKeyCreateFormat() string {
+	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
+		if format := factory.WebUIConfig.Configuration.Vault.TransitKeyCreateFmt; format != "" {
+			return format
+		}
+	}
+	return "transit/keys/%s"
+}
+
+// getExternalKeysListPath returns the external keys list path from configuration
+func getExternalKeysListPath() string {
+	if factory.WebUIConfig != nil && factory.WebUIConfig.Configuration != nil && factory.WebUIConfig.Configuration.Vault != nil {
+		if path := factory.WebUIConfig.Configuration.Vault.KeyKVMetadataPath; path != "" {
+			return path
+		}
+	}
+	return "secret/metadata/k4keys"
 }
 
 // SyncKeyListen listens for key synchronization messages from Vault
@@ -116,7 +123,7 @@ func HealthCheckVault() {
 	logger.AppLog.Info("Performing Vault health check")
 
 	// Ticker for periodic health checks (every 30 seconds)
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
 	for range ticker.C {

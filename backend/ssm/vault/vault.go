@@ -49,5 +49,7 @@ func (v *VaultSSM) HealthCheck() {
 // InitDefault initializes Vault with default configuration
 func (v *VaultSSM) InitDefault(ssmSyncMsg chan *ssm.SsmSyncMessage) error {
 	logger.AppLog.Infof("Initializing Vault with default configuration")
-	return nil
+
+	err := vaultsync.VaultSyncInitDefault(ssmSyncMsg)
+	return err
 }

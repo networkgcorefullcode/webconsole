@@ -153,6 +153,17 @@ func getMongoDBAllK4(k4listChan chan []configmodels.K4) {
 func StoreInMongoDB(k4 configmodels.K4, keyLabel string) error {
 	logger.AppLog.Infof("Storing new key SNO %d in MongoDB with label %s", k4.K4_SNO, keyLabel)
 
+	r, err := dbadapter.AuthDBClient.RestfulAPIGetOne(configapi.K4KeysColl, bson.M{"k4_sno": k4.K4_SNO, "key_label": keyLabel})
+
+	if err != nil {
+		logger.DbLog.Errorf("error: store K4 key in MongoDB %s", err)
+		return err
+	}
+	if len(r) > 0 {
+		logger.DbLog.Warn("K4 key in MongoDB exist")
+		return err
+	}
+
 	k4Data := bson.M{
 		"k4":           k4.K4,
 		"k4_sno":       k4.K4_SNO,
@@ -162,7 +173,7 @@ func StoreInMongoDB(k4 configmodels.K4, keyLabel string) error {
 		"time_updated": time.Now(),
 	}
 
-	_, err := dbadapter.AuthDBClient.RestfulAPIPutOne(configapi.K4KeysColl, bson.M{"k4_sno": k4.K4_SNO, "key_label": keyLabel}, k4Data)
+	_, err = dbadapter.AuthDBClient.RestfulAPIPutOne(configapi.K4KeysColl, bson.M{"k4_sno": k4.K4_SNO, "key_label": keyLabel}, k4Data)
 	if err != nil {
 		logger.DbLog.Errorf("Failed to store K4 key in MongoDB: %v", err)
 		return err
