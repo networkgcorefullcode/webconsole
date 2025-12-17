@@ -270,6 +270,7 @@ var syncSubscribersOnSliceDelete = func(slice *configmodels.Slice, prevSlice *co
 }
 
 var syncSubscribersOnSliceCreateOrUpdate = func(slice configmodels.Slice, prevSlice configmodels.Slice) (int, error) {
+	// TODO: implement optimization in this operation read the readme opt
 	rwLock.Lock()
 	defer rwLock.Unlock()
 	logger.WebUILog.Debugln("insert/update Slice:", slice)
