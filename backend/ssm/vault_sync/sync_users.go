@@ -185,7 +185,7 @@ func rewrapUserDataVaultTransit(subsData configmodels.SubsData, ueId string) {
 	}
 
 	// Get latest key version from Vault
-	latestVersion, err := getLatestTransitKeyVersion(client, internalKeyLabel)
+	latestVersion, err := getLatestTransitKeyVersion(client, internalKeyLabel, "opt1")
 	if err != nil {
 		logger.AppLog.Errorf("Failed to get latest key version for user %s: %v", ueId, err)
 		return
@@ -280,8 +280,8 @@ func extractVersionFromCiphertext(ciphertext string) (int, error) {
 }
 
 // getLatestTransitKeyVersion retrieves the latest version number of a transit key from Vault
-func getLatestTransitKeyVersion(client *api.Client, keyName string) (int, error) {
-	if LatestKeyVersion != 0 && keyName == internalKeyLabel {
+func getLatestTransitKeyVersion(client *api.Client, keyName, opt string) (int, error) {
+	if LatestKeyVersion != 0 && opt == "opt1" {
 		return LatestKeyVersion, nil
 	}
 	// Read key information from Vault

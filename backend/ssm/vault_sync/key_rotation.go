@@ -113,7 +113,7 @@ func checkKeyHealth(ssmSyncMsg chan *ssm.SsmSyncMessage) error {
 		return fmt.Errorf("get vault client: %w", err)
 	}
 
-	latest, err := getLatestTransitKeyVersion(client, "")
+	latest, err := getLatestTransitKeyVersion(client, internalKeyLabel, "opt2")
 
 	if err != nil {
 		return fmt.Errorf("error: %w", err)
