@@ -65,6 +65,11 @@ func InitConfigFactory(f string) error {
 		if WebUIConfig.Configuration.Mongodb.AuthKeysDbName == "" {
 			WebUIConfig.Configuration.Mongodb.AuthKeysDbName = "authentication"
 		}
+
+		if WebUIConfig.Configuration.Mongodb.ConcurrencyOps == 0 {
+			WebUIConfig.Configuration.Mongodb.ConcurrencyOps = 10
+		}
+
 		if WebUIConfig.Configuration.SSM == nil {
 			WebUIConfig.Configuration.SSM = &SSM{
 				SsmUri:       "0.0.0.0:9000",
@@ -113,6 +118,9 @@ func InitConfigFactory(f string) error {
 			}
 			if v.TransitKeyRotateFmt == "" {
 				v.TransitKeyRotateFmt = "transit/keys/%s/rotate"
+			}
+			if v.ConcurrencyOps == 0 {
+				v.ConcurrencyOps = 10
 			}
 		}
 

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/omec-project/openapi/models"
 	"github.com/omec-project/webconsole/backend/logger"
@@ -203,7 +204,7 @@ func removeSubscriberEntriesRelatedToDeviceGroups(mcc, mnc, imsi string) error {
 	return nil
 }
 
-func updateSubscriberInDeviceGroups(imsi string) (int, error) {
+func updateSubscriberInDeviceGroupsWhenDeleteSub(imsi string) (int, error) {
 	filterByImsi := bson.M{
 		"imsis": imsi,
 	}
@@ -226,9 +227,53 @@ func updateSubscriberInDeviceGroups(imsi string) (int, error) {
 		}
 		deviceGroup.Imsis = filteredImsis
 		prevDevGroup := getDeviceGroupByName(deviceGroup.DeviceGroupName)
-		if statusCode, err := handleDeviceGroupPost(&deviceGroup, prevDevGroup); err != nil {
-			logger.ConfigLog.Errorf("error posting device group %+v: %+v", deviceGroup, err)
-			return statusCode, err
+
+		filter := bson.M{"group-name": deviceGroup.DeviceGroupName}
+		devGroupDataBsonA := configmodels.ToBsonM(deviceGroup)
+		result, err := dbadapter.CommonDBClient.RestfulAPIPost(devGroupDataColl, filter, devGroupDataBsonA)
+		if err != nil {
+			logger.AppLog.Errorf("failed to post device group data for %s: %+v", deviceGroup.DeviceGroupName, err)
+			return http.StatusInternalServerError, err
+		}
+		logger.AppLog.Infof("DB operation result for device group %s: %v",
+			deviceGroup.DeviceGroupName, result)
+
+		rwLock.Lock()
+		defer rwLock.Unlock()
+		slice := findSliceByDeviceGroup(deviceGroup.DeviceGroupName)
+		if slice == nil {
+			logger.WebUILog.Infof("Device group %s not associated with any slice — skipping sync", deviceGroup.DeviceGroupName)
+			return http.StatusOK, nil
+		}
+		logger.WebUILog.Infof("Device group %s is part of slice %s", deviceGroup.DeviceGroupName, slice.SliceName)
+		if slice.SliceId.Sst == "" {
+			err := fmt.Errorf("missing SST in slice %s", slice.SliceName)
+			logger.AppLog.Errorln(err)
+			return http.StatusBadRequest, err
+		}
+
+		var errorOccured bool
+		wg := sync.WaitGroup{}
+
+		// delete IMSI's that are removed
+		dimsis := getDeletedImsisList(&deviceGroup, prevDevGroup)
+		for _, imsi := range dimsis {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := removeSubscriberEntriesRelatedToDeviceGroups(slice.SiteInfo.Plmn.Mcc, slice.SiteInfo.Plmn.Mnc, imsi)
+				if err != nil {
+					logger.ConfigLog.Errorln(err)
+					errorOccured = true
+				}
+			}()
+		}
+		wg.Wait()
+
+		if errorOccured {
+			return http.StatusInternalServerError, fmt.Errorf("syncDeviceGroupSubscriber failed, please check logs")
+		} else {
+			return http.StatusOK, nil
 		}
 	}
 

@@ -11,7 +11,11 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +29,68 @@ import (
 	"github.com/omec-project/webconsole/dbadapter"
 	"go.mongodb.org/mongo-driver/bson"
 )
+
+type subscribersPageResponse struct {
+	Items []configmodels.SubsListIE `json:"items"`
+	Page  int                       `json:"page"`
+	Limit int                       `json:"limit"`
+	Total int                       `json:"total"`
+	Pages int                       `json:"pages"`
+}
+
+func parsePositiveIntQuery(c *gin.Context, name string, defaultValue int) (int, error) {
+	valueStr := strings.TrimSpace(c.Query(name))
+	if valueStr == "" {
+		return defaultValue, nil
+	}
+	value, err := strconv.Atoi(valueStr)
+	if err != nil || value <= 0 {
+		return 0, fmt.Errorf("invalid %s", name)
+	}
+	return value, nil
+}
+
+func buildSubscribersFilter(c *gin.Context) bson.M {
+	plmnID := strings.TrimSpace(c.Query("plmnID"))
+	ueID := strings.TrimSpace(c.Query("ueId"))
+	if ueID == "" {
+		ueID = strings.TrimSpace(c.Query("imsi"))
+	}
+	q := strings.TrimSpace(c.Query("q"))
+
+	andFilters := make([]bson.M, 0, 3)
+	if plmnID != "" {
+		andFilters = append(andFilters, bson.M{"servingPlmnId": plmnID})
+	}
+	if ueID != "" {
+		andFilters = append(andFilters, bson.M{"ueId": ueID})
+	}
+	if q != "" {
+		andFilters = append(andFilters, bson.M{"ueId": bson.M{"$regex": regexp.QuoteMeta(q), "$options": "i"}})
+	}
+
+	switch len(andFilters) {
+	case 0:
+		return bson.M{}
+	case 1:
+		return andFilters[0]
+	default:
+		return bson.M{"$and": andFilters}
+	}
+}
+
+func shouldReturnSubscribersMeta(c *gin.Context) bool {
+	if strings.EqualFold(strings.TrimSpace(c.Query("withMeta")), "true") {
+		return true
+	}
+	// Any query implies the client expects a structured response.
+	for _, key := range []string{"page", "limit", "plmnID", "ueId", "imsi", "q"} {
+		if strings.TrimSpace(c.Query(key)) != "" {
+			return true
+		}
+	}
+	return false
+}
 
 var httpsClient *http.Client
 
@@ -268,8 +334,30 @@ func GetSubscribers(c *gin.Context) {
 
 	logger.WebUILog.Infoln("Get All Subscribers List")
 
+	useMeta := shouldReturnSubscribersMeta(c)
+	filter := buildSubscribersFilter(c)
+
+	page := 1
+	limit := 50
+	if useMeta {
+		var err error
+		page, err = parsePositiveIntQuery(c, "page", 1)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		limit, err = parsePositiveIntQuery(c, "limit", 50)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if limit > 500 {
+			limit = 500
+		}
+	}
+
 	subsList := make([]configmodels.SubsListIE, 0)
-	amDataList, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(AmDataColl, bson.M{})
+	amDataList, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany(AmDataColl, filter)
 	if errGetMany != nil {
 		logger.AppLog.Errorf("failed to retrieve subscribers list with error: %+v", errGetMany)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve subscribers list"})
@@ -277,6 +365,10 @@ func GetSubscribers(c *gin.Context) {
 	}
 	logger.AppLog.Infof("GetSubscribers: len: %d", len(amDataList))
 	if len(amDataList) == 0 {
+		if useMeta {
+			c.JSON(http.StatusOK, subscribersPageResponse{Items: subsList, Page: page, Limit: limit, Total: 0, Pages: 0})
+			return
+		}
 		c.JSON(http.StatusOK, subsList)
 		return
 	}
@@ -295,7 +387,54 @@ func GetSubscribers(c *gin.Context) {
 		subsList = append(subsList, subsData)
 	}
 
-	c.JSON(http.StatusOK, subsList)
+	sort.SliceStable(subsList, func(i, j int) bool {
+		return subsList[i].UeId < subsList[j].UeId
+	})
+
+	if !useMeta {
+		c.JSON(http.StatusOK, subsList)
+		return
+	}
+
+	total := len(subsList)
+	if total == 0 {
+		c.JSON(http.StatusOK, subscribersPageResponse{Items: []configmodels.SubsListIE{}, Page: page, Limit: limit, Total: 0, Pages: 0})
+		return
+	}
+
+	pages := int(math.Ceil(float64(total) / float64(limit)))
+	if pages < 1 {
+		pages = 1
+	}
+	if page > pages {
+		page = pages
+	}
+
+	start := (page - 1) * limit
+	if start < 0 {
+		start = 0
+	}
+	if start > total {
+		start = total
+	}
+	end := int(math.Min(float64(total), float64(start+limit)))
+	if end < start {
+		end = start
+	}
+
+	items := subsList[start:end]
+	// Ensure JSON "items" is never null.
+	if items == nil {
+		items = []configmodels.SubsListIE{}
+	}
+
+	c.JSON(http.StatusOK, subscribersPageResponse{
+		Items: items,
+		Page:  page,
+		Limit: limit,
+		Total: total,
+		Pages: pages,
+	})
 }
 
 // GetSubscriberByID godoc
@@ -694,7 +833,7 @@ func DeleteSubscriberByID(c *gin.Context) {
 	ueId := c.Param("ueId")
 
 	imsi := strings.TrimPrefix(ueId, "imsi-")
-	statusCode, err := updateSubscriberInDeviceGroups(imsi)
+	statusCode, err := updateSubscriberInDeviceGroupsWhenDeleteSub(imsi)
 	if err != nil {
 		logger.WebUILog.Errorf("Failed to update subscriber: %+v request ID: %s", err, requestID)
 		c.JSON(statusCode, gin.H{"error": "error deleting subscriber. Please check the log for details.", "request_id": requestID})

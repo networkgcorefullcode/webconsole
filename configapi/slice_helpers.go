@@ -4,6 +4,7 @@
 package configapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -20,6 +21,8 @@ import (
 	"github.com/omec-project/webconsole/configmodels"
 	"github.com/omec-project/webconsole/dbadapter"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/sync/errgroup"
 )
 
 var execCommand = exec.Command
@@ -270,10 +273,10 @@ var syncSubscribersOnSliceDelete = func(slice *configmodels.Slice, prevSlice *co
 }
 
 var syncSubscribersOnSliceCreateOrUpdate = func(slice configmodels.Slice, prevSlice configmodels.Slice) (int, error) {
-	// TODO: implement optimization in this operation read the readme opt
 	rwLock.Lock()
 	defer rwLock.Unlock()
 	logger.WebUILog.Debugln("insert/update Slice:", slice)
+	logger.AppLog.Debugf("syncSubscribersOnSliceCreateOrUpdate: slice=%s deviceGroups=%d", slice.SliceName, len(slice.SiteDeviceGroup))
 	if slice.SliceId.Sst == "" {
 		err := fmt.Errorf("missing SST in slice %s", slice.SliceName)
 		logger.AppLog.Error(err)
@@ -295,28 +298,108 @@ var syncSubscribersOnSliceCreateOrUpdate = func(slice configmodels.Slice, prevSl
 			logger.ConfigLog.Warnf("Device group not found: %s", dgName)
 			continue
 		}
+		logger.AppLog.Debugf("slice=%s dg=%s: inputIMSIs=%d", slice.SliceName, dgName, len(devGroupConfig.Imsis))
 
-		for _, imsi := range devGroupConfig.Imsis {
-			if subscriberAuthenticationDataGet("imsi-"+imsi) != nil {
-				err := updatePolicyAndProvisionedData(
-					imsi,
-					slice.SiteInfo.Plmn.Mcc,
-					slice.SiteInfo.Plmn.Mnc,
-					snssai,
-					devGroupConfig.IpDomainExpanded.Dnn,
-					devGroupConfig.IpDomainExpanded.UeDnnQos,
-				)
-				if err != nil {
-					logger.AppLog.Errorf("updatePolicyAndProvisionedData failed for IMSI %s: %+v", imsi, err)
-					return http.StatusInternalServerError, err
-				}
-			}
+		existing, err := filterExistingIMSIsFromAuthDB(devGroupConfig.Imsis)
+		if err != nil {
+			return http.StatusInternalServerError, err
 		}
+		if len(existing) == 0 {
+			logger.AppLog.Debugf("slice=%s dg=%s: no existing IMSIs after auth filter", slice.SliceName, dgName)
+			continue
+		}
+		logger.AppLog.Debugf("slice=%s dg=%s: existingIMSIs=%d", slice.SliceName, dgName, len(existing))
+
+		if err := updatePolicyAndProvisionedDataBatch(
+			existing,
+			slice.SiteInfo.Plmn.Mcc,
+			slice.SiteInfo.Plmn.Mnc,
+			snssai,
+			devGroupConfig.IpDomainExpanded.Dnn,
+			devGroupConfig.IpDomainExpanded.UeDnnQos,
+		); err != nil {
+			logger.AppLog.Errorf("batch update failed for device group %s: %v", dgName, err)
+			return http.StatusInternalServerError, err
+		}
+		logger.AppLog.Debugf("slice=%s dg=%s: batch updates complete", slice.SliceName, dgName)
 	}
 	if err := cleanupDeviceGroups(slice, prevSlice); err != nil {
 		return http.StatusInternalServerError, err
 	}
 	return http.StatusOK, nil
+}
+
+func filterExistingIMSIsFromAuthDB(imsis []string) ([]string, error) {
+	if len(imsis) == 0 {
+		return nil, nil
+	}
+	logger.AppLog.Debugf("filterExistingIMSIsFromAuthDB: inputIMSIs=%d", len(imsis))
+	if dbadapter.AuthDBClient == nil {
+		// Keep behavior safe in tests/edge cases: assume all exist.
+		logger.AppLog.Debugf("filterExistingIMSIsFromAuthDB: AuthDBClient is nil; returning input (safe default)")
+		return slices.Clone(imsis), nil
+	}
+
+	ueIds := make([]string, 0, len(imsis))
+	for _, imsi := range imsis {
+		if strings.TrimSpace(imsi) == "" {
+			continue
+		}
+		ueIds = append(ueIds, "imsi-"+imsi)
+	}
+	if len(ueIds) == 0 {
+		return nil, nil
+	}
+
+	filter := bson.M{"ueId": bson.M{"$in": ueIds}}
+	logger.AppLog.Debugf("filterExistingIMSIsFromAuthDB: querying authDB coll=%s with ueIds=%d", AuthSubsDataColl, len(ueIds))
+	docs, err := dbadapter.AuthDBClient.RestfulAPIGetMany(AuthSubsDataColl, filter)
+	if err != nil {
+		return nil, err
+	}
+	if len(docs) == 0 {
+		logger.AppLog.Debugf("filterExistingIMSIsFromAuthDB: authDB returned 0 docs")
+		return nil, nil
+	}
+	logger.AppLog.Debugf("filterExistingIMSIsFromAuthDB: authDB returned docs=%d", len(docs))
+
+	seen := make(map[string]struct{}, len(docs))
+	for _, doc := range docs {
+		ueId, _ := doc["ueId"].(string)
+		imsi := strings.TrimPrefix(ueId, "imsi-")
+		if imsi != "" {
+			seen[imsi] = struct{}{}
+		}
+	}
+
+	existing := make([]string, 0, len(seen))
+	for _, imsi := range imsis {
+		if _, ok := seen[imsi]; ok {
+			existing = append(existing, imsi)
+		}
+	}
+	logger.AppLog.Debugf("filterExistingIMSIsFromAuthDB: existingIMSIs=%d", len(existing))
+	return existing, nil
+}
+
+const imsiBatchSize = 1000
+
+func chunkStrings(in []string, size int) [][]string {
+	if len(in) == 0 {
+		return nil
+	}
+	if size <= 0 {
+		return [][]string{in}
+	}
+	chunks := make([][]string, 0, (len(in)+size-1)/size)
+	for start := 0; start < len(in); start += size {
+		end := start + size
+		if end > len(in) {
+			end = len(in)
+		}
+		chunks = append(chunks, in[start:end])
+	}
+	return chunks
 }
 
 func cleanupDeviceGroups(slice, prevSlice configmodels.Slice) error {
@@ -327,14 +410,28 @@ func cleanupDeviceGroups(slice, prevSlice configmodels.Slice) error {
 			logger.ConfigLog.Warnf("Device group not found during cleanup: %s", dgName)
 			continue
 		}
-
+		// Compute with concurrency
+		g, ctx := errgroup.WithContext(context.Background())
+		g.SetLimit(int(factory.WebUIConfig.Configuration.Mongodb.ConcurrencyOps))
 		for _, imsi := range devGroupConfig.Imsis {
-			mcc := prevSlice.SiteInfo.Plmn.Mcc
-			mnc := prevSlice.SiteInfo.Plmn.Mnc
-			if err := removeSubscriberEntriesRelatedToDeviceGroups(mcc, mnc, imsi); err != nil {
-				logger.ConfigLog.Errorf("Failed to remove subscriber for IMSI %s: %+v", imsi, err)
-				return err
-			}
+			g.Go(func() error {
+				// Verificar cancelación de contexto si hay error en otro lado
+				if ctx.Err() != nil {
+					return ctx.Err()
+				}
+
+				mcc := prevSlice.SiteInfo.Plmn.Mcc
+				mnc := prevSlice.SiteInfo.Plmn.Mnc
+				if err := removeSubscriberEntriesRelatedToDeviceGroups(mcc, mnc, imsi); err != nil {
+					logger.ConfigLog.Errorf("Failed to remove subscriber for IMSI %s: %+v", imsi, err)
+					return err
+				}
+				return nil
+			})
+		}
+		// Esperar a que todos terminen
+		if err := g.Wait(); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -360,6 +457,222 @@ func updatePolicyAndProvisionedData(imsi string, mcc string, mnc string, snssai 
 	err = updateSmfSelectionProvisionedData(snssai, mcc, mnc, dnn, imsi)
 	if err != nil {
 		return fmt.Errorf("updateSmfSelectionProvisionedData failed: %w", err)
+	}
+	return nil
+}
+
+func updatePolicyAndProvisionedDataBatch(imsis []string, mcc string, mnc string, snssai *models.Snssai, dnn string, qos *configmodels.DeviceGroupsIpDomainExpandedUeDnnQos) error {
+	logger.AppLog.Debugf("updatePolicyAndProvisionedDataBatch: imsis=%d batchSize=%d mcc=%s mnc=%s dnn=%s", len(imsis), imsiBatchSize, mcc, mnc, dnn)
+	return updatePoliciesAndProvisionedDatas(imsis, mcc, mnc, snssai, dnn, qos)
+}
+
+func updatePoliciesAndProvisionedDatas(imsis []string, mcc string, mnc string, snssai *models.Snssai, dnn string, qos *configmodels.DeviceGroupsIpDomainExpandedUeDnnQos) error {
+	if len(imsis) == 0 {
+		logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: no IMSIs; nothing to do")
+		return nil
+	}
+
+	chunks := chunkStrings(imsis, imsiBatchSize)
+	logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: totalIMSIs=%d chunks=%d batchSize=%d", len(imsis), len(chunks), imsiBatchSize)
+
+	for i, chunk := range chunks {
+		logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: processing chunk %d/%d (imsis=%d)", i+1, len(chunks), len(chunk))
+		err := updateAmPolicyDatas(chunk)
+		if err != nil {
+			return fmt.Errorf("updateAmPolicyData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+		}
+		err = updateSmPolicyDatas(snssai, dnn, chunk)
+		if err != nil {
+			return fmt.Errorf("updateSmPolicyData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+		}
+		err = updateAmProvisionedDatas(snssai, qos, mcc, mnc, chunk)
+		if err != nil {
+			return fmt.Errorf("updateAmProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+		}
+		err = updateSmProvisionedDatas(snssai, qos, mcc, mnc, dnn, chunk)
+		if err != nil {
+			return fmt.Errorf("updateSmProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+		}
+		err = updateSmfSelectionProvisionedDatas(snssai, mcc, mnc, dnn, chunk)
+		if err != nil {
+			return fmt.Errorf("updateSmfSelectionProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+		}
+		logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: chunk %d/%d complete", i+1, len(chunks))
+	}
+	logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: all chunks complete")
+	return nil
+}
+
+func cloneMap(src map[string]any) map[string]any {
+	if src == nil {
+		return map[string]any{}
+	}
+	dst := make(map[string]any, len(src)+2)
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+func updateAmPolicyDatas(imsis []string) error {
+	if len(imsis) == 0 {
+		return nil
+	}
+	logger.AppLog.Debugf("updateAmPolicyDatas: coll=%s imsis=%d", AmPolicyDataColl, len(imsis))
+	base := models.AmPolicyData{SubscCats: []string{"aether"}}
+	baseDoc := configmodels.ToBsonM(base)
+
+	filters := make([]primitive.M, 0, len(imsis))
+	docs := make([]map[string]any, 0, len(imsis))
+	for _, imsi := range imsis {
+		ueId := "imsi-" + imsi
+		doc := cloneMap(baseDoc)
+		doc["ueId"] = ueId
+		filters = append(filters, primitive.M{"ueId": ueId})
+		docs = append(docs, doc)
+	}
+
+	logger.AppLog.Debugf("updateAmPolicyDatas: PutMany coll=%s docs=%d", AmPolicyDataColl, len(docs))
+	if err := dbadapter.CommonDBClient.RestfulAPIPutMany(AmPolicyDataColl, filters, docs); err != nil {
+		logger.AppLog.Errorf("failed to batch update AM Policy Data for %d IMSIs: %+v", len(imsis), err)
+		return err
+	}
+	return nil
+}
+
+func updateSmPolicyDatas(snssai *models.Snssai, dnn string, imsis []string) error {
+	if len(imsis) == 0 {
+		return nil
+	}
+	logger.AppLog.Debugf("updateSmPolicyDatas: coll=%s imsis=%d dnn=%s", SmPolicyDataColl, len(imsis), dnn)
+	var smPolicyData models.SmPolicyData
+	var smPolicySnssaiData models.SmPolicySnssaiData
+	dnnData := map[string]models.SmPolicyDnnData{dnn: {Dnn: dnn}}
+	smPolicySnssaiData.Snssai = snssai
+	smPolicySnssaiData.SmPolicyDnnData = dnnData
+	smPolicyData.SmPolicySnssaiData = make(map[string]models.SmPolicySnssaiData)
+	smPolicyData.SmPolicySnssaiData[SnssaiModelsToHex(*snssai)] = smPolicySnssaiData
+	baseDoc := configmodels.ToBsonM(smPolicyData)
+
+	filters := make([]primitive.M, 0, len(imsis))
+	docs := make([]map[string]any, 0, len(imsis))
+	for _, imsi := range imsis {
+		ueId := "imsi-" + imsi
+		doc := cloneMap(baseDoc)
+		doc["ueId"] = ueId
+		filters = append(filters, primitive.M{"ueId": ueId})
+		docs = append(docs, doc)
+	}
+
+	logger.AppLog.Debugf("updateSmPolicyDatas: PutMany coll=%s docs=%d", SmPolicyDataColl, len(docs))
+	if err := dbadapter.CommonDBClient.RestfulAPIPutMany(SmPolicyDataColl, filters, docs); err != nil {
+		logger.AppLog.Errorf("failed to batch update SM Policy Data for %d IMSIs: %+v", len(imsis), err)
+		return err
+	}
+	return nil
+}
+
+func updateAmProvisionedDatas(snssai *models.Snssai, qos *configmodels.DeviceGroupsIpDomainExpandedUeDnnQos, mcc string, mnc string, imsis []string) error {
+	if len(imsis) == 0 {
+		return nil
+	}
+	logger.AppLog.Debugf("updateAmProvisionedDatas: coll=%s imsis=%d mcc=%s mnc=%s", AmDataColl, len(imsis), mcc, mnc)
+	plmn := mcc + mnc
+	amData := models.AccessAndMobilitySubscriptionData{
+		Gpsis:            []string{"msisdn-0900000000"},
+		Nssai:            &models.Nssai{DefaultSingleNssais: []models.Snssai{*snssai}, SingleNssais: []models.Snssai{*snssai}},
+		SubscribedUeAmbr: &models.AmbrRm{Downlink: ConvertToString(uint64(qos.DnnMbrDownlink)), Uplink: ConvertToString(uint64(qos.DnnMbrUplink))},
+	}
+	baseDoc := configmodels.ToBsonM(amData)
+
+	filters := make([]primitive.M, 0, len(imsis))
+	docs := make([]map[string]any, 0, len(imsis))
+	for _, imsi := range imsis {
+		ueId := "imsi-" + imsi
+		doc := cloneMap(baseDoc)
+		doc["ueId"] = ueId
+		doc["servingPlmnId"] = plmn
+		filters = append(filters, primitive.M{
+			"ueId": ueId,
+			"$or":  []bson.M{{"servingPlmnId": plmn}, {"servingPlmnId": bson.M{"$exists": false}}},
+		})
+		docs = append(docs, doc)
+	}
+
+	logger.AppLog.Debugf("updateAmProvisionedDatas: PutMany coll=%s docs=%d", AmDataColl, len(docs))
+	if err := dbadapter.CommonDBClient.RestfulAPIPutMany(AmDataColl, filters, docs); err != nil {
+		logger.AppLog.Errorf("failed to batch update AM provisioned Data for %d IMSIs: %+v", len(imsis), err)
+		return err
+	}
+	return nil
+}
+
+func updateSmProvisionedDatas(snssai *models.Snssai, qos *configmodels.DeviceGroupsIpDomainExpandedUeDnnQos, mcc string, mnc string, dnn string, imsis []string) error {
+	if len(imsis) == 0 {
+		return nil
+	}
+	logger.AppLog.Debugf("updateSmProvisionedDatas: coll=%s imsis=%d mcc=%s mnc=%s dnn=%s", SmDataColl, len(imsis), mcc, mnc, dnn)
+	plmn := mcc + mnc
+	smData := models.SessionManagementSubscriptionData{
+		SingleNssai: snssai,
+		DnnConfigurations: map[string]models.DnnConfiguration{
+			dnn: {
+				PduSessionTypes: &models.PduSessionTypes{DefaultSessionType: models.PduSessionType_IPV4, AllowedSessionTypes: []models.PduSessionType{models.PduSessionType_IPV4}},
+				SscModes:        &models.SscModes{DefaultSscMode: models.SscMode__1, AllowedSscModes: []models.SscMode{"SSC_MODE_2", "SSC_MODE_3"}},
+				SessionAmbr:     &models.Ambr{Downlink: ConvertToString(uint64(qos.DnnMbrDownlink)), Uplink: ConvertToString(uint64(qos.DnnMbrUplink))},
+				Var5gQosProfile: &models.SubscribedDefaultQos{Var5qi: 9, Arp: &models.Arp{PriorityLevel: 8}, PriorityLevel: 8},
+			},
+		},
+	}
+	baseDoc := configmodels.ToBsonM(smData)
+
+	filters := make([]primitive.M, 0, len(imsis))
+	docs := make([]map[string]any, 0, len(imsis))
+	for _, imsi := range imsis {
+		ueId := "imsi-" + imsi
+		doc := cloneMap(baseDoc)
+		doc["ueId"] = ueId
+		doc["servingPlmnId"] = plmn
+		filters = append(filters, primitive.M{"ueId": ueId, "servingPlmnId": plmn})
+		docs = append(docs, doc)
+	}
+
+	logger.AppLog.Debugf("updateSmProvisionedDatas: PutMany coll=%s docs=%d", SmDataColl, len(docs))
+	if err := dbadapter.CommonDBClient.RestfulAPIPutMany(SmDataColl, filters, docs); err != nil {
+		logger.AppLog.Errorf("failed to batch update SM provisioned Data for %d IMSIs: %+v", len(imsis), err)
+		return err
+	}
+	return nil
+}
+
+func updateSmfSelectionProvisionedDatas(snssai *models.Snssai, mcc string, mnc string, dnn string, imsis []string) error {
+	if len(imsis) == 0 {
+		return nil
+	}
+	logger.AppLog.Debugf("updateSmfSelectionProvisionedDatas: coll=%s imsis=%d mcc=%s mnc=%s dnn=%s", SmfSelDataColl, len(imsis), mcc, mnc, dnn)
+	plmn := mcc + mnc
+	smfSelData := models.SmfSelectionSubscriptionData{
+		SubscribedSnssaiInfos: map[string]models.SnssaiInfo{
+			SnssaiModelsToHex(*snssai): {DnnInfos: []models.DnnInfo{{Dnn: dnn}}},
+		},
+	}
+	baseDoc := configmodels.ToBsonM(smfSelData)
+
+	filters := make([]primitive.M, 0, len(imsis))
+	docs := make([]map[string]any, 0, len(imsis))
+	for _, imsi := range imsis {
+		ueId := "imsi-" + imsi
+		doc := cloneMap(baseDoc)
+		doc["ueId"] = ueId
+		doc["servingPlmnId"] = plmn
+		filters = append(filters, primitive.M{"ueId": ueId, "servingPlmnId": plmn})
+		docs = append(docs, doc)
+	}
+
+	logger.AppLog.Debugf("updateSmfSelectionProvisionedDatas: PutMany coll=%s docs=%d", SmfSelDataColl, len(docs))
+	if err := dbadapter.CommonDBClient.RestfulAPIPutMany(SmfSelDataColl, filters, docs); err != nil {
+		logger.AppLog.Errorf("failed to batch update SMF selection provisioned data for %d IMSIs: %+v", len(imsis), err)
+		return err
 	}
 	return nil
 }

@@ -10,35 +10,61 @@ export class SubscriberListManager extends BaseManager {
         super('/subscriber', 'subscribers-list-content', SUBSCRIBER_API_BASE);
         this.type = 'subscriber';
         this.displayName = 'Subscriber';
+
+        // List view state
+        this.listState = {
+            page: 1,
+            limit: 20,
+            plmnID: '',
+            q: '',
+            ueId: ''
+        };
+        this.listMeta = {
+            page: 1,
+            limit: 20,
+            total: 0,
+            pages: 0
+        };
     }
 
     async loadData() {
         try {
             this.showLoading();
-            
-            // Get list of subscribers (returns SubsListIE array)
-            const response = await fetch(`${this.apiBase}${this.apiEndpoint}`);
+
+            const params = new URLSearchParams();
+            params.set('page', String(this.listState.page));
+            params.set('limit', String(this.listState.limit));
+            if (this.listState.plmnID) params.set('plmnID', this.listState.plmnID);
+            if (this.listState.q) params.set('q', this.listState.q);
+            if (this.listState.ueId) params.set('ueId', this.listState.ueId);
+
+            const url = `${this.apiBase}${this.apiEndpoint}?${params.toString()}`;
+
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
-            const subscribersList = await response.json();
-            console.log('Subscribers List:', subscribersList);
-            
-            // Check if we got valid data
-            if (!Array.isArray(subscribersList)) {
-                console.error('Expected array of subscribers, got:', subscribersList);
-                this.showError('Invalid response format from server');
-                return;
+
+            const body = await response.json();
+            // Backend can return either legacy array or paginated object.
+            const subscribersList = Array.isArray(body) ? body : (body && Array.isArray(body.items) ? body.items : []);
+
+            if (body && !Array.isArray(body) && typeof body === 'object') {
+                this.listMeta = {
+                    page: Number(body.page) || this.listState.page,
+                    limit: Number(body.limit) || this.listState.limit,
+                    total: Number(body.total) || 0,
+                    pages: Number(body.pages) || 0
+                };
+            } else {
+                this.listMeta = {
+                    page: 1,
+                    limit: subscribersList.length,
+                    total: subscribersList.length,
+                    pages: 1
+                };
             }
-            
-            // If no subscribers, show empty state
-            if (subscribersList.length === 0) {
-                this.data = [];
-                this.render([]);
-                return;
-            }
-            
+
             this.data = subscribersList;
             this.render(subscribersList);
             
@@ -48,15 +74,148 @@ export class SubscriberListManager extends BaseManager {
         }
     }
 
+    setListState(partial) {
+        this.listState = {
+            ...this.listState,
+            ...partial
+        };
+    }
+
+    goToPage(page) {
+        const newPage = Math.max(1, parseInt(page, 10) || 1);
+        this.setListState({ page: newPage });
+        return this.loadData();
+    }
+
+    applyListControls() {
+        const qEl = document.getElementById('subscriber-list-q');
+        const ueIdEl = document.getElementById('subscriber-list-ueid');
+        const plmnEl = document.getElementById('subscriber-list-plmn');
+        const limitEl = document.getElementById('subscriber-list-limit');
+
+        const q = qEl ? qEl.value.trim() : '';
+        const ueId = ueIdEl ? ueIdEl.value.trim() : '';
+        const plmnID = plmnEl ? plmnEl.value.trim() : '';
+        const limit = limitEl ? parseInt(limitEl.value, 10) : this.listState.limit;
+
+        this.setListState({
+            q,
+            ueId,
+            plmnID,
+            limit: Number.isFinite(limit) && limit > 0 ? limit : this.listState.limit,
+            page: 1
+        });
+        return this.loadData();
+    }
+
+    clearListControls() {
+        this.setListState({ page: 1, limit: this.listState.limit, plmnID: '', q: '', ueId: '' });
+        return this.loadData();
+    }
+
+    renderListControls() {
+        const qValue = this.listState.q || '';
+        const ueIdValue = this.listState.ueId || '';
+        const plmnValue = this.listState.plmnID || '';
+        const limitValue = String(this.listState.limit);
+        const page = this.listMeta.page || this.listState.page;
+        const pages = this.listMeta.pages || 0;
+        const total = this.listMeta.total || 0;
+
+        const prevDisabled = page <= 1 ? 'disabled' : '';
+        const nextDisabled = pages > 0 && page >= pages ? 'disabled' : '';
+
+        return `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">Search (contains)</label>
+                            <input type="text" class="form-control" id="subscriber-list-q" placeholder="e.g., 20893" value="${qValue}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">IMSI / UE ID (exact)</label>
+                            <input type="text" class="form-control" id="subscriber-list-ueid" placeholder="e.g., imsi-208930100007487" value="${ueIdValue}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">PLMN ID</label>
+                            <input type="text" class="form-control" id="subscriber-list-plmn" placeholder="5 or 6 digits" value="${plmnValue}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Page size</label>
+                            <select class="form-select" id="subscriber-list-limit">
+                                <option value="10" ${limitValue === '10' ? 'selected' : ''}>10</option>
+                                <option value="20" ${limitValue === '20' ? 'selected' : ''}>20</option>
+                                <option value="50" ${limitValue === '50' ? 'selected' : ''}>50</option>
+                                <option value="100" ${limitValue === '100' ? 'selected' : ''}>100</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-primary" id="subscriber-list-apply">Apply</button>
+                        <button class="btn btn-outline-secondary" id="subscriber-list-clear">Clear</button>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">Total: ${total}${pages ? ` | Page ${page} of ${pages}` : ''}</div>
+                        <div class="btn-group" role="group" aria-label="Pagination">
+                            <button class="btn btn-outline-secondary" id="subscriber-list-prev" ${prevDisabled}>
+                                <i class="fas fa-chevron-left"></i> Prev
+                            </button>
+                            <button class="btn btn-outline-secondary" id="subscriber-list-next" ${nextDisabled}>
+                                Next <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    bindListControls() {
+        const applyBtn = document.getElementById('subscriber-list-apply');
+        const clearBtn = document.getElementById('subscriber-list-clear');
+        const prevBtn = document.getElementById('subscriber-list-prev');
+        const nextBtn = document.getElementById('subscriber-list-next');
+        const qEl = document.getElementById('subscriber-list-q');
+        const ueIdEl = document.getElementById('subscriber-list-ueid');
+
+        if (applyBtn) applyBtn.addEventListener('click', () => this.applyListControls());
+        if (clearBtn) clearBtn.addEventListener('click', () => this.clearListControls());
+        if (prevBtn) prevBtn.addEventListener('click', () => this.goToPage((this.listMeta.page || this.listState.page) - 1));
+        if (nextBtn) nextBtn.addEventListener('click', () => this.goToPage((this.listMeta.page || this.listState.page) + 1));
+
+        const onEnter = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.applyListControls();
+            }
+        };
+        if (qEl) qEl.addEventListener('keydown', onEnter);
+        if (ueIdEl) ueIdEl.addEventListener('keydown', onEnter);
+    }
+
     render(subscribers) {
         const container = document.getElementById(this.containerId);
+		if (!container) {
+			return;
+		}
+
+		let html = this.renderListControls();
         
         if (!subscribers || subscribers.length === 0) {
-            this.showEmpty('No subscribers found');
+			html += `
+				<div class="alert alert-info">
+					<i class="fas fa-info-circle me-2"></i>
+					No subscribers found
+				</div>
+			`;
+			container.innerHTML = html;
+			this.bindListControls();
             return;
         }
-        
-        let html = '<div class="table-responsive"><table class="table table-striped">';
+
+        html += '<div class="table-responsive"><table class="table table-striped">';
         html += '<thead><tr><th>UE ID (IMSI)</th><th>PLMN ID</th><th>Actions</th></tr></thead><tbody>';
         
         subscribers.forEach(subscriber => {
@@ -81,8 +240,10 @@ export class SubscriberListManager extends BaseManager {
             `;
         });
         
+
         html += '</tbody></table></div>';
         container.innerHTML = html;
+		this.bindListControls();
     }
 
     getFormFields(isEdit = false) {

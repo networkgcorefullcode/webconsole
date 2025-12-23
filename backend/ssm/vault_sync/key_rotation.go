@@ -108,6 +108,18 @@ func checkKeyHealth(ssmSyncMsg chan *ssm.SsmSyncMessage) error {
 		}
 	}
 
+	client, err := apiclient.GetVaultClient()
+	if err != nil {
+		return fmt.Errorf("get vault client: %w", err)
+	}
+
+	latest, err := getLatestTransitKeyVersion(client, "")
+
+	if err != nil {
+		return fmt.Errorf("error: %w", err)
+	}
+
+	LatestKeyVersion = latest
 	return nil
 }
 
@@ -140,5 +152,6 @@ func rotateInternalTransitKey(keyLabel string, ssmSyncMsg chan *ssm.SsmSyncMessa
 	if _, err := client.Logical().Write(rotatePath, nil); err != nil {
 		return fmt.Errorf("rotate transit key %s: %w", keyLabel, err)
 	}
+	LatestKeyVersion++
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 
 // MockDBClient is a mock implementation of the database client for testing
 type MockDBClient struct {
+	Docs                   []map[string]any
 	GetManyFn              func(collName string, filter bson.M) ([]map[string]any, error)
 	GetOneFn               func(collName string, filter bson.M) (map[string]any, error)
 	PostFn                 func(collName string, filter bson.M, postData map[string]any) (bool, error)

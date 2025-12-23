@@ -247,6 +247,37 @@ func GetSubscriberData(ueId string) (*configmodels.SubsData, error) {
 	return &subsData, nil
 }
 
+func GetAllSubscriberData() ([]configmodels.SubsData, error) {
+	filter := bson.M{}
+
+	authSubsDataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetMany(configapi.AuthSubsDataColl, filter)
+	if err != nil {
+		logger.AppLog.Errorf("failed to fetch authentication subscription data from DB: %+v", err)
+		return nil, fmt.Errorf("failed to fetch authentication subscription data: %w", err)
+	} // If all fetched data is empty, return error
+
+	var subsDatas []configmodels.SubsData
+	if authSubsDataInterface == nil {
+		logger.WebUILog.Error("subscribers not found")
+		return nil, fmt.Errorf("subscribers not found")
+	} else {
+		for _, authdata := range authSubsDataInterface {
+			var authSubsData models.AuthenticationSubscription
+			err := json.Unmarshal(configmodels.MapToByte(authdata), &authSubsData)
+			if err != nil {
+				logger.WebUILog.Errorf("error unmarshalling authentication subscription data: %+v", err)
+				return nil, fmt.Errorf("failed to unmarshal authentication subscription data: %w", err)
+			}
+			subData := configmodels.SubsData{
+				UeId:                       authdata["ueId"].(string),
+				AuthenticationSubscription: authSubsData}
+			subsDatas = append(subsDatas, subData)
+		}
+	}
+
+	return subsDatas, nil
+}
+
 func DeleteKeyMongoDB(k4 configmodels.K4) error {
 	logger.AppLog.Infof("Deleting key SNO %d with label %s from MongoDB", k4.K4_SNO, k4.K4_Label)
 
