@@ -12,6 +12,7 @@ import (
 	"context"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"strconv"
 	"time"
 
@@ -85,12 +86,20 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 	// Init a gorutine to sincronize SSM functionality
 	ssmSyncMsg := make(chan *ssm.SsmSyncMessage, 10)
 	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable && factory.WebUIConfig.Configuration.SSM.AllowSsm {
-		syncSSM(ssmhsm.Ssmhsm, ssmSyncMsg)
+		err := syncSSM(ssmhsm.Ssmhsm, ssmSyncMsg)
+		if err != nil {
+			logger.AppLog.Errorf("SSM synchronization setup failed: %v", err)
+			os.Exit(1)
+		}
 	}
 
 	if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable && factory.WebUIConfig.Configuration.Vault.AllowVault {
 		vaultsync.SetSyncChanHandle(ssmSyncMsg)
-		syncSSM(vault.Vault, ssmSyncMsg)
+		err := syncSSM(vault.Vault, ssmSyncMsg)
+		if err != nil {
+			logger.AppLog.Errorf("Vault synchronization setup failed: %v", err)
+			os.Exit(1)
+		}
 	}
 
 	go func() {
