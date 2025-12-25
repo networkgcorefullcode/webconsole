@@ -475,32 +475,40 @@ func updatePoliciesAndProvisionedDatas(imsis []string, mcc string, mnc string, s
 	chunks := chunkStrings(imsis, imsiBatchSize)
 	logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: totalIMSIs=%d chunks=%d batchSize=%d", len(imsis), len(chunks), imsiBatchSize)
 
+	g := errgroup.Group{}
+	g.SetLimit(factory.WebUIConfig.Configuration.Mongodb.ConcurrencyOps)
+
 	for i, chunk := range chunks {
-		logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: processing chunk %d/%d (imsis=%d)", i+1, len(chunks), len(chunk))
-		err := updateAmPolicyDatas(chunk)
-		if err != nil {
-			return fmt.Errorf("updateAmPolicyData failed (chunk %d/%d): %w", i+1, len(chunks), err)
-		}
-		err = updateSmPolicyDatas(snssai, dnn, chunk)
-		if err != nil {
-			return fmt.Errorf("updateSmPolicyData failed (chunk %d/%d): %w", i+1, len(chunks), err)
-		}
-		err = updateAmProvisionedDatas(snssai, qos, mcc, mnc, chunk)
-		if err != nil {
-			return fmt.Errorf("updateAmProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
-		}
-		err = updateSmProvisionedDatas(snssai, qos, mcc, mnc, dnn, chunk)
-		if err != nil {
-			return fmt.Errorf("updateSmProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
-		}
-		err = updateSmfSelectionProvisionedDatas(snssai, mcc, mnc, dnn, chunk)
-		if err != nil {
-			return fmt.Errorf("updateSmfSelectionProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
-		}
-		logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: chunk %d/%d complete", i+1, len(chunks))
+		g.Go(func() error {
+			logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: processing chunk %d/%d (imsis=%d)", i+1, len(chunks), len(chunk))
+			err := updateAmPolicyDatas(chunk)
+			if err != nil {
+				return fmt.Errorf("updateAmPolicyData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+			}
+			err = updateSmPolicyDatas(snssai, dnn, chunk)
+			if err != nil {
+				return fmt.Errorf("updateSmPolicyData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+			}
+			err = updateAmProvisionedDatas(snssai, qos, mcc, mnc, chunk)
+			if err != nil {
+				return fmt.Errorf("updateAmProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+			}
+			err = updateSmProvisionedDatas(snssai, qos, mcc, mnc, dnn, chunk)
+			if err != nil {
+				return fmt.Errorf("updateSmProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+			}
+			err = updateSmfSelectionProvisionedDatas(snssai, mcc, mnc, dnn, chunk)
+			if err != nil {
+				return fmt.Errorf("updateSmfSelectionProvisionedData failed (chunk %d/%d): %w", i+1, len(chunks), err)
+			}
+			logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: chunk %d/%d complete", i+1, len(chunks))
+
+			logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: all chunks complete")
+			return nil
+		})
 	}
-	logger.AppLog.Debugf("updatePoliciesAndProvisionedDatas: all chunks complete")
-	return nil
+
+	return g.Wait()
 }
 
 func cloneMap(src map[string]any) map[string]any {

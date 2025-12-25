@@ -141,6 +141,20 @@ func InitConfigFactory(f string) error {
 		return fmt.Errorf("[Configuration] SSM and Vault cannot be both enabled")
 	}
 
+	mongoConfig := WebUIConfig.Configuration.Mongodb
+	if mongoConfig.DefaultConns == 0 {
+		mongoConfig.DefaultConns = 500
+	}
+	if mongoConfig.AuthConns == 0 {
+		mongoConfig.AuthConns = 100
+	}
+	if mongoConfig.WebuiDbConns == 0 {
+		mongoConfig.WebuiDbConns = 100
+	}
+	if mongoConfig.ConcurrencyOps == 0 {
+		mongoConfig.ConcurrencyOps = 30
+	}
+
 	return nil
 }
 

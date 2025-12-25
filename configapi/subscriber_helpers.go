@@ -34,8 +34,6 @@ func subscriberAuthenticationDataGet(imsi string) (authSubData *models.Authentic
 }
 
 func SubscriberAuthenticationDataCreate(imsi string, authSubData *models.AuthenticationSubscription) error {
-	rwLock.Lock()
-	defer rwLock.Unlock()
 	filter := bson.M{"ueId": imsi}
 	logger.WebUILog.Infof("%+v", authSubData)
 	authDataBsonA := configmodels.ToBsonM(authSubData)
@@ -63,8 +61,6 @@ func SubscriberAuthenticationDataCreate(imsi string, authSubData *models.Authent
 }
 
 func SubscriberAuthenticationDataUpdate(imsi string, authSubData *models.AuthenticationSubscription) error {
-	rwLock.Lock()
-	defer rwLock.Unlock()
 	filter := bson.M{"ueId": imsi}
 	authDataBsonA := configmodels.ToBsonM(authSubData)
 	authDataBsonA["ueId"] = imsi
@@ -98,8 +94,6 @@ func SubscriberAuthenticationDataUpdate(imsi string, authSubData *models.Authent
 }
 
 func subscriberAuthenticationDataDelete(imsi string) error {
-	rwLock.Lock()
-	defer rwLock.Unlock()
 	logger.WebUILog.Debugf("delete authentication subscription from authenticationSubscription collection: %s", imsi)
 	filter := bson.M{"ueId": imsi}
 
@@ -238,8 +232,6 @@ func updateSubscriberInDeviceGroupsWhenDeleteSub(imsi string) (int, error) {
 		logger.AppLog.Infof("DB operation result for device group %s: %v",
 			deviceGroup.DeviceGroupName, result)
 
-		rwLock.Lock()
-		defer rwLock.Unlock()
 		slice := findSliceByDeviceGroup(deviceGroup.DeviceGroupName)
 		if slice == nil {
 			logger.WebUILog.Infof("Device group %s not associated with any slice — skipping sync", deviceGroup.DeviceGroupName)

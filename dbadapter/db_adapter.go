@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type DBInterface interface {
@@ -84,22 +85,44 @@ type PatchOperation struct {
 	Path  string `json:"path"`
 }
 
-func setDBClient(url, dbname string) (DBInterface, error) {
+type OptConfig struct {
+	MaxPoolSize uint64
+	MinPoolSize uint64
+}
+
+func setDBClient(url, dbname string, optConfig OptConfig) (DBInterface, error) {
 	mClient, errConnect := mongoapi.NewMongoClient(url, dbname)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	opts := options.Client().ApplyURI(url).
+		SetMaxPoolSize(optConfig.MaxPoolSize).
+		SetMinPoolSize(optConfig.MinPoolSize)
+
+	client, err := mongo.Connect(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	err = mClient.Client.Disconnect(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	mClient.Client = client
 	if errConnect != nil {
 		return nil, errConnect
 	}
+
 	return &MongoDBClient{*mClient}, nil
 }
 
-func ConnectMongo(url string, dbname string, client *DBInterface) {
+func ConnectMongo(url string, dbname string, client *DBInterface, opts OptConfig) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer func() { ticker.Stop() }()
 	timer := time.After(180 * time.Second)
 ConnectMongo:
 	for {
 		var err error
-		*client, err = setDBClient(url, dbname)
+		*client, err = setDBClient(url, dbname, opts)
 		if err == nil {
 			break ConnectMongo
 		}
@@ -157,7 +180,10 @@ func InitMongoDB() error {
 	logger.InitLog.Infow("MongoDB configuration loaded",
 		"enableAuth", factory.WebUIConfig.Configuration.EnableAuthentication)
 
-	ConnectMongo(mongodb.Url, mongodb.Name, &CommonDBClient)
+	ConnectMongo(mongodb.Url, mongodb.Name, &CommonDBClient, OptConfig{
+		MaxPoolSize: uint64(mongodb.DefaultConns),
+		MinPoolSize: 10,
+	})
 	logger.InitLog.Infow("Connected to common database",
 		"url", mongodb.Url,
 		"dbName", mongodb.Name)
@@ -167,7 +193,10 @@ func InitMongoDB() error {
 		return err
 	}
 
-	ConnectMongo(mongodb.AuthUrl, mongodb.AuthKeysDbName, &AuthDBClient)
+	ConnectMongo(mongodb.AuthUrl, mongodb.AuthKeysDbName, &AuthDBClient, OptConfig{
+		MaxPoolSize: uint64(mongodb.AuthConns),
+		MinPoolSize: 10,
+	})
 	logger.InitLog.Infow("Connected to auth database",
 		"url", mongodb.AuthUrl,
 		"dbName", mongodb.AuthKeysDbName)
@@ -182,7 +211,10 @@ func InitMongoDB() error {
 	}
 
 	if factory.WebUIConfig.Configuration.EnableAuthentication {
-		ConnectMongo(mongodb.WebuiDBUrl, mongodb.WebuiDBName, &WebuiDBClient)
+		ConnectMongo(mongodb.WebuiDBUrl, mongodb.WebuiDBName, &WebuiDBClient, OptConfig{
+			MaxPoolSize: uint64(mongodb.WebuiDbConns),
+			MinPoolSize: 10,
+		})
 		if resp, err := WebuiDBClient.CreateIndex(configmodels.UserAccountDataColl, "username"); !resp || err != nil {
 			logger.InitLog.Errorf("error initializing webuiDB %v", err)
 			return err

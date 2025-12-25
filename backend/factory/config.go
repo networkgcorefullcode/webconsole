@@ -114,12 +114,15 @@ type SsmSync struct {
 type Mongodb struct {
 	Name           string `yaml:"name,omitempty"`
 	Url            string `yaml:"url,omitempty"`
+	DefaultConns   int    `yaml:"defaultConns,omitempty"`
 	AuthKeysDbName string `yaml:"authKeysDbName"`
 	AuthUrl        string `yaml:"authUrl"`
+	AuthConns      int    `yaml:"authConns"`
 	WebuiDBName    string `yaml:"webuiDbName,omitempty"`
 	WebuiDBUrl     string `yaml:"webuiDbUrl,omitempty"`
+	WebuiDbConns   int    `yaml:"webuiDbConns"`
 	CheckReplica   bool   `yaml:"checkReplica,omitempty"`
-	ConcurrencyOps int16  `yaml:"concurrency-ops,omitempty"`
+	ConcurrencyOps int    `yaml:"concurrency-ops,omitempty"`
 }
 
 type RocEndpt struct {

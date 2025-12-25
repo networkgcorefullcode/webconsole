@@ -20,6 +20,9 @@ configuration:
     webuiDbUrl: "mongodb://172.28.31.5:27017/?replicaSet=rs0&connectTimeoutMS=10000"
     checkReplica: true
     concurrency-ops: 30
+    defaultConns: 500
+    authConns: 200
+    webuiDbConns: 200
 
   # ROC endpoint configuration
   managedByConfigPod:
@@ -28,7 +31,7 @@ configuration:
 
   vault:
     vault-uri: "http://127.0.0.1:8200"
-    allow-vault: true
+    allow-vault: false
     tls-insecure: true
     
     # AppRole authentication
@@ -50,7 +53,7 @@ configuration:
     concurrency-ops: 300
 
     ssm-synchronize:
-      enable: true
+      enable: false
       interval-minute: 180
       max-keys-create: 5
       delete-missing: true
