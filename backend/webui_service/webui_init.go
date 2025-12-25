@@ -60,11 +60,6 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 	} else {
 		configapi.AddApiService(subconfig_router)
 		configapi.AddConfigV1Service(subconfig_router, nFConfigSyncMiddleware)
-		if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
-			ssmsync.AddSyncSSMService(subconfig_router)
-		} else if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable {
-			vaultsync.AddSyncVaultService(subconfig_router)
-		}
 	}
 	AddSwaggerUiService(subconfig_router)
 	AddUiService(subconfig_router)
@@ -86,6 +81,9 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 	// Init a gorutine to sincronize SSM functionality
 	ssmSyncMsg := make(chan *ssm.SsmSyncMessage, 10)
 	if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable && factory.WebUIConfig.Configuration.SSM.AllowSsm {
+		if factory.WebUIConfig.Configuration.SSM.SsmSync.Enable {
+			ssmsync.AddSyncSSMService(subconfig_router)
+		}
 		err := syncSSM(ssmhsm.Ssmhsm, ssmSyncMsg)
 		if err != nil {
 			logger.AppLog.Errorf("SSM synchronization setup failed: %v", err)
@@ -95,6 +93,9 @@ func (webui *WEBUI) Start(ctx context.Context, syncChan chan<- struct{}) {
 
 	if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable && factory.WebUIConfig.Configuration.Vault.AllowVault {
 		vaultsync.SetSyncChanHandle(ssmSyncMsg)
+		if factory.WebUIConfig.Configuration.Vault.SsmSync.Enable {
+			vaultsync.AddSyncVaultService(subconfig_router)
+		}
 		err := syncSSM(vault.Vault, ssmSyncMsg)
 		if err != nil {
 			logger.AppLog.Errorf("Vault synchronization setup failed: %v", err)
