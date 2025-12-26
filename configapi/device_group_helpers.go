@@ -6,6 +6,7 @@ package configapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -158,14 +159,40 @@ func handleDeviceGroupPost(devGroup *configmodels.DeviceGroups, prevDevGroup *co
 	}
 	logger.AppLog.Infof("DB operation result for device group %s: %v",
 		devGroup.DeviceGroupName, result)
+	statusCode, err := syncSubConcurrentlyInGroup(devGroup, prevDevGroup)
 
-	statusCode, err := syncDeviceGroupSubscriber(devGroup, prevDevGroup)
 	if err != nil {
 		logger.WebUILog.Errorln(err.Error())
 		return statusCode, err
 	}
 	logger.AppLog.Debugf("succeeded to post device group data for %s", devGroup.DeviceGroupName)
 	return http.StatusOK, nil
+}
+
+func syncSubConcurrentlyInGroup(devGroup *configmodels.DeviceGroups, prevDevGroup *configmodels.DeviceGroups) (int, error) {
+	syncSliceStopMutex.Lock()
+	if SyncSliceStop {
+		syncSliceStopMutex.Unlock()
+		return http.StatusServiceUnavailable, errors.New("error: the sync function is running")
+	}
+	SyncSliceStop = true
+	syncSliceStopMutex.Unlock()
+
+	go func() {
+		defer func() {
+			syncSliceStopMutex.Lock()
+			SyncSliceStop = false
+			syncSliceStopMutex.Unlock()
+		}()
+
+		_, err := syncDeviceGroupSubscriber(devGroup, prevDevGroup)
+		if err != nil {
+			logger.AppLog.Errorf("error syncing subscribers: %s", err)
+		}
+
+	}()
+
+	return 0, nil // Retorno inmediato, operación en background
 }
 
 func syncDeviceGroupSubscriber(devGroup *configmodels.DeviceGroups, prevDevGroup *configmodels.DeviceGroups) (int, error) {

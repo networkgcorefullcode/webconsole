@@ -18,7 +18,7 @@
       style: simple
     responses:
       "200":
-        description: successfully created network slice
+        description: successfully deleted network slice
   post:
     description: Configure network slice
     parameters:
@@ -38,6 +38,10 @@
     responses:
       "201":
         description: successfully created network slice
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/slices/slice.yaml'
   put:
     description: Update network slice information
     parameters:
@@ -56,4 +60,8 @@
             $ref: '../schemas/slices/slice.yaml'
     responses:
       "201":
-        description: successfully created network slice
+        description: successfully updated network slice
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/slices/slice.yaml'

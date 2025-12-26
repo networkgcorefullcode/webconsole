@@ -88,6 +88,8 @@ export class NetworkSliceManager extends BaseManager {
             const sd = slice['slice-id']?.sd || 'N/A';
             const siteName = slice['site-info']?.['site-name'] || 'N/A';
             const deviceGroups = slice['site-device-group'] || [];
+            const gNodeBs = slice['site-info']?.gNodeBs || [];
+            const appRules = slice['application-filtering-rules'] || [];
             
             html += `
                 <tr class="network-slice-row" onclick="showNetworkSliceDetails('${sliceName}')" style="cursor: pointer;">
@@ -98,6 +100,7 @@ export class NetworkSliceManager extends BaseManager {
                     <td>
                         <span class="badge bg-secondary">${deviceGroups.length} groups</span>
                         ${deviceGroups.length > 0 ? `<br><small class="text-muted">${deviceGroups.join(', ')}</small>` : ''}
+                        <br><small class="text-info">${gNodeBs.length} gNodeBs, ${appRules.length} rules</small>
                     </td>
                     <td onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-primary me-1" 
@@ -154,25 +157,18 @@ export class NetworkSliceManager extends BaseManager {
             </div>
 
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="mb-3">
                         <label class="form-label">MCC (Mobile Country Code)</label>
                         <input type="text" class="form-control" id="mcc" 
                                placeholder="e.g., 001" pattern="[0-9]{3}" maxlength="3" required>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="mb-3">
                         <label class="form-label">MNC (Mobile Network Code)</label>
                         <input type="text" class="form-control" id="mnc" 
                                placeholder="e.g., 01" pattern="[0-9]{2,3}" maxlength="3" required>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label class="form-label">TAC (Tracking Area Code)</label>
-                        <input type="number" class="form-control" id="tac" 
-                               placeholder="e.g., 1" min="1" max="16777215" required>
                     </div>
                 </div>
             </div>
@@ -187,29 +183,69 @@ export class NetworkSliceManager extends BaseManager {
             </div>
 
             <h6 class="mt-4 mb-3">gNodeB Configuration</h6>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">gNodeB Name</label>
-                        <input type="text" class="form-control" id="gnb_name" 
-                               placeholder="e.g., gnb-1">
+            <div id="gnb-container">
+                <div class="gnb-entry row mb-3">
+                    <div class="col-md-5">
+                        <div class="mb-3">
+                            <label class="form-label">gNodeB Name</label>
+                            <input type="text" class="form-control gnb-name" 
+                                   placeholder="e.g., gnb-1" required>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">gNodeB TAC</label>
-                        <input type="number" class="form-control" id="gnb_tac" 
-                               placeholder="e.g., 1" min="1" max="16777215">
+                    <div class="col-md-5">
+                        <div class="mb-3">
+                            <label class="form-label">gNodeB TAC</label>
+                            <input type="number" class="form-control gnb-tac" 
+                                   placeholder="e.g., 1" min="1" max="16777215" required>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-danger mb-3" onclick="removeGnb(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             </div>
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addGnb()">
+                <i class="fas fa-plus"></i> Add gNodeB
+            </button>
 
             <h6 class="mt-4 mb-3">UPF Configuration</h6>
-            <div class="mb-3">
-                <label class="form-label">UPF Name</label>
-                <input type="text" class="form-control" id="upf_name" 
-                       placeholder="e.g., upf-1">
+            <div id="upf-container">
+                <div class="upf-entry row mb-3">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label">UPF Name</label>
+                            <input type="text" class="form-control upf-name" 
+                                   placeholder="e.g., upf-1.example.com">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label">UPF Port</label>
+                            <input type="number" class="form-control upf-port" 
+                                   placeholder="8805" min="1" max="65535">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-danger mb-3" onclick="removeUpf(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addUpf()">
+                <i class="fas fa-plus"></i> Add UPF
+            </button>
+
+            <h6 class="mt-4 mb-3">Application Filtering Rules</h6>
+            <div id="app-rules-container">
+                <!-- Default rule will be added automatically by backend if empty -->
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addApplicationRule()">
+                <i class="fas fa-plus"></i> Add Application Rule
+            </button>
+            <div class="form-text mb-3">If no rules are specified, a default 'permit any' rule will be created automatically.</div>
         `;
     }
 
@@ -240,13 +276,19 @@ export class NetworkSliceManager extends BaseManager {
             errors.push('MNC must be 2 or 3 digits');
         }
         
-        if (!data.tac || String(data.tac).trim() === '') {
-            errors.push('TAC (Tracking Area Code) is required');
+        // Validate gNodeBs collected from form
+        const gNodeBs = this.collectGnbData();
+        if (gNodeBs.length === 0) {
+            errors.push('At least one gNodeB is required');
         } else {
-            const tacNum = parseInt(data.tac);
-            if (isNaN(tacNum) || tacNum < 1 || tacNum > 16777215) {
-                errors.push('TAC must be a number between 1 and 16777215');
-            }
+            gNodeBs.forEach((gnb, index) => {
+                if (!gnb.name || String(gnb.name).trim() === '') {
+                    errors.push(`gNodeB ${index + 1}: Name is required`);
+                }
+                if (!gnb.tac || isNaN(gnb.tac) || gnb.tac < 1 || gnb.tac > 16777215) {
+                    errors.push(`gNodeB ${index + 1}: TAC must be between 1 and 16777215`);
+                }
+            });
         }
         
         return {
@@ -267,20 +309,14 @@ export class NetworkSliceManager extends BaseManager {
             }
         }
 
-        // Prepare gNodeBs array
-        const gNodeBs = [];
-        if (formData.gnb_name && formData.gnb_name.trim() !== '') {
-            gNodeBs.push({
-                "name": formData.gnb_name,
-                "tac": formData.gnb_tac ? parseInt(formData.gnb_tac) : 1
-            });
-        }
+        // Prepare gNodeBs array - use data from edit form if in edit mode
+        const gNodeBs = isEdit && formData.gNodeBs ? formData.gNodeBs : this.collectGnbData();
+        
+        // Prepare application filtering rules - use data from edit form if in edit mode
+        const appRules = isEdit && formData.applicationRules ? formData.applicationRules : this.collectApplicationRules();
 
-        // Prepare UPF object
-        const upf = {};
-        if (formData.upf_name && formData.upf_name.trim() !== '') {
-            upf[formData.upf_name] = {};
-        }
+        // Prepare UPF object - use data from edit form if in edit mode
+        const upf = isEdit && formData.upf ? formData.upf : this.collectUpfData();
 
         return {
             "slice-name": formData.slice_name,
@@ -298,7 +334,7 @@ export class NetworkSliceManager extends BaseManager {
                 "gNodeBs": gNodeBs,
                 "upf": upf
             },
-            "application-filtering-rules": []
+            "application-filtering-rules": appRules
         };
     }
 
@@ -364,7 +400,6 @@ export class NetworkSliceManager extends BaseManager {
                 this.setFieldValue('site_name', siteInfo['site-name']);
                 this.setFieldValue('mcc', siteInfo.plmn?.mcc);
                 this.setFieldValue('mnc', siteInfo.plmn?.mnc);
-                this.setFieldValue('tac', siteInfo.plmn?.tac);
                 
                 // Populate device groups
                 const deviceGroups = data['site-device-group'] || [];
@@ -375,19 +410,17 @@ export class NetworkSliceManager extends BaseManager {
                     });
                 }
                 
-                // Populate gNodeB info
+                // Populate multiple gNodeBs
                 const gNodeBs = siteInfo.gNodeBs || [];
-                if (gNodeBs.length > 0) {
-                    this.setFieldValue('gnb_name', gNodeBs[0].name);
-                    this.setFieldValue('gnb_tac', gNodeBs[0].tac);
-                }
+                this.loadGnbData(gNodeBs);
                 
                 // Populate UPF info
                 const upf = siteInfo.upf || {};
-                const upfNames = Object.keys(upf);
-                if (upfNames.length > 0) {
-                    this.setFieldValue('upf_name', upfNames[0]);
-                }
+                this.loadUpfData(upf);
+                
+                // Populate application filtering rules
+                const appRules = data['application-filtering-rules'] || [];
+                this.loadApplicationRules(appRules);
             }
         } catch (error) {
             console.error('Failed to load item data:', error);
@@ -499,9 +532,6 @@ export class NetworkSliceManager extends BaseManager {
                             <div class="mb-2">
                                 <strong>MNC:</strong> <code>${plmn.mnc || 'N/A'}</code>
                             </div>
-                            <div class="mb-2">
-                                <strong>TAC:</strong> <code>${plmn.tac || 'N/A'}</code>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -528,14 +558,20 @@ export class NetworkSliceManager extends BaseManager {
 
                     <div class="card mb-3">
                         <div class="card-header">
-                            <h6 class="mb-0"><i class="fas fa-tower-broadcast me-2"></i>gNodeBs</h6>
+                            <h6 class="mb-0"><i class="fas fa-tower-broadcast me-2"></i>gNodeBs (${gNodeBs.length})</h6>
                         </div>
                         <div class="card-body">
                             ${gNodeBs.length > 0 ? `
-                                ${gNodeBs.map(gnb => `
-                                    <div class="mb-2">
-                                        <strong>Name:</strong> ${gnb.name || 'N/A'}<br>
-                                        <strong>TAC:</strong> <code>${gnb.tac || 'N/A'}</code>
+                                ${gNodeBs.map((gnb, index) => `
+                                    <div class="mb-3 ${index < gNodeBs.length - 1 ? 'border-bottom pb-2' : ''}">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <strong>Name:</strong> ${gnb.name || 'N/A'}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <strong>TAC:</strong> <code>${gnb.tac || 'N/A'}</code>
+                                            </div>
+                                        </div>
                                     </div>
                                 `).join('')}
                             ` : '<p class="text-muted">No gNodeBs configured</p>'}
@@ -548,13 +584,116 @@ export class NetworkSliceManager extends BaseManager {
                         </div>
                         <div class="card-body">
                             ${Object.keys(upf).length > 0 ? `
-                                <div class="mb-2">
-                                    <strong>UPF Names:</strong>
-                                    <div class="mt-2">
-                                        ${Object.keys(upf).map(upfName => `<span class="badge bg-info text-dark me-1">${upfName}</span>`).join('')}
-                                    </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>UPF Name</th>
+                                                <th>Port</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${Object.entries(upf).map(([upfName, upfConfig]) => `
+                                                <tr>
+                                                    <td><strong>${upfName}</strong></td>
+                                                    <td><code>${upfConfig['upf-port'] || 'N/A'}</code></td>
+                                                    <td><span class="badge bg-success">Active</span></td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
                                 </div>
                             ` : '<p class="text-muted">No UPF configured</p>'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Application Filtering Rules (${(sliceData['application-filtering-rules'] || []).length})</h6>
+                        </div>
+                        <div class="card-body">
+                            ${(sliceData['application-filtering-rules'] || []).length > 0 ? `
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Rule Name</th>
+                                                <th>Priority</th>
+                                                <th>Action</th>
+                                                <th>Endpoint</th>
+                                                <th>Protocol</th>
+                                                <th>Port Range</th>
+                                                <th>Bitrate</th>
+                                                <th>Traffic Class</th>
+                                                <th>Trigger</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${sliceData['application-filtering-rules'].map((rule, index) => `
+                                                <tr>
+                                                    <td><strong>${rule['rule-name'] || `Rule-${index + 1}`}</strong></td>
+                                                    <td><span class="badge bg-primary">${rule.priority !== undefined ? rule.priority : 'N/A'}</span></td>
+                                                    <td>
+                                                        <span class="badge ${rule.action === 'permit' ? 'bg-success' : rule.action === 'deny' ? 'bg-danger' : 'bg-secondary'}">
+                                                            ${rule.action || 'N/A'}
+                                                        </span>
+                                                    </td>
+                                                    <td><code>${rule.endpoint || 'any'}</code></td>
+                                                    <td>${rule.protocol !== undefined ? `<code>${rule.protocol}</code>` : 'any'}</td>
+                                                    <td>
+                                                        ${rule['dest-port-start'] !== undefined || rule['dest-port-end'] !== undefined ? 
+                                                            `<code>${rule['dest-port-start'] || 'any'} - ${rule['dest-port-end'] || 'any'}</code>` : 
+                                                            '<span class="text-muted">any</span>'
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        ${rule['app-mbr-uplink'] !== undefined || rule['app-mbr-downlink'] !== undefined ? `
+                                                            <div class="small">
+                                                                ${rule['app-mbr-uplink'] !== undefined ? `<div>↑ ${rule['app-mbr-uplink']} ${rule['bitrate-unit'] || 'bps'}</div>` : ''}
+                                                                ${rule['app-mbr-downlink'] !== undefined ? `<div>↓ ${rule['app-mbr-downlink']} ${rule['bitrate-unit'] || 'bps'}</div>` : ''}
+                                                            </div>
+                                                        ` : '<span class="text-muted">unlimited</span>'}
+                                                    </td>
+                                                    <td>
+                                                        ${rule['traffic-class'] ? `
+                                                            <div class="small">
+                                                                <div><strong>${rule['traffic-class'].name || 'N/A'}</strong></div>
+                                                                ${rule['traffic-class'].qci !== undefined ? `<div>QCI: ${rule['traffic-class'].qci}</div>` : ''}
+                                                                ${rule['traffic-class'].arp !== undefined ? `<div>ARP: ${rule['traffic-class'].arp}</div>` : ''}
+                                                                ${rule['traffic-class'].pdb !== undefined ? `<div>PDB: ${rule['traffic-class'].pdb}ms</div>` : ''}
+                                                                ${rule['traffic-class'].pelr !== undefined ? `<div>PELR: ${rule['traffic-class'].pelr}</div>` : ''}
+                                                            </div>
+                                                        ` : '<span class="text-muted">default</span>'}
+                                                    </td>
+                                                    <td>
+                                                        ${rule['rule-trigger'] ? `<code>${rule['rule-trigger']}</code>` : '<span class="text-muted">auto</span>'}
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-3 p-2 bg-light rounded">
+                                    <small class="text-muted">
+                                        <strong>Legend:</strong> 
+                                        Priority (0=lowest, higher numbers = higher priority) | 
+                                        Actions: <span class="badge bg-success">permit</span> <span class="badge bg-danger">deny</span> | 
+                                        Protocol: TCP=6, UDP=17, ICMP=1 | 
+                                        Bitrate units: bps, Kbps, Mbps, Gbps
+                                    </small>
+                                </div>
+                            ` : `
+                                <div class="text-center p-4">
+                                    <i class="fas fa-filter fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">No application filtering rules configured</p>
+                                    <small class="text-muted">When no rules are specified, a default 'permit any' rule is automatically applied</small>
+                                </div>
+                            `}
                         </div>
                     </div>
                 </div>
@@ -653,7 +792,7 @@ export class NetworkSliceManager extends BaseManager {
                                            value="${siteInfo['site-name'] || ''}" placeholder="e.g., site-1" required>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">MCC</label>
                                             <input type="text" class="form-control" id="edit_mcc" 
@@ -661,20 +800,12 @@ export class NetworkSliceManager extends BaseManager {
                                                    pattern="[0-9]{3}" maxlength="3" required>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">MNC</label>
                                             <input type="text" class="form-control" id="edit_mnc" 
                                                    value="${plmn.mnc || ''}" placeholder="e.g., 01" 
                                                    pattern="[0-9]{2,3}" maxlength="3" required>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label class="form-label">TAC</label>
-                                            <input type="number" class="form-control" id="edit_tac" 
-                                                   value="${plmn.tac || ''}" placeholder="e.g., 1" 
-                                                   min="1" max="16777215" required>
                                         </div>
                                     </div>
                                 </div>
@@ -700,41 +831,54 @@ export class NetworkSliceManager extends BaseManager {
 
                         <div class="card mb-3">
                             <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-tower-broadcast me-2"></i>gNodeB Configuration</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="fas fa-tower-broadcast me-2"></i>gNodeB Configuration</h6>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addGnb()">
+                                        <i class="fas fa-plus"></i> Add gNodeB
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">gNodeB Name</label>
-                                            <input type="text" class="form-control" id="edit_gnb_name" 
-                                                   value="${gNodeBs.length > 0 ? gNodeBs[0].name || '' : ''}" 
-                                                   placeholder="e.g., gnb-1">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">gNodeB TAC</label>
-                                            <input type="number" class="form-control" id="edit_gnb_tac" 
-                                                   value="${gNodeBs.length > 0 ? gNodeBs[0].tac || '' : ''}" 
-                                                   placeholder="e.g., 1" min="1" max="16777215">
-                                        </div>
-                                    </div>
+                                <div id="gnb-container">
+                                    <!-- gNodeBs will be loaded dynamically -->
                                 </div>
                             </div>
                         </div>
 
                         <div class="card mb-3">
                             <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-server me-2"></i>UPF Configuration</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="fas fa-server me-2"></i>UPF Configuration</h6>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addUpf()">
+                                        <i class="fas fa-plus"></i> Add UPF
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body">
-                                <div class="mb-3">
-                                    <label class="form-label">UPF Name</label>
-                                    <input type="text" class="form-control" id="edit_upf_name" 
-                                           value="${Object.keys(upf).length > 0 ? Object.keys(upf)[0] : ''}" 
-                                           placeholder="e.g., upf-1">
+                                <div id="upf-container">
+                                    <!-- UPFs will be loaded dynamically -->
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Application Filtering Rules</h6>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addApplicationRule()">
+                                        <i class="fas fa-plus"></i> Add Rule
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="app-rules-container">
+                                    <!-- Application rules will be loaded dynamically -->
+                                </div>
+                                <div class="form-text">If no rules are specified, a default 'permit any' rule will be created automatically.</div>
                             </div>
                         </div>
                     </div>
@@ -788,11 +932,13 @@ export class NetworkSliceManager extends BaseManager {
             site_name: document.getElementById('edit_site_name')?.value || '',
             mcc: document.getElementById('edit_mcc')?.value || '',
             mnc: document.getElementById('edit_mnc')?.value || '',
-            tac: document.getElementById('edit_tac')?.value || '',
             site_device_group: selectedGroups,
-            gnb_name: document.getElementById('edit_gnb_name')?.value || '',
-            gnb_tac: document.getElementById('edit_gnb_tac')?.value || '',
-            upf_name: document.getElementById('edit_upf_name')?.value || ''
+            // Collect gNodeBs data
+            gNodeBs: this.collectGnbData(),
+            // Collect UPF data
+            upf: this.collectUpfData(),
+            // Collect Application Filtering Rules data
+            applicationRules: this.collectApplicationRules()
         };
     }
 
@@ -843,9 +989,27 @@ export class NetworkSliceManager extends BaseManager {
             editView.style.display = 'block';
             editBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
             
-            // Load device groups when entering edit mode
+            // Load device groups and gNodeBs when entering edit mode
             this.loadDeviceGroupsForEdit();
+            
+            // Load current gNodeBs data into edit form
+            const siteInfo = this.currentSliceData['site-info'] || {};
+            const gNodeBs = siteInfo.gNodeBs || [];
+            this.loadGnbData(gNodeBs);
+            
+            // Load current UPF data into edit form
+            const upf = siteInfo.upf || {};
+            this.loadUpfData(upf);
+            
+            // Load current Application Filtering Rules into edit form
+            const appRules = this.currentSliceData['application-filtering-rules'] || [];
+            this.loadApplicationRules(appRules);
         }
+    }
+
+    // Helper method to get current slice data
+    getCurrentSliceData() {
+        return this.currentSliceData;
     }
 
     async deleteFromDetails() {
@@ -861,4 +1025,464 @@ export class NetworkSliceManager extends BaseManager {
             window.app?.notificationManager?.showNotification(`Failed to delete network slice: ${error.message}`, 'error');
         }
     }
+
+    // gNodeB Management Methods
+    collectGnbData() {
+        const gNodeBs = [];
+        const gnbEntries = document.querySelectorAll('.gnb-entry');
+        
+        gnbEntries.forEach(entry => {
+            const name = entry.querySelector('.gnb-name')?.value?.trim();
+            const tac = entry.querySelector('.gnb-tac')?.value;
+            
+            if (name && tac) {
+                gNodeBs.push({
+                    "name": name,
+                    "tac": parseInt(tac)
+                });
+            }
+        });
+        
+        return gNodeBs;
+    }
+
+    loadGnbData(gNodeBs) {
+        const container = document.getElementById('gnb-container');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (gNodeBs.length === 0) {
+            gNodeBs.push({ name: '', tac: '' }); // Add empty entry
+        }
+        
+        gNodeBs.forEach((gnb, index) => {
+            const gnbHtml = `
+                <div class="gnb-entry row mb-3">
+                    <div class="col-md-5">
+                        <div class="mb-3">
+                            <label class="form-label">gNodeB Name</label>
+                            <input type="text" class="form-control gnb-name" 
+                                   placeholder="e.g., gnb-${index + 1}" value="${gnb.name || ''}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="mb-3">
+                            <label class="form-label">gNodeB TAC</label>
+                            <input type="number" class="form-control gnb-tac" 
+                                   placeholder="e.g., ${index + 1}" min="1" max="16777215" 
+                                   value="${gnb.tac || ''}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-danger mb-3" onclick="removeGnb(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', gnbHtml);
+        });
+    }
+
+    // Application Rules Management Methods
+    collectApplicationRules() {
+        const rules = [];
+        const ruleEntries = document.querySelectorAll('.app-rule-entry');
+        
+        ruleEntries.forEach(entry => {
+            const ruleName = entry.querySelector('.rule-name')?.value?.trim();
+            const priority = entry.querySelector('.rule-priority')?.value;
+            const action = entry.querySelector('.rule-action')?.value;
+            const endpoint = entry.querySelector('.rule-endpoint')?.value?.trim();
+            const protocol = entry.querySelector('.rule-protocol')?.value;
+            const startPort = entry.querySelector('.rule-start-port')?.value;
+            const endPort = entry.querySelector('.rule-end-port')?.value;
+            const ruleTrigger = entry.querySelector('.rule-trigger')?.value?.trim();
+            const mbrUplink = entry.querySelector('.rule-mbr-uplink')?.value;
+            const mbrDownlink = entry.querySelector('.rule-mbr-downlink')?.value;
+            const bitrateUnit = entry.querySelector('.rule-bitrate-unit')?.value || 'bps';
+            
+            // Traffic class fields
+            const tcName = entry.querySelector('.tc-name')?.value?.trim();
+            const tcQci = entry.querySelector('.tc-qci')?.value;
+            const tcArp = entry.querySelector('.tc-arp')?.value;
+            const tcPdb = entry.querySelector('.tc-pdb')?.value;
+            const tcPelr = entry.querySelector('.tc-pelr')?.value;
+            
+            if (ruleName && action && endpoint) {
+                rules.push({
+                    "rule-name": ruleName,
+                    "priority": parseInt(priority) || 0,
+                    "action": action,
+                    "endpoint": endpoint,
+                    "protocol": parseInt(protocol) || 0,
+                    "dest-port-start": parseInt(startPort) || 0,
+                    "dest-port-end": parseInt(endPort) || 65535,
+                    "rule-trigger": ruleTrigger || "",
+                    "app-mbr-uplink": parseInt(mbrUplink) || 0,
+                    "app-mbr-downlink": parseInt(mbrDownlink) || 0,
+                    "bitrate-unit": bitrateUnit,
+                    "traffic-class": {
+                        "name": tcName || "default",
+                        "qci": parseInt(tcQci) || 9,
+                        "arp": parseInt(tcArp) || 8,
+                        "pdb": parseInt(tcPdb) || 100,
+                        "pelr": parseInt(tcPelr) || 6
+                    }
+                });
+            }
+        });
+        
+        return rules;
+    }
+
+    loadApplicationRules(rules) {
+        const container = document.getElementById('app-rules-container');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        rules.forEach((rule, index) => {
+            this.addApplicationRuleEntry(rule, index);
+        });
+    }
+
+    addApplicationRuleEntry(rule = null, index = 0) {
+        const container = document.getElementById('app-rules-container');
+        if (!container) return;
+        
+        const ruleHtml = `
+            <div class="app-rule-entry card mb-3">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Application Rule ${index + 1}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeApplicationRule(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Rule Name</label>
+                                <input type="text" class="form-control rule-name" 
+                                       placeholder="e.g., rule-${index + 1}" value="${rule?.['rule-name'] || ''}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Priority</label>
+                                <input type="number" class="form-control rule-priority" 
+                                       placeholder="0" min="0" value="${rule?.priority || 0}">
+                                <div class="form-text">Higher number = higher priority</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Action</label>
+                                <select class="form-select rule-action" required>
+                                    <option value="permit" ${rule?.action === 'permit' ? 'selected' : ''}>Permit</option>
+                                    <option value="deny" ${rule?.action === 'deny' ? 'selected' : ''}>Deny</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Endpoint</label>
+                                <input type="text" class="form-control rule-endpoint" 
+                                       placeholder="e.g., any or 192.168.1.0/24" value="${rule?.endpoint || 'any'}" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Protocol</label>
+                                <input type="number" class="form-control rule-protocol" 
+                                       placeholder="0 (any)" min="0" max="255" value="${rule?.protocol || 0}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Start Port</label>
+                                <input type="number" class="form-control rule-start-port" 
+                                       placeholder="0" min="0" max="65535" value="${rule?.['dest-port-start'] || 0}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">End Port</label>
+                                <input type="number" class="form-control rule-end-port" 
+                                       placeholder="65535" min="0" max="65535" value="${rule?.['dest-port-end'] || 65535}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Rule Trigger</label>
+                                <input type="text" class="form-control rule-trigger" 
+                                       placeholder="Optional trigger" value="${rule?.['rule-trigger'] || ''}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">MBR Uplink (${rule?.['bitrate-unit'] || 'bps'})</label>
+                                <input type="number" class="form-control rule-mbr-uplink" 
+                                       placeholder="0" min="0" value="${rule?.['app-mbr-uplink'] || 0}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">MBR Downlink (${rule?.['bitrate-unit'] || 'bps'})</label>
+                                <input type="number" class="form-control rule-mbr-downlink" 
+                                       placeholder="0" min="0" value="${rule?.['app-mbr-downlink'] || 0}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Bitrate Unit</label>
+                                <select class="form-select rule-bitrate-unit">
+                                    <option value="bps" ${rule?.['bitrate-unit'] === 'bps' ? 'selected' : ''}>bps</option>
+                                    <option value="kbps" ${rule?.['bitrate-unit'] === 'kbps' ? 'selected' : ''}>Kbps</option>
+                                    <option value="mbps" ${rule?.['bitrate-unit'] === 'mbps' ? 'selected' : ''}>Mbps</option>
+                                    <option value="gbps" ${rule?.['bitrate-unit'] === 'gbps' ? 'selected' : ''}>Gbps</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Traffic Class Configuration</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">Traffic Class Name</label>
+                                        <input type="text" class="form-control tc-name" 
+                                               placeholder="default" value="${rule?.['traffic-class']?.name || 'default'}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">QCI</label>
+                                        <input type="number" class="form-control tc-qci" 
+                                               placeholder="9" min="1" max="9" value="${rule?.['traffic-class']?.qci || 9}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">ARP</label>
+                                        <input type="number" class="form-control tc-arp" 
+                                               placeholder="8" min="1" max="15" value="${rule?.['traffic-class']?.arp || 8}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label class="form-label">PDB (ms)</label>
+                                        <input type="number" class="form-control tc-pdb" 
+                                               placeholder="100" min="0" value="${rule?.['traffic-class']?.pdb || 100}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="form-label">PELR</label>
+                                        <input type="number" class="form-control tc-pelr" 
+                                               placeholder="6" min="1" max="8" value="${rule?.['traffic-class']?.pelr || 6}" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="form-text">
+                                        <strong>QCI:</strong> QoS Class Identifier (1-9) | 
+                                        <strong>ARP:</strong> Allocation Retention Priority (1-15) | 
+                                        <strong>PDB:</strong> Packet Delay Budget | 
+                                        <strong>PELR:</strong> Packet Error Loss Rate (1-8)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', ruleHtml);
+    }
+
+    // UPF Management Methods
+    collectUpfData() {
+        const upfs = {};
+        const upfEntries = document.querySelectorAll('.upf-entry');
+        
+        upfEntries.forEach(entry => {
+            const name = entry.querySelector('.upf-name')?.value?.trim();
+            const port = entry.querySelector('.upf-port')?.value;
+            
+            if (name) {
+                upfs[name] = {
+                    'upf-port': port ? parseInt(port) : undefined
+                };
+            }
+        });
+        
+        return upfs;
+    }
+
+    loadUpfData(upfs) {
+        const container = document.getElementById('upf-container');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const upfEntries = Object.entries(upfs);
+        if (upfEntries.length === 0) {
+            upfEntries.push(['', {}]); // Add empty entry
+        }
+        
+        upfEntries.forEach(([upfName, upfConfig], index) => {
+            const upfHtml = `
+                <div class="upf-entry row mb-3">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label">UPF Name</label>
+                            <input type="text" class="form-control upf-name" 
+                                   placeholder="e.g., upf-${index + 1}.example.com" value="${upfName || ''}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label">UPF Port</label>
+                            <input type="number" class="form-control upf-port" 
+                                   placeholder="8805" min="1" max="65535" value="${upfConfig['upf-port'] || ''}">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-danger mb-3" onclick="removeUpf(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', upfHtml);
+        });
+    }
 }
+
+// Global helper functions for UI interactions
+window.addGnb = function() {
+    const container = document.getElementById('gnb-container');
+    if (!container) return;
+    
+    const gnbCount = container.querySelectorAll('.gnb-entry').length;
+    const gnbHtml = `
+        <div class="gnb-entry row mb-3">
+            <div class="col-md-5">
+                <div class="mb-3">
+                    <label class="form-label">gNodeB Name</label>
+                    <input type="text" class="form-control gnb-name" 
+                           placeholder="e.g., gnb-${gnbCount + 1}" required>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="mb-3">
+                    <label class="form-label">gNodeB TAC</label>
+                    <input type="number" class="form-control gnb-tac" 
+                           placeholder="e.g., ${gnbCount + 1}" min="1" max="16777215" required>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger mb-3" onclick="removeGnb(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', gnbHtml);
+};
+
+window.addUpf = function() {
+    const container = document.getElementById('upf-container');
+    if (!container) return;
+    
+    const upfCount = container.querySelectorAll('.upf-entry').length;
+    const upfHtml = `
+        <div class="upf-entry row mb-3">
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <label class="form-label">UPF Name</label>
+                    <input type="text" class="form-control upf-name" 
+                           placeholder="e.g., upf-${upfCount + 1}.example.com">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="mb-3">
+                    <label class="form-label">UPF Port</label>
+                    <input type="number" class="form-control upf-port" 
+                           placeholder="8805" min="1" max="65535">
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger mb-3" onclick="removeUpf(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', upfHtml);
+};
+
+window.removeUpf = function(button) {
+    const upfEntry = button.closest('.upf-entry');
+    const container = document.getElementById('upf-container');
+    
+    // Don't allow removing if it's the last one
+    if (container.querySelectorAll('.upf-entry').length > 1) {
+        upfEntry.remove();
+    } else {
+        // Clear the fields instead of removing the entry
+        upfEntry.querySelector('.upf-name').value = '';
+        upfEntry.querySelector('.upf-port').value = '';
+    }
+};
+
+window.removeGnb = function(button) {
+    const gnbEntry = button.closest('.gnb-entry');
+    const container = document.getElementById('gnb-container');
+    
+    // Don't allow removing if it's the last one
+    if (container.querySelectorAll('.gnb-entry').length > 1) {
+        gnbEntry.remove();
+    } else {
+        alert('At least one gNodeB is required');
+    }
+};
+
+window.addApplicationRule = function() {
+    const container = document.getElementById('app-rules-container');
+    if (!container) return;
+    
+    const ruleCount = container.querySelectorAll('.app-rule-entry').length;
+    
+    // Create a temporary NetworkSliceManager instance to use the method
+    const tempManager = new NetworkSliceManager();
+    tempManager.addApplicationRuleEntry(null, ruleCount);
+};
+
+window.removeApplicationRule = function(button) {
+    const ruleEntry = button.closest('.app-rule-entry');
+    ruleEntry.remove();
+};
+
+window.showNetworkSliceDetails = function(sliceName) {
+    // This should be handled by the main application
+    if (window.app && window.app.networkSliceManager) {
+        window.app.networkSliceManager.showDetails(sliceName);
+    } else {
+        console.warn('Network slice manager not available');
+    }
+};
