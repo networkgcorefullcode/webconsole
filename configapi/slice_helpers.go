@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/omec-project/openapi/models"
@@ -240,7 +241,7 @@ func handleNetworkSlicePost(slice configmodels.Slice, prevSlice configmodels.Sli
 	}
 	logger.AppLog.Debugf("succeeded to post slice data for %s", slice.SliceName)
 
-	statusCode, err := syncSubscribersOnSliceCreateOrUpdate(slice, prevSlice)
+	statusCode, err := syncSubscribersOnSliceCreateOrUpdatev2(slice, prevSlice)
 	if err != nil {
 		return statusCode, err
 	}
@@ -327,6 +328,124 @@ var syncSubscribersOnSliceCreateOrUpdate = func(slice configmodels.Slice, prevSl
 		return http.StatusInternalServerError, err
 	}
 	return http.StatusOK, nil
+}
+
+var syncSubscribersOnSliceCreateOrUpdatev2 = func(slice configmodels.Slice, prevSlice configmodels.Slice) (int, error) {
+	rwLock.Lock()
+	defer rwLock.Unlock()
+	logger.WebUILog.Debugln("insert/update Slice:", slice)
+	logger.AppLog.Debugf("syncSubscribersOnSliceCreateOrUpdate: slice=%s deviceGroups=%d", slice.SliceName, len(slice.SiteDeviceGroup))
+	if slice.SliceId.Sst == "" {
+		err := fmt.Errorf("missing SST in slice %s", slice.SliceName)
+		logger.AppLog.Error(err)
+		return http.StatusBadRequest, err
+	}
+	sVal, err := strconv.ParseUint(slice.SliceId.Sst, 10, 32)
+	if err != nil {
+		logger.AppLog.Errorf("could not parse SST %s", slice.SliceId.Sst)
+		return http.StatusBadRequest, err
+	}
+	snssai := &models.Snssai{
+		Sd:  slice.SliceId.Sd,
+		Sst: int32(sVal),
+	}
+	for _, dgName := range slice.SiteDeviceGroup {
+		logger.ConfigLog.Debugf("dgName: %s", dgName)
+		devGroupConfig := getDeviceGroupByName(dgName)
+		if devGroupConfig == nil {
+			logger.ConfigLog.Warnf("Device group not found: %s", dgName)
+			continue
+		}
+		logger.AppLog.Debugf("slice=%s dg=%s: inputIMSIs=%d", slice.SliceName, dgName, len(devGroupConfig.Imsis))
+
+		err = updateImsisConcurrently(devGroupConfig.Imsis, slice.SiteInfo.Plmn.Mcc, slice.SiteInfo.Plmn.Mnc, snssai,
+			devGroupConfig.IpDomainExpanded.Dnn, devGroupConfig.IpDomainExpanded.UeDnnQos)
+
+		if err != nil {
+			logger.AppLog.Errorf("concurrent update failed for device group %s: %v", dgName, err)
+			return http.StatusInternalServerError, err
+		}
+
+	}
+	if err := cleanupDeviceGroups(slice, prevSlice); err != nil {
+		return http.StatusInternalServerError, err
+	}
+	return http.StatusOK, nil
+}
+
+func updateImsisConcurrently(
+	imsis []string,
+	mcc string,
+	mnc string,
+	snssai *models.Snssai,
+	dnn string,
+	qos *configmodels.DeviceGroupsIpDomainExpandedUeDnnQos,
+) error {
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sem := make(chan struct{}, factory.WebUIConfig.Configuration.Mongodb.ConcurrencyOps)
+	errChan := make(chan error, 1)
+
+	var wg sync.WaitGroup
+
+	for _, imsi := range imsis {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		wg.Add(1)
+		sem <- struct{}{}
+		logger.AppLog.Debugf("Starting update for IMSI %s", imsi)
+		logger.AppLog.Debugf("len for pool operations is: %d", len(sem))
+
+		go func(imsi string) {
+			defer wg.Done()
+			defer func() {
+				<-sem
+				logger.AppLog.Debugf("Finished update for IMSI %s", imsi)
+				logger.AppLog.Debugf("len for pool operations is: %d", len(sem))
+			}()
+
+			// Si ya se canceló, no seguimos
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			if err := updatePolicyAndProvisionedData(
+				imsi,
+				mcc,
+				mnc,
+				snssai,
+				dnn,
+				qos,
+			); err != nil {
+
+				logger.AppLog.Errorf("error %v", err)
+
+				// Enviamos el error solo una vez
+				select {
+				case errChan <- err:
+					cancel() // 🔥 cancela todas las demás gorutinas
+				default:
+				}
+			}
+		}(imsi)
+	}
+
+	wg.Wait()
+
+	select {
+	case err := <-errChan:
+		return err
+	default:
+		return nil
+	}
 }
 
 func filterExistingIMSIsFromAuthDB(imsis []string) ([]string, error) {

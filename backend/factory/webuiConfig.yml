@@ -19,7 +19,7 @@ configuration:
     webuiDbName: aether
     webuiDbUrl: "mongodb://172.28.31.5:27017/?replicaSet=rs0&connectTimeoutMS=10000"
     checkReplica: true
-    concurrency-ops: 30
+    concurrency-ops: 5
     defaultConns: 500
     authConns: 200
     webuiDbConns: 200
