@@ -6,18 +6,33 @@
 package nfconfig
 
 import (
+	"fmt"
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/omec-project/openapi/nfConfigApi"
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
+	"github.com/omec-project/webconsole/configapi"
 	"github.com/omec-project/webconsole/configmodels"
+)
+
+const (
+	tcp int32 = 6
+	udp int32 = 17
 )
 
 type accessAndMobilityKey struct {
 	plmn    configmodels.SliceSiteInfoPlmn
 	sliceId configmodels.SliceSliceId
+}
+
+type imsiQosConfig struct {
+	imsis []string
+	dnn   string
+	qos   []nfConfigApi.ImsiQos
 }
 
 type inMemoryConfig struct {
@@ -26,7 +41,30 @@ type inMemoryConfig struct {
 	accessAndMobility []nfConfigApi.AccessAndMobility
 	sessionManagement []nfConfigApi.SessionManagement
 	policyControl     []nfConfigApi.PolicyControl
+	imsiQos           []imsiQosConfig
 }
+
+var defaultPccRule = nfConfigApi.NewPccRule(
+	"DefaultRule",
+	[]nfConfigApi.PccFlow{
+		{
+			Description: "permit out ip from any to assigned",
+			Direction:   nfConfigApi.DIRECTION_BIDIRECTIONAL,
+			Status:      nfConfigApi.STATUS_ENABLED,
+		},
+	},
+	*nfConfigApi.NewPccQos(
+		9,
+		"1 Mbps",
+		"1 Mbps",
+		*nfConfigApi.NewArp(
+			1,
+			nfConfigApi.PREEMPTCAP_MAY_PREEMPT,
+			nfConfigApi.PREEMPTVULN_PREEMPTABLE,
+		),
+	),
+	255,
+)
 
 func (c *inMemoryConfig) syncPlmn(slices []configmodels.Slice) {
 	plmnSet := make(map[nfConfigApi.PlmnId]bool)
@@ -207,7 +245,7 @@ func (c *inMemoryConfig) syncSessionManagement(slices []configmodels.Slice, devi
 	})
 
 	c.sessionManagement = sessionConfigs
-	logger.NfConfigLog.Debugf("Updated Session Management configuration with %d slices: %+v", len(sessionConfigs), c.sessionManagement)
+	logger.NfConfigLog.Debugf("updated Session Management configuration with %d slices: %+v", len(sessionConfigs), c.sessionManagement)
 }
 
 func buildSessionManagementConfig(slice configmodels.Slice, deviceGroupMap map[string]configmodels.DeviceGroups) (*nfConfigApi.SessionManagement, bool) {
@@ -215,7 +253,7 @@ func buildSessionManagementConfig(slice configmodels.Slice, deviceGroupMap map[s
 
 	snssai, err := parseSnssaiFromSlice(slice.SliceId)
 	if err != nil {
-		logger.NfConfigLog.Errorf("Invalid SNSSAI for slice %s: %+v", slice.SliceName, err)
+		logger.NfConfigLog.Errorf("invalid SNSSAI for slice %s: %+v", slice.SliceName, err)
 		return nil, false
 	}
 	session := nfConfigApi.NewSessionManagement(slice.SliceName, *plmn, snssai)
@@ -274,14 +312,27 @@ func extractUpf(slice configmodels.Slice) *nfConfigApi.Upf {
 	upf := nfConfigApi.NewUpf(hostname)
 
 	if portRaw, ok := upfMap["upf-port"]; ok {
-		if portStr, ok := portRaw.(string); ok {
-			if port, err := strconv.ParseUint(portStr, 10, 16); err == nil {
+		switch v := portRaw.(type) {
+		case string:
+			if port, err := strconv.ParseUint(v, 10, 16); err == nil {
 				upf.SetPort(int32(port))
 			} else {
 				logger.NfConfigLog.Warnf("invalid UPF port for slice %s: %+v", slice.SliceName, err)
 			}
-		} else {
-			logger.NfConfigLog.Warnf("UPF port should be a string for slice %s, got: %T", slice.SliceName, portRaw)
+		case float64:
+			if v >= 0 && v <= 65535 {
+				upf.SetPort(int32(v))
+			} else {
+				logger.NfConfigLog.Warnf("UPF port out of valid range (0-65535) for slice %s: %v", slice.SliceName, v)
+			}
+		case int:
+			if v >= 0 && v <= 65535 {
+				upf.SetPort(int32(v))
+			} else {
+				logger.NfConfigLog.Warnf("UPF port out of valid range (0-65535) for slice %s: %v", slice.SliceName, v)
+			}
+		default:
+			logger.NfConfigLog.Warnf("UPF port should be a string or number for slice %s, got: %T", slice.SliceName, v)
 		}
 	}
 	return upf
@@ -296,7 +347,186 @@ func extractGnbNames(slice configmodels.Slice) []string {
 	return names
 }
 
-func (c *inMemoryConfig) syncPolicyControl() {
-	c.policyControl = []nfConfigApi.PolicyControl{}
+func (c *inMemoryConfig) syncPolicyControl(slices []configmodels.Slice, deviceGroupMap map[string]configmodels.DeviceGroups) {
+	policyControlConfigs := []nfConfigApi.PolicyControl{}
+
+	for _, slice := range slices {
+		policyControl, ok := buildPolicyControlConfig(slice, deviceGroupMap)
+		if ok {
+			policyControlConfigs = append(policyControlConfigs, *policyControl)
+		}
+	}
+	sortPolicyControl(policyControlConfigs)
+	c.policyControl = policyControlConfigs
 	logger.NfConfigLog.Debugf("Updated Policy Control in-memory configuration. New configuration: %+v", c.policyControl)
+}
+
+func sortPolicyControl(policyControl []nfConfigApi.PolicyControl) {
+	sort.Slice(policyControl, func(i, j int) bool {
+		if policyControl[i].PlmnId.GetMcc() != policyControl[j].PlmnId.GetMcc() {
+			return policyControl[i].PlmnId.GetMcc() < policyControl[j].PlmnId.GetMcc()
+		}
+		if policyControl[i].PlmnId.GetMnc() != policyControl[j].PlmnId.GetMnc() {
+			return policyControl[i].PlmnId.GetMnc() < policyControl[j].PlmnId.GetMnc()
+		}
+		if policyControl[i].Snssai.GetSst() != policyControl[j].Snssai.GetSst() {
+			return policyControl[i].Snssai.GetSst() < policyControl[j].Snssai.GetSst()
+		}
+		if policyControl[i].Snssai.HasSd() != policyControl[j].Snssai.HasSd() {
+			return !policyControl[i].Snssai.HasSd()
+		}
+		return policyControl[i].Snssai.GetSd() < policyControl[j].Snssai.GetSd()
+	})
+}
+
+func buildPolicyControlConfig(slice configmodels.Slice, deviceGroups map[string]configmodels.DeviceGroups) (*nfConfigApi.PolicyControl, bool) {
+	plmn := nfConfigApi.NewPlmnId(slice.SiteInfo.Plmn.Mcc, slice.SiteInfo.Plmn.Mnc)
+
+	snssai, err := parseSnssaiFromSlice(slice.SliceId)
+	if err != nil {
+		logger.NfConfigLog.Errorf("invalid SNSSAI for slice %s: %+v", slice.SliceName, err)
+		return nil, false
+	}
+	pccRules := buildSlicePccRules(slice)
+	dnns := getSupportedDnns(slice, deviceGroups)
+	policyControl := nfConfigApi.NewPolicyControl(*plmn, snssai, dnns, pccRules)
+
+	return policyControl, true
+}
+
+func buildSlicePccRules(slice configmodels.Slice) []nfConfigApi.PccRule {
+	/* Implementation assumes that the validation of a Network Slice configuration is done upon group creation/modification.
+	At the time of implementing this, validation is not done, but planned.
+
+	TODO: Remove this comment once Device Group validation is implemented.
+	*/
+	pccRules := []nfConfigApi.PccRule{}
+
+	for _, ruleConfig := range slice.ApplicationFilteringRules {
+		ruleId := ruleConfig.RuleName
+		flows := buildPccFlows(ruleConfig)
+		qos := buildPccQos(ruleConfig)
+		precedence := ruleConfig.Priority
+
+		pccRule := nfConfigApi.NewPccRule(ruleId, flows, qos, precedence)
+		pccRules = append(pccRules, *pccRule)
+	}
+
+	// If slice has no PCC rules, add a default one
+	if len(pccRules) == 0 {
+		pccRules = append(pccRules, *defaultPccRule)
+	}
+	sort.Slice(pccRules, func(i, j int) bool {
+		if pccRules[i].Precedence != pccRules[j].Precedence {
+			return pccRules[i].Precedence < pccRules[j].Precedence
+		}
+		return pccRules[i].RuleId < pccRules[j].RuleId
+	})
+	return pccRules
+}
+
+func buildPccFlows(ruleConfig configmodels.SliceApplicationFilteringRules) []nfConfigApi.PccFlow {
+	pccFlows := []nfConfigApi.PccFlow{}
+
+	description := buildFlowDescription(ruleConfig)
+	var status nfConfigApi.Status
+	if ruleConfig.Action == "deny" {
+		status = nfConfigApi.STATUS_DISABLED
+	} else {
+		status = nfConfigApi.STATUS_ENABLED
+	}
+
+	flowInfo := nfConfigApi.NewPccFlow(
+		description,
+		nfConfigApi.DIRECTION_BIDIRECTIONAL,
+		status,
+	)
+
+	pccFlows = append(pccFlows, *flowInfo)
+	return pccFlows
+}
+
+func buildFlowDescription(ruleConfig configmodels.SliceApplicationFilteringRules) string {
+	endp := ruleConfig.Endpoint
+	if strings.HasPrefix(endp, "0.0.0.0") {
+		endp = "any"
+	}
+
+	switch ruleConfig.Protocol {
+	case tcp:
+		return buildDescription("tcp", endp, ruleConfig.StartPort, ruleConfig.EndPort)
+	case udp:
+		return buildDescription("udp", endp, ruleConfig.StartPort, ruleConfig.EndPort)
+	default:
+		return fmt.Sprintf("permit out ip from %s to assigned", endp)
+	}
+}
+
+func buildDescription(protocol, endpoint string, startPort, endPort int32) string {
+	if startPort == 0 && endPort == 0 {
+		return fmt.Sprintf("permit out %s from %s to assigned", protocol, endpoint)
+	} else if factory.WebUIConfig.Configuration.SdfComp {
+		return fmt.Sprintf("permit out %s from %s %s-%s to assigned", protocol, endpoint, strconv.FormatInt(int64(startPort), 10), strconv.FormatInt(int64(endPort), 10))
+	} else {
+		return fmt.Sprintf("permit out %s from %s to assigned %s-%s", protocol, endpoint, strconv.FormatInt(int64(startPort), 10), strconv.FormatInt(int64(endPort), 10))
+	}
+}
+
+func getSupportedDnns(slice configmodels.Slice, deviceGroups map[string]configmodels.DeviceGroups) []string {
+	dnns := []string{}
+
+	for _, dgName := range slice.SiteDeviceGroup {
+		deviceGroup, exists := deviceGroups[dgName]
+		if !exists {
+			logger.NfConfigLog.Warnf("DeviceGroup %s not found", dgName)
+			continue
+		}
+		dnn := deviceGroup.IpDomainExpanded.Dnn
+		dnns = append(dnns, dnn)
+	}
+	sort.Strings(dnns)
+	return dnns
+}
+
+func buildPccQos(ruleConfig configmodels.SliceApplicationFilteringRules) nfConfigApi.PccQos {
+	pccQos := nfConfigApi.NewPccQos(
+		ruleConfig.TrafficClass.Qci,
+		configapi.ConvertToString(uint64(ruleConfig.AppMbrUplink)),
+		configapi.ConvertToString(uint64(ruleConfig.AppMbrDownlink)),
+		*nfConfigApi.NewArp(
+			ruleConfig.TrafficClass.Arp,
+			nfConfigApi.PREEMPTCAP_MAY_PREEMPT,
+			nfConfigApi.PREEMPTVULN_PREEMPTABLE,
+		),
+	)
+	return *pccQos
+}
+
+func (c *inMemoryConfig) syncImsiQos(deviceGroupMap map[string]configmodels.DeviceGroups) {
+	/* Implementation assumes that the validation of a Device Group configuration is done upon group creation/modification.
+	At the time of implementing this, validation is not done, but planned.
+
+	TODO: Remove this comment once Device Group validation is implemented.
+	*/
+	imsiQosConfigs := []imsiQosConfig{}
+	for _, dg := range deviceGroupMap {
+		imsiQos := extractQosConfigFromDeviceGroup(dg)
+		newImsiQosConfig := imsiQosConfig{
+			imsis: dg.Imsis,
+			dnn:   dg.IpDomainExpanded.Dnn,
+			qos:   []nfConfigApi.ImsiQos{imsiQos},
+		}
+		imsiQosConfigs = append(imsiQosConfigs, newImsiQosConfig)
+	}
+	c.imsiQos = imsiQosConfigs
+	logger.NfConfigLog.Debugf("Updated IMSI QoS in-memory configuration. New configuration: %+v", c.imsiQos)
+}
+
+func extractQosConfigFromDeviceGroup(group configmodels.DeviceGroups) nfConfigApi.ImsiQos {
+	return *nfConfigApi.NewImsiQos(
+		configapi.ConvertToString(uint64(group.IpDomainExpanded.UeDnnQos.DnnMbrUplink)),
+		configapi.ConvertToString(uint64(group.IpDomainExpanded.UeDnnQos.DnnMbrDownlink)),
+		group.IpDomainExpanded.UeDnnQos.TrafficClass.Qci,
+		group.IpDomainExpanded.UeDnnQos.TrafficClass.Arp,
+	)
 }

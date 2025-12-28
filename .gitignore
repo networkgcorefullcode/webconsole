@@ -31,3 +31,10 @@ public/
 vendor/
 config/webuicfg.yaml
 server.exe
+webconsole.exe
+webconsole.exe~
+webconsole
+*.crt
+*.key
+*.pem
+*.csr

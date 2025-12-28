@@ -35,7 +35,7 @@ func init() {
 func (context *WEBUIContext) UpdateNfProfiles() {
 	nfProfilesRaw, errGetMany := dbadapter.CommonDBClient.RestfulAPIGetMany("NfProfile", nil)
 	if errGetMany != nil {
-		logger.DbLog.Warnln(errGetMany)
+		logger.AppLog.Warnln(errGetMany)
 	}
 	nfProfiles, err := decode(nfProfilesRaw, time.RFC3339)
 	if err != nil {
@@ -116,15 +116,15 @@ func WEBUI_Self() *WEBUIContext {
 }
 
 // Copy from lib/TimeDecode/TimeDecode.go
-func decode(source interface{}, format string) ([]models.NfProfile, error) {
+func decode(source any, format string) ([]models.NfProfile, error) {
 	var target []models.NfProfile
 
 	// config mapstruct
 	stringToDateTimeHook := func(
 		f reflect.Type,
 		t reflect.Type,
-		data interface{},
-	) (interface{}, error) {
+		data any,
+	) (any, error) {
 		if t == reflect.TypeOf(time.Time{}) && f == reflect.TypeOf("") {
 			return time.Parse(format, data.(string))
 		}

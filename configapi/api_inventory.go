@@ -12,19 +12,13 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/omec-project/webconsole/backend/factory"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/configmodels"
 	"github.com/omec-project/webconsole/dbadapter"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var configChannel chan *configmodels.ConfigMessage
-
-func SetChannel(cfgChannel chan *configmodels.ConfigMessage) {
-	logger.ConfigLog.Infoln("setting configChannel")
-	configChannel = cfgChannel
-}
 
 func setInventoryCorsHeader(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -51,7 +45,7 @@ func GetGnbs(c *gin.Context) {
 	gnbs = make([]*configmodels.Gnb, 0)
 	rawGnbs, err := dbadapter.CommonDBClient.RestfulAPIGetMany(configmodels.GnbDataColl, bson.M{})
 	if err != nil {
-		logger.DbLog.Errorf("failed to retrieve gNBs with error: %+v", err)
+		logger.AppLog.Errorf("failed to retrieve gNBs with error: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve gNBs"})
 		return
 	}
@@ -60,12 +54,30 @@ func GetGnbs(c *gin.Context) {
 		var gnbData configmodels.Gnb
 		err = json.Unmarshal(configmodels.MapToByte(rawGnb), &gnbData)
 		if err != nil {
-			logger.DbLog.Errorf("could not unmarshal gNB %s", rawGnb)
+			logger.AppLog.Errorf("could not unmarshal gNB %s", rawGnb)
 		}
 		gnbs = append(gnbs, &gnbData)
 	}
 	logger.WebUILog.Infoln("successfully executed GET gNBs request")
 	c.JSON(http.StatusOK, gnbs)
+}
+
+func GetGnb(c *gin.Context) {
+	setInventoryCorsHeader(c)
+	logger.WebUILog.Infoln("received a GET gNB request")
+	var gnb *configmodels.Gnb
+	rawGnb, err := dbadapter.CommonDBClient.RestfulAPIGetOne(configmodels.GnbDataColl, bson.M{"name": c.Param("gnbName")})
+	if err != nil {
+		logger.AppLog.Errorf("failed to retrieve gNB with error: %+v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve gNB"})
+		return
+	}
+	err = json.Unmarshal(configmodels.MapToByte(rawGnb), &gnb)
+	if err != nil {
+		logger.AppLog.Errorf("could not unmarshal gNB %s", rawGnb)
+	}
+	logger.WebUILog.Infoln("successfully executed GET gNB request")
+	c.JSON(http.StatusOK, gnb)
 }
 
 // PostGnb godoc
@@ -106,6 +118,23 @@ func PostGnb(c *gin.Context) {
 		}
 	}
 	gnb := configmodels.Gnb(postGnbParams)
+	// operate with normal mongodb database
+	if !factory.WebUIConfig.Configuration.Mongodb.CheckReplica {
+		if err := postGnbOperationWithOutContext(gnb); err != nil {
+			logger.WebUILog.Errorf("failed to post gNB in network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "post error"})
+			return
+		}
+
+		if err := updateGnbInNetworkSlices(gnb); err != nil {
+			logger.WebUILog.Errorf("failed to update gNB in network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "update error"})
+			return
+		}
+		logger.WebUILog.Infof("successfully executed POST gNB %s request", postGnbParams.Name)
+		c.JSON(http.StatusCreated, gin.H{})
+		return
+	}
 	if err := executeGnbTransaction(c.Request.Context(), gnb, updateGnbInNetworkSlices, postGnbOperation); err != nil {
 		if strings.Contains(err.Error(), "E11000") {
 			logger.WebUILog.Errorf("duplicate gNB name found error: %+v", err)
@@ -123,7 +152,13 @@ func PostGnb(c *gin.Context) {
 func postGnbOperation(sc mongo.SessionContext, gnb configmodels.Gnb) error {
 	filter := bson.M{"name": gnb.Name}
 	gnbDataBson := configmodels.ToBsonM(gnb)
-	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.GnbDataColl, filter, []interface{}{gnbDataBson})
+	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.GnbDataColl, filter, []any{gnbDataBson})
+}
+
+func postGnbOperationWithOutContext(gnb configmodels.Gnb) error {
+	filter := bson.M{"name": gnb.Name}
+	gnbDataBson := configmodels.ToBsonM(gnb)
+	return dbadapter.CommonDBClient.RestfulAPIPostMany(configmodels.GnbDataColl, filter, []any{gnbDataBson})
 }
 
 // PutGnb godoc
@@ -166,6 +201,23 @@ func PutGnb(c *gin.Context) {
 		Name: gnbName,
 		Tac:  &putGnbParams.Tac,
 	}
+	// operate with normal mongodb database
+	if !factory.WebUIConfig.Configuration.Mongodb.CheckReplica {
+		if err := putGnbOperationWithOutContext(putGnb); err != nil {
+			logger.WebUILog.Errorf("failed to post gNB in network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "post error"})
+			return
+		}
+
+		if err := updateGnbInNetworkSlices(putGnb); err != nil {
+			logger.WebUILog.Errorf("failed to update gNB in network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "update error"})
+			return
+		}
+		logger.WebUILog.Infof("successfully executed POST gNB %s request", putGnb.Name)
+		c.JSON(http.StatusCreated, gin.H{})
+		return
+	}
 	if err := executeGnbTransaction(c.Request.Context(), putGnb, updateGnbInNetworkSlices, putGnbOperation); err != nil {
 		logger.WebUILog.Errorf("failed to PUT gNB name: %s error: %+v", gnbName, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to PUT gNB"})
@@ -179,6 +231,12 @@ func putGnbOperation(sc mongo.SessionContext, gnb configmodels.Gnb) error {
 	filter := bson.M{"name": gnb.Name}
 	gnbDataBson := configmodels.ToBsonM(gnb)
 	_, err := dbadapter.CommonDBClient.RestfulAPIPutOneWithContext(sc, configmodels.GnbDataColl, filter, gnbDataBson)
+	return err
+}
+func putGnbOperationWithOutContext(gnb configmodels.Gnb) error {
+	filter := bson.M{"name": gnb.Name}
+	gnbDataBson := configmodels.ToBsonM(gnb)
+	_, err := dbadapter.CommonDBClient.RestfulAPIPutOne(configmodels.GnbDataColl, filter, gnbDataBson)
 	return err
 }
 
@@ -226,6 +284,23 @@ func DeleteGnb(c *gin.Context) {
 	gnb := configmodels.Gnb{
 		Name: gnbName,
 	}
+	// operate with normal mongodb database
+	if !factory.WebUIConfig.Configuration.Mongodb.CheckReplica {
+		if err := deleteGnbOperationWithOutContext(gnb); err != nil {
+			logger.WebUILog.Errorf("failed to delete gNB: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "delete error"})
+			return
+		}
+
+		if err := removeGnbFromNetworkSlices(gnb); err != nil {
+			logger.WebUILog.Errorf("failed to remove gNB from network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "update error"})
+			return
+		}
+		logger.WebUILog.Infof("successfully executed DELETE gNB %s request", gnbName)
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
 	err := executeGnbTransaction(c.Request.Context(), gnb, removeGnbFromNetworkSlices, deleteGnbOperation)
 	if err != nil {
 		logger.WebUILog.Errorf("failed to delete GNB with name %s error: %+v", gnbName, err)
@@ -239,6 +314,11 @@ func DeleteGnb(c *gin.Context) {
 func deleteGnbOperation(sc mongo.SessionContext, gnb configmodels.Gnb) error {
 	filter := bson.M{"name": gnb.Name}
 	return dbadapter.CommonDBClient.RestfulAPIDeleteOneWithContext(sc, configmodels.GnbDataColl, filter)
+}
+
+func deleteGnbOperationWithOutContext(gnb configmodels.Gnb) error {
+	filter := bson.M{"name": gnb.Name}
+	return dbadapter.CommonDBClient.RestfulAPIDeleteOne(configmodels.GnbDataColl, filter)
 }
 
 func removeGnbFromNetworkSlices(gnb configmodels.Gnb) error {
@@ -270,14 +350,14 @@ func executeGnbTransaction(ctx context.Context, gnb configmodels.Gnb, nsOperatio
 		}
 		if err = gnbOperation(sc, gnb); err != nil {
 			if abortErr := session.AbortTransaction(sc); abortErr != nil {
-				logger.DbLog.Errorf("failed to abort transaction with error: %+v", abortErr)
+				logger.AppLog.Errorf("failed to abort transaction with error: %+v", abortErr)
 			}
 			return err
 		}
 		err = nsOperation(gnb)
 		if err != nil {
 			if abortErr := session.AbortTransaction(sc); abortErr != nil {
-				logger.DbLog.Errorf("failed to abort transaction with error: %+v", abortErr)
+				logger.AppLog.Errorf("failed to abort transaction with error: %+v", abortErr)
 			}
 			return fmt.Errorf("failed to update network slices: %w", err)
 		}
@@ -303,7 +383,7 @@ func GetUpfs(c *gin.Context) {
 	upfs = make([]*configmodels.Upf, 0)
 	rawUpfs, err := dbadapter.CommonDBClient.RestfulAPIGetMany(configmodels.UpfDataColl, bson.M{})
 	if err != nil {
-		logger.DbLog.Errorf("failed to retrieve UPFs with error: %+v", err)
+		logger.AppLog.Errorf("failed to retrieve UPFs with error: %+v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve UPFs"})
 		return
 	}
@@ -312,7 +392,7 @@ func GetUpfs(c *gin.Context) {
 		var upfData configmodels.Upf
 		err := json.Unmarshal(configmodels.MapToByte(rawUpf), &upfData)
 		if err != nil {
-			logger.DbLog.Errorf("could not unmarshal UPF %s", rawUpf)
+			logger.AppLog.Errorf("could not unmarshal UPF %s", rawUpf)
 		}
 		upfs = append(upfs, &upfData)
 	}
@@ -357,6 +437,23 @@ func PostUpf(c *gin.Context) {
 		return
 	}
 	upf := configmodels.Upf(postUpfParams)
+	// operate with normal mongodb database
+	if !factory.WebUIConfig.Configuration.Mongodb.CheckReplica {
+		if err := postUpfOperationWithOutContext(upf); err != nil {
+			logger.WebUILog.Errorf("failed to post UPF: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "post error"})
+			return
+		}
+
+		if err := updateUpfInNetworkSlices(upf); err != nil {
+			logger.WebUILog.Errorf("failed to update UPF in network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "update error"})
+			return
+		}
+		logger.WebUILog.Infof("successfully executed POST UPF %s request", postUpfParams.Hostname)
+		c.JSON(http.StatusCreated, gin.H{})
+		return
+	}
 	if err = executeUpfTransaction(c.Request.Context(), upf, updateUpfInNetworkSlices, postUpfOperation); err != nil {
 		if strings.Contains(err.Error(), "E11000") {
 			logger.WebUILog.Errorf("duplicate hostname found with error: %+v", err)
@@ -377,7 +474,16 @@ func postUpfOperation(sc mongo.SessionContext, upf configmodels.Upf) error {
 	if upfDataBson == nil {
 		return fmt.Errorf("failed to serialize UPF")
 	}
-	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.UpfDataColl, filter, []interface{}{upfDataBson})
+	return dbadapter.CommonDBClient.RestfulAPIPostManyWithContext(sc, configmodels.UpfDataColl, filter, []any{upfDataBson})
+}
+
+func postUpfOperationWithOutContext(upf configmodels.Upf) error {
+	filter := bson.M{"hostname": upf.Hostname}
+	upfDataBson := configmodels.ToBsonM(upf)
+	if upfDataBson == nil {
+		return fmt.Errorf("failed to serialize UPF")
+	}
+	return dbadapter.CommonDBClient.RestfulAPIPostMany(configmodels.UpfDataColl, filter, []any{upfDataBson})
 }
 
 // PutUpf godoc
@@ -421,6 +527,23 @@ func PutUpf(c *gin.Context) {
 		Hostname: hostname,
 		Port:     putUpfParams.Port,
 	}
+	// operate with normal mongodb database
+	if !factory.WebUIConfig.Configuration.Mongodb.CheckReplica {
+		if err := putUpfOperationWithOutContext(putUpf); err != nil {
+			logger.WebUILog.Errorf("failed to put UPF: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "put error"})
+			return
+		}
+
+		if err := updateUpfInNetworkSlices(putUpf); err != nil {
+			logger.WebUILog.Errorf("failed to update UPF in network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "update error"})
+			return
+		}
+		logger.WebUILog.Infof("successfully executed PUT UPF request for hostname: %s", hostname)
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
 	if err := executeUpfTransaction(c.Request.Context(), putUpf, updateUpfInNetworkSlices, putUpfOperation); err != nil {
 		logger.WebUILog.Errorf("failed to PUT UPF with hostname: %s with error: %+v", hostname, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to PUT UPF"})
@@ -440,10 +563,20 @@ func putUpfOperation(sc mongo.SessionContext, upf configmodels.Upf) error {
 	return err
 }
 
+func putUpfOperationWithOutContext(upf configmodels.Upf) error {
+	filter := bson.M{"hostname": upf.Hostname}
+	upfDataBson := configmodels.ToBsonM(upf)
+	if upfDataBson == nil {
+		return fmt.Errorf("failed to serialize UPF")
+	}
+	_, err := dbadapter.CommonDBClient.RestfulAPIPutOne(configmodels.UpfDataColl, filter, upfDataBson)
+	return err
+}
+
 func updateUpfInNetworkSlices(upf configmodels.Upf) error {
 	filterByUpf := bson.M{"site-info.upf.upf-name": upf.Hostname}
 	statusCode, err := updateInventoryInNetworkSlices(filterByUpf, func(networkSlice *configmodels.Slice) {
-		networkSlice.SiteInfo.Upf = map[string]interface{}{
+		networkSlice.SiteInfo.Upf = map[string]any{
 			"upf-name": upf.Hostname,
 			"upf-port": upf.Port,
 		}
@@ -481,6 +614,23 @@ func DeleteUpf(c *gin.Context) {
 	upf := configmodels.Upf{
 		Hostname: hostname,
 	}
+	// operate with normal mongodb database
+	if !factory.WebUIConfig.Configuration.Mongodb.CheckReplica {
+		if err := deleteUpfOperationWithOutContext(upf); err != nil {
+			logger.WebUILog.Errorf("failed to delete UPF: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "delete error"})
+			return
+		}
+
+		if err := removeUpfFromNetworkSlices(upf); err != nil {
+			logger.WebUILog.Errorf("failed to remove UPF from network slices: %+v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "update error"})
+			return
+		}
+		logger.WebUILog.Infof("successfully executed DELETE UPF request for hostname: %s", hostname)
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
 	if err := executeUpfTransaction(c.Request.Context(), upf, removeUpfFromNetworkSlices, deleteUpfOperation); err != nil {
 		logger.WebUILog.Errorf("failed to delete UPF with hostname: %s with error: %+v", hostname, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete UPF"})
@@ -493,6 +643,11 @@ func DeleteUpf(c *gin.Context) {
 func deleteUpfOperation(sc mongo.SessionContext, upf configmodels.Upf) error {
 	filter := bson.M{"hostname": upf.Hostname}
 	return dbadapter.CommonDBClient.RestfulAPIDeleteOneWithContext(sc, configmodels.UpfDataColl, filter)
+}
+
+func deleteUpfOperationWithOutContext(upf configmodels.Upf) error {
+	filter := bson.M{"hostname": upf.Hostname}
+	return dbadapter.CommonDBClient.RestfulAPIDeleteOne(configmodels.UpfDataColl, filter)
 }
 
 func removeUpfFromNetworkSlices(upf configmodels.Upf) error {
@@ -520,14 +675,14 @@ func executeUpfTransaction(ctx context.Context, upf configmodels.Upf, nsOperatio
 		}
 		if err = upfOperation(sc, upf); err != nil {
 			if abortErr := session.AbortTransaction(sc); abortErr != nil {
-				logger.DbLog.Errorf("failed to abort transaction with error: %+v", abortErr)
+				logger.AppLog.Errorf("failed to abort transaction with error: %+v", abortErr)
 			}
 			return err
 		}
 		err = nsOperation(upf)
 		if err != nil {
 			if abortErr := session.AbortTransaction(sc); abortErr != nil {
-				logger.DbLog.Errorf("failed to abort transaction with error: %+v", abortErr)
+				logger.AppLog.Errorf("failed to abort transaction with error: %+v", abortErr)
 			}
 			return fmt.Errorf("failed to update network slices: %+v", err)
 		}
@@ -541,7 +696,6 @@ func updateInventoryInNetworkSlices(filter bson.M, updateFunc func(*configmodels
 		return http.StatusInternalServerError, fmt.Errorf("failed to fetch network slices: %w", err)
 	}
 
-	var messages []*configmodels.ConfigMessage
 	for _, rawNetworkSlice := range rawNetworkSlices {
 		var networkSlice configmodels.Slice
 		if err = json.Unmarshal(configmodels.MapToByte(rawNetworkSlice), &networkSlice); err != nil {
@@ -550,20 +704,9 @@ func updateInventoryInNetworkSlices(filter bson.M, updateFunc func(*configmodels
 		prevSlice := getSliceByName(networkSlice.SliceName)
 		updateFunc(&networkSlice)
 		if statusCode, err := updateNS(networkSlice, *prevSlice); err != nil {
-			logger.ConfigLog.Errorf("Error updating slice %s: %+v", networkSlice.SliceName, err)
+			logger.ConfigLog.Errorf("error updating slice %s: %+v", networkSlice.SliceName, err)
 			return statusCode, err
 		}
-		msg := &configmodels.ConfigMessage{
-			MsgMethod: configmodels.Post_op,
-			MsgType:   configmodels.Network_slice,
-			Slice:     &networkSlice,
-			SliceName: networkSlice.SliceName,
-		}
-		messages = append(messages, msg)
-	}
-	for _, msg := range messages {
-		configChannel <- msg
-		logger.ConfigLog.Infof("network slice [%s] update sent to config channel", msg.SliceName)
 	}
 	return http.StatusOK, nil
 }

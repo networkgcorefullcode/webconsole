@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 stages:
   - init
   - install-dependencies
@@ -27,4 +28,35 @@ initJob:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: '$CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "dev"'
+=======
+stages:
+  - init
+  - install-dependencies
+  - build
+  - update-version
+  #- check_registries
+
+include:
+  - component: $CI_SERVER_FQDN/5g/cicd-components/${NF_TEMPLATE_FILE}@${CICD_COMPONENTS_REF}
+    inputs:
+      stage: build
+      stage_helm: update-version
+      tags: [aether-runner-3]
+      project_id: "1268" # OnRamp
+      nfs_name: "webui"
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+        when: never
+      - if: '$CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "dev"'
+        when: always
+initJob:
+  stage: init
+  tags:
+    - doks
+  script:
+    - echo "hello world"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: '$CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "dev"'
+>>>>>>> dev
       when: always

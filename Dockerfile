@@ -30,6 +30,7 @@ COPY Taskfile.yml .
 
 RUN task mod-start
 
+
 COPY . .
 
 ARG BUILD_UI=true
