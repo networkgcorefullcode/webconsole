@@ -3,6 +3,7 @@ package apiclient
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/omec-project/webconsole/backend/factory"
@@ -10,9 +11,12 @@ import (
 )
 
 var vaultClient *vault.Client
+var mutexVaultClient sync.Mutex
 
 // GetVaultClient creates and returns a configured Vault API client
 func GetVaultClient() (*vault.Client, error) {
+	mutexVaultClient.Lock()
+	defer mutexVaultClient.Unlock()
 	if vaultClient != nil {
 		logger.AppLog.Debugf("Returning existing Vault client")
 		return vaultClient, nil

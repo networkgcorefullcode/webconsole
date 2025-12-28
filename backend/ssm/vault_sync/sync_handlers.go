@@ -7,6 +7,7 @@ import (
 	ssm_constants "github.com/networkgcorefullcode/ssm/const"
 	"github.com/omec-project/webconsole/backend/logger"
 	"github.com/omec-project/webconsole/backend/ssm"
+	"github.com/omec-project/webconsole/backend/ssm/apiclient"
 )
 
 var ssmSyncMessage chan *ssm.SsmSyncMessage
@@ -42,9 +43,16 @@ func handleSyncKey(c *gin.Context) {
 
 	logger.AppLog.Debug("All locks acquired, starting sync operations")
 
+	// Authenticate to Vault
+	_, err := apiclient.LoginVault()
+	if err != nil {
+		logger.AppLog.Errorf("Failed to authenticate to Vault: %v", err)
+		return
+	}
+
 	// Logic to synchronize our keys with Vault - this process checks if we have keys like AES
 	logger.AppLog.Debugf("Starting sync for internal keys with label: %s", ssm_constants.LABEL_ENCRYPTION_KEY_AES256)
-	SyncKeys(ssm_constants.LABEL_ENCRYPTION_KEY_AES256, "SYNC_OUR_KEYS")
+	syncOurKeys("SYNC_OUR_KEYS")
 	logger.AppLog.Debug("Internal keys sync completed")
 
 	// Logic to synchronize external keys with Vault
