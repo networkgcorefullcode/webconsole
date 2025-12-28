@@ -5,13 +5,6 @@ stages:
   - update-version
   #- check_registries
 
-workflow:
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "dev"'
-      when: always
-
 include:
   - component: $CI_SERVER_FQDN/5g/cicd-components/${NF_TEMPLATE_FILE}@${CICD_COMPONENTS_REF}
     inputs:
@@ -28,11 +21,10 @@ include:
 initJob:
   stage: init
   tags:
-    - aether-runner-3
+    - doks
   script:
     - echo "hello world"
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: '$CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "dev"'
       when: always
