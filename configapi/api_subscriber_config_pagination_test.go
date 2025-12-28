@@ -30,7 +30,7 @@ func (m *subscribersMockDB) RestfulAPIGetMany(coll string, filter bson.M) ([]map
 }
 
 func matchesSubscribersFilter(doc map[string]any, filter bson.M) bool {
-	if filter == nil || len(filter) == 0 {
+	if len(filter) == 0 {
 		return true
 	}
 	if andValue, ok := filter["$and"]; ok {

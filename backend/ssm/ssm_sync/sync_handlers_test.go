@@ -29,11 +29,26 @@ func TestSyncMutexesInitialized(t *testing.T) {
 	// We can't directly test mutex state, but we can test Lock/Unlock
 
 	SyncOurKeysMutex.Lock()
+	// Perform a basic operation to ensure the critical section is not empty
+	ourlocked := true
+	if !ourlocked {
+		t.Error("This should never happen")
+	}
 	SyncOurKeysMutex.Unlock()
 
 	SyncExternalKeysMutex.Lock()
+	// Perform a basic operation to ensure the critical section is not empty
+	extlocked := true
+	if !extlocked {
+		t.Error("This should never happen")
+	}
 	SyncExternalKeysMutex.Unlock()
 
 	SyncUserMutex.Lock()
+	// Perform a basic operation to ensure the critical section is not empty
+	userlocked := true
+	if !userlocked {
+		t.Error("This should never happen")
+	}
 	SyncUserMutex.Unlock()
 }
