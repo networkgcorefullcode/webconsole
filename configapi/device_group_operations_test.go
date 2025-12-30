@@ -271,15 +271,26 @@ func Test_handleDeviceGroupPost(t *testing.T) {
 	deviceGroups[3].IpDomainExpanded.UeDnnQos.TrafficClass = nil
 	deviceGroups[4].IpDomainExpanded.UeDnnQos = nil
 
+	syncDeviceGroupSubscriber = func(devGroup, prevDevGroup *configmodels.DeviceGroups) (int, error) {
+		return http.StatusOK, nil
+	}
+
+	originalDBClient := dbadapter.CommonDBClient
 	for _, testGroup := range deviceGroups {
 		dg := testGroup
 
+		for {
+			syncSliceStopMutex.Lock()
+			if !SyncSliceStop {
+				syncSliceStopMutex.Unlock()
+				t.Log("wait wait wait")
+				break
+			}
+			syncSliceStopMutex.Unlock()
+		}
+
 		t.Run(dg.DeviceGroupName, func(t *testing.T) {
 			mockDB := &DeviceGroupMockDBClient{}
-			originalDBClient := dbadapter.CommonDBClient
-			defer func() {
-				dbadapter.CommonDBClient = originalDBClient
-			}()
 			dbadapter.CommonDBClient = mockDB
 
 			statusCode, err := handleDeviceGroupPost(&dg, nil)
@@ -314,6 +325,25 @@ func Test_handleDeviceGroupPost(t *testing.T) {
 			}
 		})
 	}
+
+	// check the sync condition
+	dbadapter.CommonDBClient = originalDBClient
+	SyncSliceStop = true
+
+	t.Run("Check the syncSliceCondition", func(t *testing.T) {
+		mockDB := &DeviceGroupMockDBClient{}
+		dbadapter.CommonDBClient = mockDB
+
+		statusCode, err := handleDeviceGroupPost(&deviceGroups[0], nil)
+		if err != nil {
+			t.Logf("Could not handle device group post: %+v status code: %d", err, statusCode)
+		}
+		if err == nil {
+			t.Fatal("expected error due to sync condition, got nil")
+		}
+	})
+	dbadapter.CommonDBClient = originalDBClient
+	SyncSliceStop = false
 }
 
 func Test_handleDeviceGroupPost_alreadyExists(t *testing.T) {
@@ -328,14 +358,26 @@ func Test_handleDeviceGroupPost_alreadyExists(t *testing.T) {
 	deviceGroups[3].IpDomainExpanded.UeDnnQos.TrafficClass = nil
 	deviceGroups[4].IpDomainExpanded.UeDnnQos = nil
 
+	syncDeviceGroupSubscriber = func(devGroup, prevDevGroup *configmodels.DeviceGroups) (int, error) {
+		return http.StatusOK, nil
+	}
+
+	originalDBClient := dbadapter.CommonDBClient
+
 	for _, testGroup := range deviceGroups {
 		dg := testGroup
 
+		for {
+			syncSliceStopMutex.Lock()
+			if !SyncSliceStop {
+				syncSliceStopMutex.Unlock()
+				t.Log("wait wait wait")
+				break
+			}
+			syncSliceStopMutex.Unlock()
+		}
+
 		t.Run(dg.DeviceGroupName, func(t *testing.T) {
-			originalDBClient := dbadapter.CommonDBClient
-			defer func() {
-				dbadapter.CommonDBClient = originalDBClient
-			}()
 			mock := &DeviceGroupMockDBClient{configuredDeviceGroups: []configmodels.DeviceGroups{dg}}
 			dbadapter.CommonDBClient = mock
 
@@ -371,6 +413,7 @@ func Test_handleDeviceGroupPost_alreadyExists(t *testing.T) {
 			}
 		})
 	}
+	dbadapter.CommonDBClient = originalDBClient
 }
 
 func Test_handleDeviceGroupDelete(t *testing.T) {
