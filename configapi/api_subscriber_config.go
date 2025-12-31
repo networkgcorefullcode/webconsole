@@ -642,7 +642,7 @@ func PostSubscriberByID(c *gin.Context) {
 		subsOverrideData.EncryptionAlgorithm = &ceroValue
 	}
 	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 8 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Encription Algoritm is not valid: Encription Algoritm must be between 0 and 4", "request_id": requestID})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "encryption Algorithm is not valid: encryption Algorithm must be between 0 and 4", "request_id": requestID})
 		return
 	}
 
@@ -676,7 +676,7 @@ func PostSubscriberByID(c *gin.Context) {
 		authSubsData.K4_SNO = *subsOverrideData.K4Sno
 	}
 
-	if err := assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {
+	if err = assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":      fmt.Sprintf("Failed to create subscriber %s", ueId),
 			"request_id": requestID,
@@ -751,7 +751,7 @@ func PutSubscriberByID(c *gin.Context) {
 		subsOverrideData.EncryptionAlgorithm = &ceroValue
 	}
 	if *subsOverrideData.EncryptionAlgorithm < 0 || *subsOverrideData.EncryptionAlgorithm > 8 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Encription Algoritm is not valid: Encription Algoritm must be between 0 and 4", "request_id": requestID})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "encryption Algorithm is not valid: encryption Algorithm must be between 0 and 4", "request_id": requestID})
 		return
 	}
 	authSubsData := models.AuthenticationSubscription{
@@ -786,7 +786,7 @@ func PutSubscriberByID(c *gin.Context) {
 		authSubsData.K4_SNO = 0
 	}
 
-	if err := assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {
+	if err = assingK4Key(subsOverrideData.K4Sno, &authSubsData); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":      fmt.Sprintf("Failed to create subscriber %s", ueId),
 			"request_id": requestID,
@@ -933,7 +933,6 @@ func assingK4Key(k4Sno *byte, authSubsData *models.AuthenticationSubscription) e
 		var k4Data configmodels.K4
 
 		k4DataInterface, err := dbadapter.AuthDBClient.RestfulAPIGetOne(K4KeysColl, filter)
-
 		if err != nil {
 			logger.AppLog.Errorf("failed to fetch k4 key data from DB: %+v", err)
 			return err
